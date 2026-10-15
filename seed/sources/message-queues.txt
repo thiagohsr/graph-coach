@@ -1,0 +1,45 @@
+Message queues: passing work between programs
+
+A message queue is infrastructure that lets one program hand work to another without waiting for the answer. The program that creates work puts a message into the queue and moves on. Another program takes the message out later and does the work. This text describes producers and consumers, acknowledgements, delivery guarantees, dead-letter queues, and back-pressure.
+
+Producers and consumers
+
+A producer is any program that sends messages to a queue. A consumer is any program that receives them. A message is a small package of data, for example the identifier of an order that needs an invoice, with some metadata such as a creation time. The queue sits between the two sides and stores messages until a consumer is ready.
+
+This arrangement decouples the sides in three ways. They do not need to run at the same time, because the queue holds messages while a consumer is down. They do not need to run at the same speed, because the queue absorbs bursts: a producer may send a thousand messages in a second even if the consumer handles ten per second. And they do not need to know about each other, since the producer only knows the name of the queue.
+
+Several consumers can read from the same queue to share the work. Each message is normally delivered to one of them, so adding consumers increases throughput.
+Acknowledgements
+
+What happens when a consumer takes a message and then crashes? If the queue deleted the message at delivery, the work would be lost. To avoid this, queues use acknowledgements. When the queue hands a message to a consumer, it does not delete it. It marks the message as in flight and starts a timer. The consumer processes the message and then sends an acknowledgement, often called an ack, which tells the queue that the work is done and the message can be removed.
+
+If the acknowledgement does not arrive before the timer expires, the queue assumes the consumer failed and makes the message available again so another consumer can try. A consumer can also reject a message explicitly, often called a nack, to ask for it to be delivered again. The timeout must be chosen with care. If it is shorter than the work really takes, the queue will deliver the same message to a second consumer while the first is still working.
+
+Delivery guarantees
+
+This behaviour gives at-least-once delivery. Every message is delivered one or more times and never lost, but the same message can arrive twice. This happens when a consumer finishes the work and crashes before its acknowledgement reaches the queue, or when the network drops the acknowledgement. The queue cannot tell this case from a consumer that never did the work, so it delivers again.
+
+There are two other models. At-most-once delivery removes the message when it is sent and never retries. Nothing is processed twice, but a crash can lose a message. Exactly-once delivery is much harder, and over an unreliable network it cannot be achieved by the queue alone.
+
+The practical answer is to combine at-least-once delivery with idempotent consumers. A consumer is idempotent if processing a message twice has the same effect as processing it once. A simple way to get there is to give every message a unique identifier and keep a record of the identifiers already handled. When a duplicate arrives, the consumer finds the identifier in the record, skips the work, and acknowledges the message.
+Retries and poison messages
+
+Some messages can never be processed successfully. The data may be malformed, or it may refer to something that no longer exists. If the consumer fails and the queue delivers the message again each time, the failure repeats forever and uses capacity that other work needs. Such a message is called a poison message.
+
+A retry policy limits the damage by counting deliveries and waiting a growing delay between attempts, so that a temporary fault such as a database restart has time to clear.
+
+Dead-letter queues
+
+When a message has exceeded its maximum number of attempts, the queue moves it to a separate queue called the dead-letter queue. The message is not discarded. It waits there with information about the failure, such as the error text and the number of attempts, so that people can inspect it.
+
+A dead-letter queue turns an invisible problem into a visible one. Teams usually raise an alert when it is not empty. After the cause is fixed, the messages can be moved back to the main queue and processed, or deleted if they are not worth the effort. A dead-letter queue that nobody watches is only a slower way to lose messages, so monitoring it is part of the design.
+
+Back-pressure
+
+A queue can hide a mismatch between producers and consumers for a while, but not forever. If producers send faster than consumers work for a long time, the queue grows. The delay between sending and processing increases, memory or disk fills up, and in the end the system fails. The remedy is back-pressure, which is any mechanism that tells producers to slow down when consumers cannot keep up.
+
+The simplest form is a bounded queue: when it reaches its maximum size, sending either blocks the producer until space appears or fails with an error the producer must handle. Another is rate limiting at the entrance, where the system refuses new work beyond a certain rate. A third is to watch the queue length or the age of the oldest message and start more consumers automatically when it rises. Whichever form is chosen, the principle is the same: a system should make overload visible and bounded, rather than letting it accumulate silently.
+
+Summary
+
+Producers put messages into a queue and consumers take them out, which decouples the two sides in time, speed, and knowledge. Acknowledgements make sure a message is removed only after the work is done, which gives at-least-once delivery and the need for idempotent consumers. Messages that keep failing move to a dead-letter queue where they can be inspected. Back-pressure keeps the queue from growing without limit when consumers fall behind.

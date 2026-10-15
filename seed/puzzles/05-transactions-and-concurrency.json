@@ -1,0 +1,13 @@
+{
+  "key": "transactions-and-concurrency",
+  "name": "Databases 101: Transactions and Concurrency",
+  "distractors": ["cache", "schema"],
+  "questions": [
+    { "order": 1, "sentence": "A transaction groups several statements so that they either all succeed or are all rolled ___.", "answers": ["back"], "distractors": ["out", "forward"], "tests": ["transactions"] },
+    { "order": 2, "sentence": "The \"I\" in ACID stands for ___.", "answers": ["isolation"], "distractors": ["integrity", "idempotence"], "tests": ["acid"] },
+    { "order": 3, "sentence": "A ___ lock on a row stops other transactions from changing that row until the lock is released.", "answers": ["write"], "distractors": ["read-only", "silent"], "tests": ["locking"] },
+    { "order": 4, "sentence": "A stricter isolation level lets a transaction see ___ anomalies caused by other transactions.", "answers": ["fewer"], "distractors": ["more", "newer"], "tests": ["isolation-levels"] },
+    { "order": 5, "sentence": "With multi-version concurrency control, a reader sees a ___ of the data and does not block writers.", "answers": ["snapshot"], "distractors": ["summary", "backup"], "tests": ["mvcc"] },
+    { "order": 6, "sentence": "When two transactions each wait for a lock held by the other, the result is a ___.", "answers": ["deadlock"], "distractors": ["timeout", "rollup"], "tests": ["deadlocks"] }
+  ]
+}

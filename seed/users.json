@@ -1,0 +1,6 @@
+[
+  { "key": "learner", "email": "learner@example.test", "displayName": "Demo Learner", "role": "learner" },
+  { "key": "learner2", "email": "learner2@example.test", "displayName": "Second Learner", "role": "learner" },
+  { "key": "reviewer", "email": "reviewer@example.test", "displayName": "Demo Reviewer", "role": "reviewer" },
+  { "key": "admin", "email": "admin@example.test", "displayName": "Demo Admin", "role": "admin" }
+]

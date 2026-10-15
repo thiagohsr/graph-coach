@@ -1,0 +1,26 @@
+[
+  {
+    "file": "b-trees-and-indexes.md",
+    "title": "How B-trees make indexes fast",
+    "kind": "markdown",
+    "words": 860,
+    "topic": "Pages and the buffer pool, sorted keys, balanced depth, node splits, logarithmic lookups, avoiding a full table scan, the write cost of indexes, composite indexes and the leftmost-prefix rule",
+    "origin": "synthetic"
+  },
+  {
+    "file": "replication-and-sharding.md",
+    "title": "Replication and sharding",
+    "kind": "markdown",
+    "words": 700,
+    "topic": "Leader and follower replication, replication lag, failover, shard keys, rebalancing",
+    "origin": "synthetic"
+  },
+  {
+    "file": "message-queues.txt",
+    "title": "Message queues: passing work between programs",
+    "kind": "text",
+    "words": 1000,
+    "topic": "Producers and consumers, acknowledgements, at-least-once delivery, dead-letter queues, back-pressure",
+    "origin": "synthetic"
+  }
+]

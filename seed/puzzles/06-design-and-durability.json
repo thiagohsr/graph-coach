@@ -1,0 +1,13 @@
+{
+  "key": "design-and-durability",
+  "name": "Databases 101: Design and Durability",
+  "distractors": ["mirror", "cluster"],
+  "questions": [
+    { "order": 1, "sentence": "Normalization stores each fact in only one ___, which avoids update anomalies.", "answers": ["place"], "distractors": ["index", "server"], "tests": ["normalization"] },
+    { "order": 2, "sentence": "A fully normalized design splits data into many tables that are linked by ___ keys.", "answers": ["foreign"], "distractors": ["sorted", "unique"], "tests": ["normalization"] },
+    { "order": 3, "sentence": "Denormalization repeats data on purpose to make ___ faster, at the cost of more work on writes.", "answers": ["reads"], "distractors": ["backups", "deletes"], "tests": ["denormalization"] },
+    { "order": 4, "sentence": "A write-ahead log records a change ___ the data page itself is written to disk.", "answers": ["before"], "distractors": ["after", "instead"], "tests": ["write-ahead-log"] },
+    { "order": 5, "sentence": "After a crash, the database replays the ___ to bring its pages back to a consistent state.", "answers": ["log"], "distractors": ["index", "query"], "tests": ["write-ahead-log"] },
+    { "order": 6, "sentence": "Partitioning splits a large table into smaller parts according to the value of a ___.", "answers": ["key"], "distractors": ["trigger", "comment"], "tests": ["partitioning"] }
+  ]
+}

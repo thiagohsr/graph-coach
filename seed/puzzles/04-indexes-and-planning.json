@@ -1,0 +1,13 @@
+{
+  "key": "indexes-and-planning",
+  "name": "Databases 101: Indexes and Query Planning",
+  "distractors": ["trigger", "view"],
+  "questions": [
+    { "order": 1, "sentence": "An index lets the database find matching rows without a full table ___.", "answers": ["scan"], "distractors": ["lock", "join"], "tests": ["indexes"] },
+    { "order": 2, "sentence": "Every index must be updated on each write, so adding indexes makes ___ slower.", "answers": ["writes"], "distractors": ["reads", "backups"], "tests": ["indexes"] },
+    { "order": 3, "sentence": "Most relational databases implement their default index as a ___.", "answers": ["B-tree"], "distractors": ["queue", "bitmap"], "tests": ["indexes"] },
+    { "order": 4, "sentence": "A composite index on (country, city) can serve a filter on ___ alone, but not on city alone.", "answers": ["country"], "distractors": ["region", "both"], "tests": ["composite-indexes"] },
+    { "order": 5, "sentence": "The rule that a composite index is usable only from its first columns onward is called the leftmost ___ rule.", "answers": ["prefix"], "distractors": ["suffix", "column"], "tests": ["composite-indexes"] },
+    { "order": 6, "sentence": "The query ___ estimates the ___ of each candidate plan and picks the cheapest.", "answers": ["planner", "cost"], "distractors": ["parser", "size"], "tests": ["query-planner"] }
+  ]
+}

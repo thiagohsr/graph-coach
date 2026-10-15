@@ -1,0 +1,122 @@
+{
+  "learner": "learner",
+  "sessions": [
+    {
+      "key": "D",
+      "puzzle": "tables-and-keys",
+      "submittedDaysAgo": 12,
+      "answers": [
+        { "order": 1, "blank": 0, "word": "relations", "correct": true },
+        { "order": 1, "blank": 1, "word": "tuples", "correct": true },
+        { "order": 2, "blank": 0, "word": "rows", "correct": true },
+        { "order": 2, "blank": 1, "word": "columns", "correct": true },
+        { "order": 3, "blank": 0, "word": "unique", "correct": true },
+        { "order": 3, "blank": 1, "word": "null", "correct": true },
+        { "order": 4, "blank": 0, "word": "primary", "correct": true },
+        { "order": 4, "blank": 1, "word": "valid", "correct": true },
+        { "order": 5, "blank": 0, "word": "table", "correct": true },
+        { "order": 6, "blank": 0, "word": "foreign", "correct": true }
+      ],
+      "masteryChanges": [
+        { "concept": "relational-model", "before": 0.5, "after": 0.8285 },
+        { "concept": "tables-rows-columns", "before": 0.5, "after": 0.8285 },
+        { "concept": "primary-key", "before": 0.5, "after": 0.8285 },
+        { "concept": "foreign-key", "before": 0.5, "after": 0.8285 }
+      ]
+    },
+    {
+      "key": "E",
+      "puzzle": "querying-with-sql",
+      "submittedDaysAgo": 11,
+      "answers": [
+        { "order": 1, "blank": 0, "word": "SELECT", "correct": true },
+        { "order": 1, "blank": 1, "word": "columns", "correct": true },
+        { "order": 2, "blank": 0, "word": "WHERE", "correct": true },
+        { "order": 2, "blank": 1, "word": "condition", "correct": true },
+        { "order": 3, "blank": 0, "word": "column", "correct": true },
+        { "order": 3, "blank": 1, "word": "primary", "correct": true },
+        { "order": 4, "blank": 0, "word": "SUM", "correct": true },
+        { "order": 4, "blank": 1, "word": "group", "correct": true },
+        { "order": 5, "blank": 0, "word": "rows", "correct": true },
+        { "order": 6, "blank": 0, "word": "join", "correct": true }
+      ],
+      "masteryChanges": [
+        { "concept": "sql-select", "before": 0.5, "after": 0.8285 },
+        { "concept": "sql-where", "before": 0.5, "after": 0.8285 },
+        { "concept": "sql-joins", "before": 0.5, "after": 0.8285 },
+        { "concept": "aggregation", "before": 0.5, "after": 0.8285 }
+      ]
+    },
+    {
+      "key": "A",
+      "puzzle": "storage-and-b-trees",
+      "submittedDaysAgo": 9,
+      "answers": [
+        { "order": 1, "blank": 0, "word": "pages", "correct": true },
+        { "order": 1, "blank": 1, "word": "pool", "correct": true },
+        { "order": 2, "blank": 0, "word": "I/O", "correct": true },
+        { "order": 3, "blank": 0, "word": "random", "correct": false },
+        { "order": 4, "blank": 0, "word": "binary", "correct": false },
+        { "order": 5, "blank": 0, "word": "merge", "correct": false },
+        { "order": 6, "blank": 0, "word": "square", "correct": false }
+      ],
+      "masteryChanges": [
+        { "concept": "storage-pages", "before": 0.5, "after": 0.8285 },
+        { "concept": "b-trees", "before": 0.5, "after": 0.12005 }
+      ]
+    },
+    {
+      "key": "B",
+      "puzzle": "indexes-and-planning",
+      "submittedDaysAgo": 2,
+      "answers": [
+        { "order": 1, "blank": 0, "word": "scan", "correct": true },
+        { "order": 2, "blank": 0, "word": "reads", "correct": false },
+        { "order": 3, "blank": 0, "word": "queue", "correct": false },
+        { "order": 4, "blank": 0, "word": "country", "correct": true },
+        { "order": 5, "blank": 0, "word": "prefix", "correct": true },
+        { "order": 6, "blank": 0, "word": "planner", "correct": true },
+        { "order": 6, "blank": 1, "word": "cost", "correct": true }
+      ],
+      "masteryChanges": [
+        { "concept": "indexes", "before": 0.5, "after": 0.3185 },
+        { "concept": "composite-indexes", "before": 0.5, "after": 0.755 },
+        { "concept": "query-planner", "before": 0.5, "after": 0.755 }
+      ]
+    },
+    {
+      "key": "C",
+      "puzzle": "indexes-and-planning",
+      "submittedDaysAgo": 1,
+      "answers": [
+        { "order": 1, "blank": 0, "word": "scan", "correct": true },
+        { "order": 2, "blank": 0, "word": "reads", "correct": false },
+        { "order": 3, "blank": 0, "word": "queue", "correct": false },
+        { "order": 4, "blank": 0, "word": "country", "correct": true },
+        { "order": 5, "blank": 0, "word": "prefix", "correct": true },
+        { "order": 6, "blank": 0, "word": "planner", "correct": true },
+        { "order": 6, "blank": 1, "word": "cost", "correct": true }
+      ],
+      "masteryChanges": [
+        { "concept": "indexes", "before": 0.3185, "after": 0.2562455 },
+        { "concept": "composite-indexes", "before": 0.755, "after": 0.87995 },
+        { "concept": "query-planner", "before": 0.755, "after": 0.87995 }
+      ]
+    }
+  ],
+  "mastery": [
+    { "concept": "relational-model", "score": 0.8285, "attempts": 3, "lastSeenDaysAgo": 12 },
+    { "concept": "tables-rows-columns", "score": 0.8285, "attempts": 3, "lastSeenDaysAgo": 12 },
+    { "concept": "primary-key", "score": 0.8285, "attempts": 3, "lastSeenDaysAgo": 12 },
+    { "concept": "foreign-key", "score": 0.8285, "attempts": 3, "lastSeenDaysAgo": 12 },
+    { "concept": "sql-select", "score": 0.8285, "attempts": 3, "lastSeenDaysAgo": 11 },
+    { "concept": "sql-where", "score": 0.8285, "attempts": 3, "lastSeenDaysAgo": 11 },
+    { "concept": "sql-joins", "score": 0.8285, "attempts": 3, "lastSeenDaysAgo": 11 },
+    { "concept": "aggregation", "score": 0.8285, "attempts": 3, "lastSeenDaysAgo": 11 },
+    { "concept": "storage-pages", "score": 0.8285, "attempts": 3, "lastSeenDaysAgo": 9 },
+    { "concept": "b-trees", "score": 0.12005, "attempts": 4, "lastSeenDaysAgo": 9 },
+    { "concept": "indexes", "score": 0.2562455, "attempts": 6, "lastSeenDaysAgo": 1 },
+    { "concept": "composite-indexes", "score": 0.87995, "attempts": 4, "lastSeenDaysAgo": 1 },
+    { "concept": "query-planner", "score": 0.87995, "attempts": 4, "lastSeenDaysAgo": 1 }
+  ]
+}

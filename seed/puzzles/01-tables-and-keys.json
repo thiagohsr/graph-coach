@@ -1,0 +1,13 @@
+{
+  "key": "tables-and-keys",
+  "name": "Databases 101: Tables and Keys",
+  "distractors": ["spreadsheet", "folder"],
+  "questions": [
+    { "order": 1, "sentence": "In the relational model, data is organised into ___, and each one is a set of ___.", "answers": ["relations", "tuples"], "distractors": ["documents", "pointers"], "tests": ["relational-model"] },
+    { "order": 2, "sentence": "A table is made of ___ that each describe one record, and every one of them has a value for each of the table's ___.", "answers": ["rows", "columns"], "distractors": ["files", "folders"], "tests": ["tables-rows-columns"] },
+    { "order": 3, "sentence": "A primary key must be ___ for every row and can never be ___.", "answers": ["unique", "null"], "distractors": ["sorted", "indexed"], "tests": ["primary-key"] },
+    { "order": 4, "sentence": "A foreign key in one table must match a ___ key value in another table, which keeps the link between rows ___.", "answers": ["primary", "valid"], "distractors": ["composite", "hidden"], "tests": ["foreign-key"] },
+    { "order": 5, "sentence": "The relational model describes data as relations, and in a database a relation is stored as a ___.", "answers": ["table"], "distractors": ["cursor", "script"], "tests": ["relational-model", "tables-rows-columns"] },
+    { "order": 6, "sentence": "A column that refers to the primary key of another table is called a ___ key.", "answers": ["foreign"], "distractors": ["spare", "mirror"], "tests": ["primary-key", "foreign-key"] }
+  ]
+}

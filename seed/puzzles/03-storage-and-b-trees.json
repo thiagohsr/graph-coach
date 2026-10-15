@@ -1,0 +1,13 @@
+{
+  "key": "storage-and-b-trees",
+  "name": "Databases 101: Storage and B-trees",
+  "distractors": ["heap", "linked"],
+  "questions": [
+    { "order": 1, "sentence": "A database stores table data in fixed-size ___ on disk and reads them into a memory area called the buffer ___.", "answers": ["pages", "pool"], "distractors": ["rows", "stack"], "tests": ["storage-pages"] },
+    { "order": 2, "sentence": "Reading a page that is not in memory requires disk ___, which is far slower than a memory access.", "answers": ["I/O"], "distractors": ["parsing", "hashing"], "tests": ["storage-pages"] },
+    { "order": 3, "sentence": "A B-tree keeps its keys in ___ order so that a range of values can be read in sequence.", "answers": ["sorted"], "distractors": ["random", "insertion"], "tests": ["b-trees"] },
+    { "order": 4, "sentence": "Because every leaf of a B-tree is at the same depth, the tree is said to be ___.", "answers": ["balanced"], "distractors": ["binary", "sparse"], "tests": ["b-trees"] },
+    { "order": 5, "sentence": "When a B-tree node is full, an insert causes the node to ___ into two.", "answers": ["split"], "distractors": ["merge", "rotate"], "tests": ["b-trees"] },
+    { "order": 6, "sentence": "A lookup in a B-tree with n keys visits a number of nodes proportional to the ___ of n.", "answers": ["logarithm"], "distractors": ["square", "half"], "tests": ["b-trees"] }
+  ]
+}

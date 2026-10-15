@@ -1,0 +1,13 @@
+{
+  "key": "querying-with-sql",
+  "name": "Databases 101: Querying with SQL",
+  "distractors": ["DELETE", "sorted"],
+  "questions": [
+    { "order": 1, "sentence": "The ___ keyword chooses which ___ of a table appear in the result.", "answers": ["SELECT", "columns"], "distractors": ["UPDATE", "indexes"], "tests": ["sql-select"] },
+    { "order": 2, "sentence": "The ___ clause keeps only the rows for which its ___ is true.", "answers": ["WHERE", "condition"], "distractors": ["ORDER", "alias"], "tests": ["sql-where"] },
+    { "order": 3, "sentence": "A join combines rows from two tables by comparing the values of a ___ in each, usually a foreign key and the ___ key it points to.", "answers": ["column", "primary"], "distractors": ["row", "backup"], "tests": ["sql-joins"] },
+    { "order": 4, "sentence": "GROUP BY puts rows into groups, and a function such as ___ then returns one value, for example a total, for each ___.", "answers": ["SUM", "group"], "distractors": ["DROP", "value"], "tests": ["aggregation"] },
+    { "order": 5, "sentence": "Filtering with WHERE removes ___ from the result, while SELECT chooses which columns remain.", "answers": ["rows"], "distractors": ["tables", "views"], "tests": ["sql-select", "sql-where"] },
+    { "order": 6, "sentence": "A ___ combines two tables, and GROUP BY can then summarise the combined rows into one total per group.", "answers": ["join"], "distractors": ["trigger", "cursor"], "tests": ["sql-joins", "aggregation"] }
+  ]
+}
