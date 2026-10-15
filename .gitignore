@@ -1,0 +1,39 @@
+# Dependencies and build output
+node_modules/
+dist/
+build/
+.output/
+.vinxi/
+.tanstack/
+coverage/
+
+# Environment (only the example is kept)
+.env
+.env.*
+!.env.example
+
+# Logs and test reports
+*.log
+playwright-report/
+test-results/
+
+# Terraform
+.terraform/
+*.tfstate*
+backend.hcl
+*.tfvars
+!terraform.tfvars.example
+
+# OS
+.DS_Store
+
+# Test reporter output
+.vitest/
+
+# Claude Code: personal permissions and run transcripts (large, may contain local details)
+.claude/settings.local.json
+.claude/overnight/run-*.jsonl
+
+# Spike scratch data
+spike/data/
+spike/node_modules/

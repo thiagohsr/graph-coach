@@ -1,0 +1,16 @@
+node_modules/
+dist/
+build/
+.output/
+.vinxi/
+.tanstack/
+coverage/
+playwright-report/
+test-results/
+pnpm-lock.yaml
+specs/
+.specify/
+.claude/
+spike/
+docs/
+CLAUDE.md
