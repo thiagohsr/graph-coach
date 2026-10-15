@@ -1,0 +1,20 @@
+// The DTO schemas of the Curator live in @coach/types (packages/types/src/curator.ts); the module re-exports them.
+export {
+  GuardReasonCode,
+  GuardReason,
+  Origin,
+  SourceCreateRequest,
+  SourceCreateResponse,
+  SourceDetailDto,
+  SourceKind,
+  SourceSummaryDto,
+  StepDto,
+  StepEventPayload,
+  StepName,
+  TaskDto,
+  TaskEventPayload,
+  TaskResult,
+  TaskStatus,
+  UPLOAD_NOTICE,
+  Usage,
+} from '@coach/types';

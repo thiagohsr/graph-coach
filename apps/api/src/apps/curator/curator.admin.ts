@@ -1,0 +1,157 @@
+// Admin registrations of the curator feature: concept, source, task
+// (the design documents section 6). Imported by apps/admin/admin.registrations.ts.
+//
+// Source text is never declared: content, brief, and outline are refused by the admin rules (V5), and there is no link
+// to chunks, to the questions of a task (only a count), or to /sources and /tasks pages.
+import { registerAdmin } from '@coach/admin-kit';
+
+export const conceptAdmin = registerAdmin({
+  name: 'concept',
+  label: 'Concepts',
+  group: 'Knowledge',
+  source: 'graph',
+  entity: 'Concept',
+  listDisplay: ['name', 'slug', 'createdAt'],
+  searchFields: ['slug', 'name', 'description'],
+  ordering: ['name'],
+  fields: {
+    id: { readonly: true },
+    slug: { readonly: true, help: 'The key the Curator merges on; it cannot be changed.' },
+    name: { type: 'string', required: true },
+    description: { type: 'text' },
+    createdAt: { type: 'datetime', label: 'Created at', readonly: true },
+  },
+  links: [
+    {
+      kind: 'records',
+      name: 'prerequisites',
+      label: 'Prerequisites',
+      rel: 'PREREQUISITE_OF',
+      direction: 'in',
+      targetLabel: 'Concept',
+      titleProperty: 'name',
+      model: 'concept',
+    },
+  ],
+});
+
+export const sourceAdmin = registerAdmin({
+  name: 'source',
+  label: 'Sources',
+  group: 'Knowledge',
+  source: 'graph',
+  entity: 'Source',
+  readOnly: true,
+  listDisplay: ['title', 'kind', 'createdAt'],
+  searchFields: ['title'],
+  ordering: ['-createdAt'],
+  fields: {
+    id: { readonly: true },
+    title: { readonly: true },
+    kind: { type: 'enum', choices: ['text', 'markdown', 'url', 'prompt'], readonly: true },
+    createdAt: { type: 'datetime', label: 'Created at', readonly: true },
+  },
+  links: [
+    {
+      kind: 'records',
+      name: 'owner',
+      label: 'Owner',
+      rel: 'OWNS',
+      direction: 'in',
+      targetLabel: 'Learner',
+      titleProperty: 'displayName',
+      model: 'user',
+    },
+    {
+      kind: 'records',
+      name: 'puzzle',
+      label: 'Puzzle',
+      rel: 'YIELDED',
+      direction: 'out',
+      targetLabel: 'Puzzle',
+      titleProperty: 'name',
+      model: 'puzzle',
+    },
+  ],
+});
+
+export const taskAdmin = registerAdmin({
+  name: 'task',
+  label: 'Tasks',
+  group: 'Agents',
+  source: 'graph',
+  entity: 'Task',
+  readOnly: true,
+  titleField: 'id',
+  listDisplay: ['kind', 'status', 'result', 'createdAt', 'updatedAt', 'inputTokens', 'outputTokens'],
+  searchFields: ['id'],
+  ordering: ['-createdAt'],
+  fields: {
+    id: { readonly: true },
+    kind: { type: 'enum', choices: ['ingest', 'generate', 'cover'], readonly: true },
+    status: {
+      type: 'enum',
+      choices: ['queued', 'in_progress', 'awaiting_review', 'done', 'failed'],
+      readonly: true,
+    },
+    result: { type: 'enum', choices: ['ok', 'nothing_usable', 'below_minimum'], readonly: true },
+    lastCompletedStep: { type: 'string', label: 'Last completed step', readonly: true },
+    error: { type: 'text', readonly: true },
+    createdAt: { type: 'datetime', label: 'Created at', readonly: true },
+    updatedAt: { type: 'datetime', label: 'Updated at', readonly: true },
+    modelCalls: { type: 'integer', label: 'Model calls', readonly: true },
+    inputTokens: { type: 'integer', label: 'Input tokens', readonly: true },
+    outputTokens: { type: 'integer', label: 'Output tokens', readonly: true },
+    embeddingTokens: { type: 'integer', label: 'Embedding tokens', readonly: true },
+  },
+  links: [
+    {
+      kind: 'records',
+      name: 'producedConcepts',
+      label: 'Produced concepts',
+      rel: 'PRODUCED',
+      direction: 'out',
+      targetLabel: 'Concept',
+      titleProperty: 'name',
+      model: 'concept',
+    },
+    {
+      kind: 'count',
+      name: 'producedQuestions',
+      label: 'Produced questions',
+      rel: 'PRODUCED',
+      direction: 'out',
+      targetLabel: 'Question',
+    },
+    {
+      kind: 'records',
+      name: 'producedPuzzles',
+      label: 'Produced puzzles',
+      rel: 'PRODUCED',
+      direction: 'out',
+      targetLabel: 'Puzzle',
+      titleProperty: 'name',
+      model: 'puzzle',
+    },
+    {
+      kind: 'records',
+      name: 'concerns',
+      label: 'Concerns',
+      rel: 'CONCERNS',
+      direction: 'out',
+      targetLabel: 'Source',
+      titleProperty: 'title',
+      model: 'source',
+    },
+    {
+      kind: 'records',
+      name: 'requestedBy',
+      label: 'Requested by',
+      rel: 'REQUESTED',
+      direction: 'in',
+      targetLabel: 'Learner',
+      titleProperty: 'displayName',
+      model: 'user',
+    },
+  ],
+});
