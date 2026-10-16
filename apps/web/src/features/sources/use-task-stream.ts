@@ -12,6 +12,8 @@ const TERMINAL: ReadonlySet<TaskStatus> = new Set<TaskStatus>([
 ]);
 const LIVE: ReadonlySet<TaskStatus> = new Set<TaskStatus>(['queued', 'in_progress']);
 export const POLL_MS = 3000;
+/** While the stream is the transport, the task is still re-read this often, so a silent stream cannot leave the page behind. */
+export const HEARTBEAT_MS = 10_000;
 const MAX_FAILURES = 3;
 
 /**
@@ -25,8 +27,13 @@ export function useTaskStream(taskId: string) {
 
   const task = useQuery({
     ...taskOptions(taskId),
-    // Polling is only the fallback after repeated stream failures.
-    refetchInterval: state.transport === 'polling' ? POLL_MS : false,
+    // Fast polling is the fallback after repeated stream failures; otherwise a slow heartbeat while the run is live.
+    refetchInterval: (query) =>
+      state.transport === 'polling'
+        ? POLL_MS
+        : query.state.data && LIVE.has(query.state.data.status)
+          ? HEARTBEAT_MS
+          : false,
     retry: false,
   });
 
@@ -37,7 +44,7 @@ export function useTaskStream(taskId: string) {
   // A finished task, and every poll, are shown from the stored steps.
   useEffect(() => {
     if (!task.data) return;
-    if (terminal || state.transport === 'polling')
+    if (terminal || live || state.transport === 'polling')
       dispatch({ type: 'SNAPSHOT', steps: task.data.steps });
     if (terminal) {
       dispatch({ type: 'CLOSED' });
@@ -46,6 +53,7 @@ export function useTaskStream(taskId: string) {
         void queryClient.invalidateQueries({ queryKey: keys.review.all });
     }
     // Deliberately keyed on task.data and terminal only.
+    // A live run is snapshotted too (heartbeat refreshes); a snapshot never undoes a finished step.
   }, [task.data, terminal]);
 
   useEffect(() => {
