@@ -84,4 +84,28 @@ describe('PuzzleCard', () => {
     render(<PuzzleCard puzzle={owned} actions={<button type="button">Share</button>} />);
     expect(screen.getByRole('button', { name: 'Share' })).toBeInTheDocument();
   });
+
+  it('makes the whole card open the puzzle while the source link and actions stay clickable', () => {
+    render(
+      <PuzzleCard
+        puzzle={sharedPuzzle}
+        actions={
+          <button type="button" data-testid="extra">
+            Share
+          </button>
+        }
+      />,
+    );
+    // One link only: the Play link stretches over the card with ::after.
+    const play = screen.getByRole('link', { name: `Play ${sharedPuzzle.name}` });
+    expect(play.className).toContain('after:absolute');
+    expect(play.className).toContain('after:inset-0');
+    // A translate on press would shrink the overlay to the button mid-click and lose the click.
+    expect(play.className).toContain('active:translate-none');
+    expect(play.className).not.toContain('active:translate-y-px');
+    expect(play.closest('article')?.className).toContain('relative');
+    // Everything else interactive sits above the stretched link.
+    expect(screen.getByRole('link', { name: 'Source available' }).className).toContain('z-10');
+    expect(screen.getByTestId('extra').parentElement?.className).toContain('z-10');
+  });
 });

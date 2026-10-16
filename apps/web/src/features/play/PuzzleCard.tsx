@@ -45,7 +45,7 @@ function SourceInfo({ puzzle }: { puzzle: PuzzleSummary }) {
     return href ? (
       <Link
         to={href as never}
-        className="text-[13px] text-muted-foreground underline underline-offset-2 hover:text-foreground"
+        className="relative z-10 text-[13px] text-muted-foreground underline underline-offset-2 hover:text-foreground"
       >
         {text}
       </Link>
@@ -57,7 +57,7 @@ function SourceInfo({ puzzle }: { puzzle: PuzzleSummary }) {
     return (
       <Link
         to={href as never}
-        className="text-[13px] text-muted-foreground underline underline-offset-2 hover:text-foreground"
+        className="relative z-10 text-[13px] text-muted-foreground underline underline-offset-2 hover:text-foreground"
       >
         Source
       </Link>
@@ -66,11 +66,15 @@ function SourceInfo({ puzzle }: { puzzle: PuzzleSummary }) {
   return null;
 }
 
-/** One puzzle of the list. Sharing and visibility controls arrive only through `actions`. */
+/**
+ * One puzzle of the list. Sharing and visibility controls arrive only through `actions`.
+ * The whole card opens the puzzle: the Play link's ::after covers the card (one link, so screen readers and the
+ * keyboard still meet a single "Play" control); the source link and `actions` sit above it and keep working.
+ */
 export function PuzzleCard({ puzzle, actions }: { puzzle: PuzzleSummary; actions?: ReactNode }) {
   return (
     <article
-      className="flex h-full flex-col justify-between gap-4 rounded-lg border bg-card p-5 shadow-xs transition-[box-shadow,border-color] duration-(--duration-fast) hover:border-input hover:shadow-sm"
+      className="relative flex h-full cursor-pointer flex-col justify-between gap-4 rounded-lg border bg-card p-5 shadow-xs transition-[box-shadow,border-color] duration-(--duration-fast) hover:border-primary/40 hover:shadow-sm"
       aria-labelledby={`puzzle-${puzzle.id}`}
     >
       <div className="flex flex-col items-start gap-2">
@@ -94,11 +98,19 @@ export function PuzzleCard({ puzzle, actions }: { puzzle: PuzzleSummary; actions
           to="/puzzles/$puzzleId/play"
           params={{ puzzleId: puzzle.id }}
           aria-label={`Play ${puzzle.name}`}
-          className={cn(buttonVariants({ size: 'sm' }))}
+          className={cn(
+            buttonVariants({ size: 'sm' }),
+            // No press-shift here: any `translate` other than `none` (Tailwind v4's translate-y-* sets the CSS
+            // `translate` property, even translate-y-0) makes the link the containing block of its ::after, which
+            // then shrinks to the button mid-click, so the release lands on the card and the click is lost.
+            'after:absolute after:inset-0 after:rounded-lg after:content-[""] active:translate-none',
+          )}
         >
           Play
         </Link>
-        {actions}
+        {actions && (
+          <div className="relative z-10 flex flex-wrap items-center gap-2">{actions}</div>
+        )}
       </div>
     </article>
   );

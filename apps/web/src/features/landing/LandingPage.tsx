@@ -1,4 +1,5 @@
 import { Link } from '@tanstack/react-router';
+import { ThemeToggle } from '~/components/layout/ThemeToggle';
 import {
   BrainCircuit,
   FileText,
@@ -79,6 +80,7 @@ export function LandingPage({ mode }: { mode: AuthMode }) {
             >
               How it works
             </a>
+            <ThemeToggle />
             <Link to="/login" className={cn(buttonVariants({ variant: 'outline', size: 'sm' }))}>
               Sign in
             </Link>

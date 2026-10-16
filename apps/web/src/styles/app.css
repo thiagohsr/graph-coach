@@ -7,12 +7,13 @@
 @import 'tailwindcss';
 @import 'tw-animate-css';
 
-@custom-variant dark (@media (prefers-color-scheme: dark));
+/* Dark is chosen by <html data-theme> (lib/theme: the system setting unless the user picked one). */
+@custom-variant dark (&:where([data-theme='dark'], [data-theme='dark'] *));
 
 /* Fonts are self-hosted via @fontsource (imports at the top); see docs/design-system.md "Typography". */
 
 :root {
-  color-scheme: light dark;
+  color-scheme: light;
 
   /* shape */
   --radius: 0.625rem;
@@ -91,64 +92,63 @@
   --ease-exit: cubic-bezier(0.4, 0, 1, 1);
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #111417;
-    --foreground: #eceef0;
-    --card: #181c20;
-    --card-foreground: #eceef0;
-    --popover: #20252a;
-    --popover-foreground: #eceef0;
-    --primary: #4cc2b9;
-    --primary-foreground: #06201e;
-    --secondary: #20252a;
-    --secondary-foreground: #eceef0;
-    --muted: #0c0e10;
-    --muted-foreground: #9ba2ac;
-    --accent: #2a2f35;
-    --accent-foreground: #eceef0;
-    --destructive: #f4897e;
-    --border: #30363d;
-    --input: #6e7681;
-    --ring: #8ea9ff;
+:root[data-theme='dark'] {
+  color-scheme: dark;
+  --background: #111417;
+  --foreground: #eceef0;
+  --card: #181c20;
+  --card-foreground: #eceef0;
+  --popover: #20252a;
+  --popover-foreground: #eceef0;
+  --primary: #4cc2b9;
+  --primary-foreground: #06201e;
+  --secondary: #20252a;
+  --secondary-foreground: #eceef0;
+  --muted: #0c0e10;
+  --muted-foreground: #9ba2ac;
+  --accent: #2a2f35;
+  --accent-foreground: #eceef0;
+  --destructive: #f4897e;
+  --border: #30363d;
+  --input: #6e7681;
+  --ring: #8ea9ff;
 
-    --surface-raised: #20252a;
-    --text-secondary: #bcc2ca;
-    --primary-hover: #6ed3cb;
-    --primary-soft: #123532;
-    --destructive-foreground: #2a0b08;
+  --surface-raised: #20252a;
+  --text-secondary: #bcc2ca;
+  --primary-hover: #6ed3cb;
+  --primary-soft: #123532;
+  --destructive-foreground: #2a0b08;
 
-    --graph: #a897f2;
-    --graph-soft: #2a2546;
+  --graph: #a897f2;
+  --graph-soft: #2a2546;
 
-    --success: #5bcb82;
-    --success-soft: #14301e;
-    --warning: #f2b44c;
-    --warning-soft: #33270f;
-    --danger-soft: #3a1a17;
-    --info: #7db3f2;
-    --info-soft: #152a42;
+  --success: #5bcb82;
+  --success-soft: #14301e;
+  --warning: #f2b44c;
+  --warning-soft: #33270f;
+  --danger-soft: #3a1a17;
+  --info: #7db3f2;
+  --info-soft: #152a42;
 
-    --mastery-1: #f0875a;
-    --mastery-1-fg: #f7b394;
-    --mastery-1-bg: #38211a;
-    --mastery-2: #e2a43c;
-    --mastery-2-fg: #f2cb85;
-    --mastery-2-bg: #33280f;
-    --mastery-3: #9aa1aa;
-    --mastery-3-fg: #c9ced4;
-    --mastery-3-bg: #262a30;
-    --mastery-4: #4c9ad6;
-    --mastery-4-fg: #a3cff0;
-    --mastery-4-bg: #15283a;
-    --mastery-5: #b8cbff;
-    --mastery-5-fg: #c7d8ff;
-    --mastery-5-bg: #1d2848;
+  --mastery-1: #f0875a;
+  --mastery-1-fg: #f7b394;
+  --mastery-1-bg: #38211a;
+  --mastery-2: #e2a43c;
+  --mastery-2-fg: #f2cb85;
+  --mastery-2-bg: #33280f;
+  --mastery-3: #9aa1aa;
+  --mastery-3-fg: #c9ced4;
+  --mastery-3-bg: #262a30;
+  --mastery-4: #4c9ad6;
+  --mastery-4-fg: #a3cff0;
+  --mastery-4-bg: #15283a;
+  --mastery-5: #b8cbff;
+  --mastery-5-fg: #c7d8ff;
+  --mastery-5-bg: #1d2848;
 
-    --shadow-1: 0 1px 2px rgb(0 0 0 / 0.4);
-    --shadow-2: 0 2px 8px rgb(0 0 0 / 0.45);
-    --shadow-3: 0 16px 32px rgb(0 0 0 / 0.55);
-  }
+  --shadow-1: 0 1px 2px rgb(0 0 0 / 0.4);
+  --shadow-2: 0 2px 8px rgb(0 0 0 / 0.45);
+  --shadow-3: 0 16px 32px rgb(0 0 0 / 0.55);
 }
 
 @theme inline {

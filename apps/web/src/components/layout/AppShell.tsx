@@ -3,6 +3,7 @@ import { Link } from '@tanstack/react-router';
 import { MenuIcon } from 'lucide-react';
 import { useState, type ReactNode } from 'react';
 import { Button } from '~/components/ui/button';
+import { ThemeToggle } from '~/components/layout/ThemeToggle';
 import { useGuide } from '~/features/onboarding/OnboardingHost';
 import {
   Sheet,
@@ -171,7 +172,10 @@ export function AppShell({ user, children }: { user: MeDto; children: ReactNode 
             <NavLinks user={user} orientation="row" />
           </nav>
         </div>
-        <UserMenu user={user} />
+        <div className="flex items-center gap-1">
+          <ThemeToggle />
+          <UserMenu user={user} />
+        </div>
       </header>
       <main id="main" className="mx-auto w-full max-w-6xl flex-1 px-4 pt-5 pb-8 sm:px-8 sm:pt-7">
         {children}

@@ -5,6 +5,7 @@ import { NotFoundPage } from '~/components/states/NotFoundPage';
 import { getSessionFn } from '~/lib/auth/session.functions';
 import { keys } from '~/lib/query/keys';
 import type { RouterContext } from '~/lib/router-context';
+import { themeInitScript } from '~/lib/theme/theme';
 import appCss from '~/styles/app.css?url';
 
 export const Route = createRootRouteWithContext<RouterContext>()({
@@ -25,6 +26,8 @@ export const Route = createRootRouteWithContext<RouterContext>()({
       { title: 'Graph Coach' },
     ],
     links: [{ rel: 'stylesheet', href: appCss }],
+    // Before first paint: the stored or system theme, so dark never flashes light.
+    scripts: [{ children: themeInitScript }],
   }),
   shellComponent: RootDocument,
   component: () => <Outlet />,
@@ -34,7 +37,8 @@ export const Route = createRootRouteWithContext<RouterContext>()({
 
 function RootDocument({ children }: { children: ReactNode }) {
   return (
-    <html lang="en">
+    // The theme script sets data-theme on <html> before React hydrates it.
+    <html lang="en" suppressHydrationWarning>
       <head>
         <HeadContent />
       </head>

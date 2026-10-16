@@ -1,30 +1,15 @@
-import { useState, useSyncExternalStore } from 'react';
+import { useState } from 'react';
+import { useTheme } from '~/lib/theme/theme';
 import { slideImageSrc } from './slides';
 import { SlidePlaceholder } from './SlidePlaceholder';
 
-const DARK_QUERY = '(prefers-color-scheme: dark)';
-
-function subscribe(callback: () => void): () => void {
-  const media = window.matchMedia(DARK_QUERY);
-  media.addEventListener('change', callback);
-  return () => media.removeEventListener('change', callback);
-}
-
-function useDarkScheme(): boolean {
-  return useSyncExternalStore(
-    subscribe,
-    () => window.matchMedia(DARK_QUERY).matches,
-    () => false,
-  );
-}
-
 /**
  * One slide's picture at 4:3. The CSS/SVG placeholder is always underneath, so layout never shifts and a missing,
- * slow, or broken file shows the placeholder, never a broken-image icon. Tries `slide-N-dark.webp` first under a
- * dark colour scheme, then `slide-N.webp` (public/onboarding/README.md).
+ * slow, or broken file shows the placeholder, never a broken-image icon. Tries `slide-N-dark.webp` first under the
+ * dark theme, then `slide-N.webp` (public/onboarding/README.md).
  */
 export function SlideImage({ index, alt }: { index: number; alt: string }) {
-  const dark = useDarkScheme();
+  const dark = useTheme().theme === 'dark';
   const candidates = dark
     ? [slideImageSrc(index, 'dark'), slideImageSrc(index)]
     : [slideImageSrc(index)];
