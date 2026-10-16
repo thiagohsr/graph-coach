@@ -29,10 +29,12 @@ describe.skipIf(!built)('built API (node dist/main.js)', () => {
         JWT_SECRET: 'built-api-test-signing-key',
         LLM_PROVIDER: 'stub',
         EMBEDDING_PROVIDER: 'stub',
-        DATABASE_URL: 'postgres://coach:coach@localhost:5432/coach',
+        // Stores of its own, never the development ones: their stored embedding dimension depends on the
+        // developer's providers and would trip the start-up dimension check.
+        DATABASE_URL: 'postgres://coach:coach@localhost:5432/coach_unused',
         FALKORDB_HOST: 'localhost',
         FALKORDB_PORT: '6379',
-        GRAPH_NAME: 'coach',
+        GRAPH_NAME: `built_api_test_${process.pid}`,
         LOG_LEVEL: 'error',
       },
       stdio: ['ignore', 'pipe', 'pipe'],
