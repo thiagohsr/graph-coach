@@ -495,7 +495,7 @@ export interface BriefGuardResult {
 
 const URL_LIKE = /^(?:[a-z][a-z0-9+.-]*:\/\/|www\.)\S+$/i;
 const EMAIL_LIKE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-// eslint-disable-next-line no-control-regex -- the point is to find control characters
+// Matches control characters on purpose.
 const CONTROL_CHAR = /[\u0000-\u0008\u000B-\u001F\u007F]/;
 
 /** The messages of the HTTP contract (one per reason code). */
