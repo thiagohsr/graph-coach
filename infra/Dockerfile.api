@@ -1,0 +1,50 @@
+# Graph Coach API image (the design documents section 3).
+# Build from the repository root:  docker build -f infra/Dockerfile.api -t graph-coach-api:<revision> .
+# The packages are ESM-only and the API is CommonJS; Node 24 loads them with require(esm) (docs/review-feedback.md, problem 6).
+
+ARG NODE_IMAGE=node:24-bookworm-slim
+
+# ─── Build stage ────────────────────────────────────────────────────────────
+FROM ${NODE_IMAGE} AS build
+ENV CI=true
+RUN corepack enable
+WORKDIR /repo
+
+# Manifests and lockfile first, so the install layer is cached until a dependency changes.
+COPY package.json pnpm-lock.yaml pnpm-workspace.yaml ./
+COPY apps/api/package.json apps/api/package.json
+COPY apps/web/package.json apps/web/package.json
+COPY packages/types/package.json packages/types/package.json
+COPY packages/admin-kit/package.json packages/admin-kit/package.json
+COPY packages/graph-kit/package.json packages/graph-kit/package.json
+COPY packages/agents/package.json packages/agents/package.json
+RUN pnpm install --frozen-lockfile --filter "@coach/api..."
+
+# Sources, then build the API's workspace dependencies (in dependency order) and the API itself.
+COPY tsconfig.base.json ./
+COPY packages packages
+COPY apps/api apps/api
+COPY seed seed
+RUN pnpm --filter "@coach/api^..." run build \
+ && pnpm --filter @coach/api run build
+
+# Production-only tree: the API's `files` (dist, drizzle), its production dependencies, and the built
+# workspace packages copied in (including graph-kit's queries/). No dev dependencies, no sources.
+RUN pnpm --filter @coach/api --prod deploy --legacy /out
+
+# ─── Run stage ──────────────────────────────────────────────────────────────
+FROM ${NODE_IMAGE} AS run
+ENV NODE_ENV=production
+WORKDIR /app
+
+COPY --from=build --chown=node:node /out/ ./
+# `seed/` is found through the nearest pnpm-workspace.yaml above the working directory.
+COPY --from=build --chown=node:node /repo/pnpm-workspace.yaml ./pnpm-workspace.yaml
+COPY --from=build --chown=node:node /repo/seed ./seed
+COPY --chown=node:node infra/scripts/api-entrypoint.sh /usr/local/bin/api-entrypoint.sh
+RUN chmod 0555 /usr/local/bin/api-entrypoint.sh
+
+# No .env and no secret in the image: every value comes from the container environment.
+USER node
+EXPOSE 3001
+ENTRYPOINT ["/usr/local/bin/api-entrypoint.sh"]

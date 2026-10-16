@@ -9,11 +9,14 @@ bad()  { printf '  FAIL  %s\n' "$1"; failed=1; }
 warn() { printf '  warn  %s\n' "$1"; }
 
 major() { printf '%s' "$1" | sed -E 's/^v?([0-9]+).*/\1/'; }
+minor() { printf '%s' "$1" | sed -E 's/^v?[0-9]+\.([0-9]+).*/\1/'; }
 
+# Node 22.12 or later: the API (CommonJS) loads the ESM-only workspace packages through require(esm).
 echo "Tools"
 if command -v node >/dev/null 2>&1; then
-  v=$(node -v); [ "$(major "$v")" -ge 20 ] && ok "node $v" || bad "node $v is older than 20"
-else bad "node is not installed (need 20 or later)"; fi
+  v=$(node -v); M=$(major "$v"); m=$(minor "$v")
+  { [ "$M" -gt 22 ] || { [ "$M" -eq 22 ] && [ "$m" -ge 12 ]; }; } && ok "node $v" || bad "node $v is older than 22.12"
+else bad "node is not installed (need 22.12 or later)"; fi
 
 if command -v pnpm >/dev/null 2>&1; then
   v=$(pnpm -v); [ "$(major "$v")" -ge 9 ] && ok "pnpm $v" || bad "pnpm $v is older than 9"

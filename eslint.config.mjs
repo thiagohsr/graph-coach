@@ -21,6 +21,16 @@ export default tseslint.config(
     files: ['**/*.ts', '**/*.tsx'],
   })),
   {
+    // Convention: a leading underscore marks a deliberately unused parameter or destructured name.
+    files: ['**/*.ts', '**/*.tsx'],
+    rules: {
+      '@typescript-eslint/no-unused-vars': [
+        'error',
+        { argsIgnorePattern: '^_', varsIgnorePattern: '^_', caughtErrorsIgnorePattern: '^_' },
+      ],
+    },
+  },
+  {
     // Only graph-kit may talk to FalkorDB directly (spec 002, SC-P03).
     files: ['**/*.ts', '**/*.tsx'],
     ignores: ['packages/graph-kit/**'],

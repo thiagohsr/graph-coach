@@ -1,0 +1,40 @@
+# Build context for infra/Dockerfile.api and infra/Dockerfile.web (deployment.md section 3).
+# Nothing secret, nothing that is not needed to build.
+
+# Secrets and local configuration (only .env.example would be harmless, and no image needs it)
+.env
+.env.*
+
+# Dependencies and build output are produced inside the image
+**/node_modules
+**/dist
+**/build
+**/.output
+**/.vinxi
+**/.tanstack
+**/coverage
+
+# Not in the image (SEC-34): specs, docs, tests, tooling, local notes
+.git
+.claude
+.specify
+.vitest
+**/.vitest
+specs
+docs
+spike
+.vscode
+.idea
+**/test
+**/*.spec.ts
+**/*.spec.tsx
+playwright-report
+test-results
+**/*.log
+.DS_Store
+
+# Infrastructure code and state never enter an image
+infra/terraform
+**/.terraform
+**/*.tfstate*
+**/*.tfvars
