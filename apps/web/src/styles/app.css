@@ -1,56 +1,140 @@
+@import '@fontsource/atkinson-hyperlegible-next/latin-400.css';
+@import '@fontsource/atkinson-hyperlegible-next/latin-500.css';
+@import '@fontsource/atkinson-hyperlegible-next/latin-600.css';
+@import '@fontsource/atkinson-hyperlegible-next/latin-700.css';
+@import '@fontsource/atkinson-hyperlegible-mono/latin-400.css';
+@import '@fontsource/atkinson-hyperlegible-mono/latin-500.css';
 @import 'tailwindcss';
 @import 'tw-animate-css';
 
-/* Dark tokens follow the system colour scheme (no manual toggle). */
 @custom-variant dark (@media (prefers-color-scheme: dark));
+
+/* Fonts are self-hosted via @fontsource (imports at the top); see docs/design-system.md "Typography". */
 
 :root {
   color-scheme: light dark;
-  --radius: 0.5rem;
-  --background: oklch(1 0 0);
-  --foreground: oklch(0.145 0 0);
-  --card: oklch(1 0 0);
-  --card-foreground: oklch(0.145 0 0);
-  --popover: oklch(1 0 0);
-  --popover-foreground: oklch(0.145 0 0);
-  --primary: oklch(0.205 0 0);
-  --primary-foreground: oklch(0.985 0 0);
-  --secondary: oklch(0.97 0 0);
-  --secondary-foreground: oklch(0.205 0 0);
-  --muted: oklch(0.97 0 0);
-  --muted-foreground: oklch(0.45 0 0);
-  --accent: oklch(0.97 0 0);
-  --accent-foreground: oklch(0.205 0 0);
-  --destructive: oklch(0.5 0.21 27);
-  --border: oklch(0.88 0 0);
-  --input: oklch(0.88 0 0);
-  --ring: oklch(0.45 0 0);
+
+  /* shape */
+  --radius: 0.625rem;
+
+  /* surfaces and text (existing names) */
+  --background: #f7f6f2;
+  --foreground: #1b1f24;
+  --card: #ffffff;
+  --card-foreground: #1b1f24;
+  --popover: #ffffff;
+  --popover-foreground: #1b1f24;
+  --primary: #0b6b66;
+  --primary-foreground: #ffffff;
+  --secondary: #ffffff;
+  --secondary-foreground: #1b1f24;
+  --muted: #efede7;
+  --muted-foreground: #5d636d;
+  --accent: #efede7;
+  --accent-foreground: #1b1f24;
+  --destructive: #b42318;
+  --border: #dad6cc;
+  --input: #858174;
+  --ring: #2f56d0;
+
+  /* new: surfaces and text */
+  --surface-raised: #ffffff;          /* dialogs, dragged chip; separated by shadow in light */
+  --text-secondary: #454b55;
+  --primary-hover: #095753;
+  --primary-soft: #e0f0ee;            /* filled blank, "Yours" marker */
+  --destructive-foreground: #ffffff;
+
+  /* new: graph accent */
+  --graph: #5a44b0;
+  --graph-soft: #ece8fa;
+
+  /* new: status */
+  --success: #1c7339;
+  --success-soft: #e3f3e7;
+  --warning: #8a5300;
+  --warning-soft: #fdf1d8;
+  --danger: var(--destructive);
+  --danger-soft: #fce9e7;
+  --info: #1f5fa8;
+  --info-soft: #e4eefa;
+
+  /* new: mastery scale, 1 = weak … 5 = strong.
+     -solid: dots, pips, node fills, meter bars (non-text, >= 3:1)
+     -fg / -bg: chip text on chip background (>= 4.5:1) */
+  --mastery-1: #a3330c; --mastery-1-fg: #8a2a0a; --mastery-1-bg: #fdebdd;
+  --mastery-2: #ad7a00; --mastery-2-fg: #7a4600; --mastery-2-bg: #fcf1d9;
+  --mastery-3: #6f7680; --mastery-3-fg: #3f454d; --mastery-3-bg: #ecedef;
+  --mastery-4: #2f7db3; --mastery-4-fg: #1c5a87; --mastery-4-bg: #e0edf7;
+  --mastery-5: #173f75; --mastery-5-fg: #12325e; --mastery-5-bg: #d5e1f2;
+
+  /* new: elevation */
+  --shadow-1: 0 1px 2px rgb(27 31 36 / 0.06), 0 1px 1px rgb(27 31 36 / 0.04);
+  --shadow-2: 0 2px 6px rgb(27 31 36 / 0.08), 0 1px 2px rgb(27 31 36 / 0.06);
+  --shadow-3: 0 12px 28px rgb(27 31 36 / 0.14), 0 2px 6px rgb(27 31 36 / 0.08);
+
+  /* new: motion */
+  --duration-fast: 120ms;
+  --duration-base: 180ms;
+  --duration-slow: 280ms;
+  --ease-standard: cubic-bezier(0.2, 0, 0, 1);
+  --ease-enter: cubic-bezier(0, 0, 0.2, 1);
+  --ease-exit: cubic-bezier(0.4, 0, 1, 1);
 }
 
 @media (prefers-color-scheme: dark) {
   :root {
-    --background: oklch(0.145 0 0);
-    --foreground: oklch(0.985 0 0);
-    --card: oklch(0.205 0 0);
-    --card-foreground: oklch(0.985 0 0);
-    --popover: oklch(0.205 0 0);
-    --popover-foreground: oklch(0.985 0 0);
-    --primary: oklch(0.922 0 0);
-    --primary-foreground: oklch(0.205 0 0);
-    --secondary: oklch(0.269 0 0);
-    --secondary-foreground: oklch(0.985 0 0);
-    --muted: oklch(0.269 0 0);
-    --muted-foreground: oklch(0.75 0 0);
-    --accent: oklch(0.269 0 0);
-    --accent-foreground: oklch(0.985 0 0);
-    --destructive: oklch(0.72 0.19 22);
-    --border: oklch(1 0 0 / 18%);
-    --input: oklch(1 0 0 / 22%);
-    --ring: oklch(0.7 0 0);
+    --background: #111417;
+    --foreground: #eceef0;
+    --card: #181c20;
+    --card-foreground: #eceef0;
+    --popover: #20252a;
+    --popover-foreground: #eceef0;
+    --primary: #4cc2b9;
+    --primary-foreground: #06201e;
+    --secondary: #20252a;
+    --secondary-foreground: #eceef0;
+    --muted: #0c0e10;
+    --muted-foreground: #9ba2ac;
+    --accent: #2a2f35;
+    --accent-foreground: #eceef0;
+    --destructive: #f4897e;
+    --border: #30363d;
+    --input: #6e7681;
+    --ring: #8ea9ff;
+
+    --surface-raised: #20252a;
+    --text-secondary: #bcc2ca;
+    --primary-hover: #6ed3cb;
+    --primary-soft: #123532;
+    --destructive-foreground: #2a0b08;
+
+    --graph: #a897f2;
+    --graph-soft: #2a2546;
+
+    --success: #5bcb82;
+    --success-soft: #14301e;
+    --warning: #f2b44c;
+    --warning-soft: #33270f;
+    --danger-soft: #3a1a17;
+    --info: #7db3f2;
+    --info-soft: #152a42;
+
+    --mastery-1: #f0875a; --mastery-1-fg: #f7b394; --mastery-1-bg: #38211a;
+    --mastery-2: #e2a43c; --mastery-2-fg: #f2cb85; --mastery-2-bg: #33280f;
+    --mastery-3: #9aa1aa; --mastery-3-fg: #c9ced4; --mastery-3-bg: #262a30;
+    --mastery-4: #4c9ad6; --mastery-4-fg: #a3cff0; --mastery-4-bg: #15283a;
+    --mastery-5: #b8cbff; --mastery-5-fg: #c7d8ff; --mastery-5-bg: #1d2848;
+
+    --shadow-1: 0 1px 2px rgb(0 0 0 / 0.4);
+    --shadow-2: 0 2px 8px rgb(0 0 0 / 0.45);
+    --shadow-3: 0 16px 32px rgb(0 0 0 / 0.55);
   }
 }
 
 @theme inline {
+  --font-sans: 'Atkinson Hyperlegible Next', ui-sans-serif, system-ui, sans-serif;
+  --font-mono: 'Atkinson Hyperlegible Mono', ui-monospace, monospace;
+
   --color-background: var(--background);
   --color-foreground: var(--foreground);
   --color-card: var(--card);
@@ -59,6 +143,8 @@
   --color-popover-foreground: var(--popover-foreground);
   --color-primary: var(--primary);
   --color-primary-foreground: var(--primary-foreground);
+  --color-primary-hover: var(--primary-hover);
+  --color-primary-soft: var(--primary-soft);
   --color-secondary: var(--secondary);
   --color-secondary-foreground: var(--secondary-foreground);
   --color-muted: var(--muted);
@@ -66,24 +152,67 @@
   --color-accent: var(--accent);
   --color-accent-foreground: var(--accent-foreground);
   --color-destructive: var(--destructive);
+  --color-destructive-foreground: var(--destructive-foreground);
   --color-border: var(--border);
   --color-input: var(--input);
   --color-ring: var(--ring);
-  --radius-sm: calc(var(--radius) - 4px);
-  --radius-md: calc(var(--radius) - 2px);
-  --radius-lg: var(--radius);
+  --color-surface-raised: var(--surface-raised);
+  --color-text-secondary: var(--text-secondary);
+  --color-graph: var(--graph);
+  --color-graph-soft: var(--graph-soft);
+  --color-success: var(--success);
+  --color-success-soft: var(--success-soft);
+  --color-warning: var(--warning);
+  --color-warning-soft: var(--warning-soft);
+  --color-danger: var(--danger);
+  --color-danger-soft: var(--danger-soft);
+  --color-info: var(--info);
+  --color-info-soft: var(--info-soft);
+  --color-mastery-1: var(--mastery-1);
+  --color-mastery-1-fg: var(--mastery-1-fg);
+  --color-mastery-1-bg: var(--mastery-1-bg);
+  --color-mastery-2: var(--mastery-2);
+  --color-mastery-2-fg: var(--mastery-2-fg);
+  --color-mastery-2-bg: var(--mastery-2-bg);
+  --color-mastery-3: var(--mastery-3);
+  --color-mastery-3-fg: var(--mastery-3-fg);
+  --color-mastery-3-bg: var(--mastery-3-bg);
+  --color-mastery-4: var(--mastery-4);
+  --color-mastery-4-fg: var(--mastery-4-fg);
+  --color-mastery-4-bg: var(--mastery-4-bg);
+  --color-mastery-5: var(--mastery-5);
+  --color-mastery-5-fg: var(--mastery-5-fg);
+  --color-mastery-5-bg: var(--mastery-5-bg);
+
+  --radius-sm: calc(var(--radius) - 4px);   /* 6px: badges, small chips */
+  --radius-md: calc(var(--radius) - 2px);   /* 8px: buttons, inputs, blanks */
+  --radius-lg: var(--radius);               /* 10px: cards */
+  --radius-xl: calc(var(--radius) + 4px);   /* 14px: dialogs, sheets */
+
+  --shadow-xs: var(--shadow-1);
+  --shadow-sm: var(--shadow-2);
+  --shadow-lg: var(--shadow-3);
+
+  --ease-standard: var(--ease-standard);
+  --ease-enter: var(--ease-enter);
+  --ease-exit: var(--ease-exit);
 }
 
 @layer base {
   * {
-    @apply border-border outline-ring/50;
+    @apply border-border outline-ring;
+  }
+  :focus-visible {
+    outline: 3px solid var(--ring);
+    outline-offset: 2px;
   }
   body {
-    @apply bg-background text-foreground;
+    @apply bg-background text-foreground font-sans antialiased;
+    font-size: 1rem;
+    line-height: 1.5;
   }
 }
 
-/* Global reduced-motion rule: no animation or smooth scrolling for users who ask for none. */
 @media (prefers-reduced-motion: reduce) {
   *,
   *::before,
@@ -92,5 +221,21 @@
     animation-iteration-count: 1 !important;
     transition-duration: 0.01ms !important;
     scroll-behavior: auto !important;
+  }
+}
+
+/* Why-path graph (xyflow): edges grow in unless the user prefers reduced motion. */
+.react-flow {
+  --xy-edge-label-color-default: var(--text-secondary);
+  --xy-node-boxshadow-selected-default: 0 0 0 3px var(--ring);
+}
+@media (prefers-reduced-motion: no-preference) {
+  .react-flow__edge-path {
+    animation: why-edge-in var(--duration-slow) var(--ease-enter) both;
+  }
+}
+@keyframes why-edge-in {
+  from {
+    opacity: 0;
   }
 }

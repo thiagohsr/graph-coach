@@ -21,9 +21,9 @@ function CreateLink() {
 function SourceRow({ source, playable }: { source: SourceSummaryDto; playable: boolean }) {
   const owner = source.access === 'owner';
   return (
-    <li className="flex flex-col gap-1 rounded-lg border p-4">
+    <li className="flex flex-col gap-1 rounded-lg border bg-card p-4 shadow-xs">
       <h2 className="text-lg font-semibold break-words">
-        <Link to="/sources/$sourceId" params={{ sourceId: source.id }} className="underline">
+        <Link to="/sources/$sourceId" params={{ sourceId: source.id }} className="font-medium text-primary underline underline-offset-4 hover:text-primary-hover">
           {source.title}
         </Link>
       </h2>
@@ -40,17 +40,17 @@ function SourceRow({ source, playable }: { source: SourceSummaryDto; playable: b
       {owner && source.taskStatus && <p className="text-sm">Run: {TASK_STATUS_TEXT[source.taskStatus]}</p>}
       <div className="mt-1 flex flex-wrap items-center gap-3 text-sm">
         {owner && source.taskId && (
-          <Link to="/tasks/$taskId" params={{ taskId: source.taskId }} className="underline">
+          <Link to="/tasks/$taskId" params={{ taskId: source.taskId }} className="font-medium text-primary underline underline-offset-4 hover:text-primary-hover">
             View run
           </Link>
         )}
         {owner && source.taskId && source.taskStatus === 'awaiting_review' && (
-          <Link to="/review" search={{ taskId: source.taskId }} className="underline">
+          <Link to="/review" search={{ taskId: source.taskId }} className="font-medium text-primary underline underline-offset-4 hover:text-primary-hover">
             Review drafts
           </Link>
         )}
         {playable && source.puzzleId && (
-          <Link to="/puzzles/$puzzleId/play" params={{ puzzleId: source.puzzleId }} className="underline">
+          <Link to="/puzzles/$puzzleId/play" params={{ puzzleId: source.puzzleId }} className="font-medium text-primary underline underline-offset-4 hover:text-primary-hover">
             Play
           </Link>
         )}

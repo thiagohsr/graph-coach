@@ -52,11 +52,11 @@ function AdminListPage() {
     <div className="flex flex-col gap-4">
       <RouteFocus title={model?.label ?? 'Admin'} />
       <p className="text-sm">
-        <Link to="/admin" className="underline">
+        <Link to="/admin" className="font-medium text-primary underline underline-offset-4 hover:text-primary-hover">
           Admin
         </Link>
       </p>
-      <h1 className="text-2xl font-semibold">{model?.label ?? 'Records'}</h1>
+      <h1 className="text-2xl leading-[30px] font-bold tracking-tight sm:text-[30px] sm:leading-9">{model?.label ?? 'Records'}</h1>
       {(models.isPending || (model && records.isPending)) && <LoadingState label="Loading records" />}
       {models.isError && <ErrorState error={models.error} onRetry={() => void models.refetch()} />}
       {records.isError && <ErrorState error={records.error} onRetry={() => void records.refetch()} />}

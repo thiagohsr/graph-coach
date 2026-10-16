@@ -212,7 +212,7 @@ export function ReviewScreen({ taskId }: ReviewScreenProps) {
           <EmptyState
             title="No drafts are waiting for review."
             action={
-              <Link to="/sources" className="underline">
+              <Link to="/sources" className="font-medium text-primary underline underline-offset-4 hover:text-primary-hover">
                 Go to your sources
               </Link>
             }

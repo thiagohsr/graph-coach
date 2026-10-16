@@ -108,7 +108,7 @@ export function RedeemCodeForm({
       </form.Field>
 
       {granted && !quiet && (
-        <div role="status" className="rounded-md border p-3 text-sm">
+        <div role="status" className="rounded-md border border-success bg-success-soft p-3 text-sm">
           {grantedLines(granted).length > 0 ? (
             <ul className="list-none">
               {grantedLines(granted).map((line) => (

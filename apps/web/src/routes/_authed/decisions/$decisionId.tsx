@@ -29,12 +29,12 @@ function DecisionPage() {
   return (
     <div className="flex flex-col gap-6">
       <RouteFocus title="Why this?" />
-      <h1 className="text-2xl font-semibold">Why this?</h1>
+      <h1 className="text-2xl leading-[30px] font-bold tracking-tight sm:text-[30px] sm:leading-9">Why this?</h1>
 
       {decision.isPending && <LoadingState label="Loading decision" rows={1} />}
       {decision.isError && <ErrorState error={decision.error} onRetry={() => void decision.refetch()} />}
       {decision.isSuccess && (
-        <section className="flex flex-col gap-2 rounded-lg border p-4" aria-label="Decision">
+        <section className="flex flex-col gap-2 rounded-lg border bg-card p-5 shadow-xs" aria-label="Decision">
           <p>{decision.data.summary}</p>
           <p className="text-sm text-muted-foreground">
             {decision.data.target ? `Target: ${decision.data.target.name} · ` : ''}
@@ -44,7 +44,7 @@ function DecisionPage() {
             <ul className="flex flex-wrap gap-2" aria-label="Notes">
               {flagNotices(decision.data.flags).map((text) => (
                 <li key={text}>
-                  <Badge variant="secondary" className="whitespace-normal">
+                  <Badge variant="warning" className="rounded-md whitespace-normal">
                     {text}
                   </Badge>
                 </li>

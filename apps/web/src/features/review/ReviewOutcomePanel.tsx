@@ -27,7 +27,7 @@ export function ReviewOutcomePanel({ outcome }: { outcome: ReviewOutcome }) {
 
   if (outcome.remainingDrafts === 0) {
     return (
-      <section aria-label="Review outcome" className="flex flex-col gap-3 rounded-lg border p-4">
+      <section aria-label="Review outcome" className="flex flex-col gap-3 rounded-lg border bg-card p-4 shadow-xs">
         {published ? (
           <>
             <h2 id="outcome-heading" tabIndex={-1} className="text-lg font-semibold outline-none">
@@ -35,7 +35,7 @@ export function ReviewOutcomePanel({ outcome }: { outcome: ReviewOutcome }) {
             </h2>
             <div className="flex flex-wrap items-center gap-3">
               <PlayLink puzzleId={outcome.puzzle.id} />
-              <Link to="/puzzles" className="text-sm underline">
+              <Link to="/puzzles" className="text-sm font-medium text-primary underline underline-offset-4 hover:text-primary-hover">
                 Share it from the puzzle list
               </Link>
             </div>
@@ -46,7 +46,7 @@ export function ReviewOutcomePanel({ outcome }: { outcome: ReviewOutcome }) {
               Puzzle not published:
             </h2>
             <p>{outcome.notPublishedReason ? notPublishedSentence(outcome.notPublishedReason) : 'No questions were approved.'}</p>
-            <Link to="/sources" className="text-sm underline">
+            <Link to="/sources" className="text-sm font-medium text-primary underline underline-offset-4 hover:text-primary-hover">
               Back to sources
             </Link>
           </>

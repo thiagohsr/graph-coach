@@ -36,7 +36,7 @@ export interface PromptFormProps {
 type FieldErrors = Partial<Record<'title' | 'subject' | 'focus' | 'sentences' | 'form', string[]>>;
 
 const selectClass =
-  'flex h-10 w-fit items-center rounded-md border border-input bg-transparent px-3 py-2 text-sm outline-none focus-visible:ring-[3px] focus-visible:ring-ring/50';
+  'flex h-10 w-fit items-center rounded-md border border-input bg-transparent px-3 py-2 text-sm outline-none focus-visible:outline-solid focus-visible:outline-3 focus-visible:outline-offset-2 focus-visible:outline-ring';
 
 const PATH_TO_FIELD: Record<string, keyof FieldErrors> = {
   title: 'title',
@@ -142,11 +142,11 @@ export function PromptForm({ disabled, describedBy, submitBlocked, onLimit }: Pr
           <AlertDescription>
             You already added this material.{' '}
             {duplicate.taskId ? (
-              <Link to="/tasks/$taskId" params={{ taskId: duplicate.taskId }} className="underline">
+              <Link to="/tasks/$taskId" params={{ taskId: duplicate.taskId }} className="font-medium text-primary underline underline-offset-4 hover:text-primary-hover">
                 View the run
               </Link>
             ) : (
-              <Link to="/sources" className="underline">
+              <Link to="/sources" className="font-medium text-primary underline underline-offset-4 hover:text-primary-hover">
                 See your sources
               </Link>
             )}

@@ -43,11 +43,11 @@ function AdminRecordPage() {
     <div className="flex flex-col gap-4">
       <RouteFocus title={title} />
       <p className="text-sm">
-        <Link to="/admin/$model" params={{ model: modelName }} className="underline">
+        <Link to="/admin/$model" params={{ model: modelName }} className="font-medium text-primary underline underline-offset-4 hover:text-primary-hover">
           {model?.label ?? 'Back to the list'}
         </Link>
       </p>
-      <h1 className="text-2xl font-semibold">{title}</h1>
+      <h1 className="text-2xl leading-[30px] font-bold tracking-tight sm:text-[30px] sm:leading-9">{title}</h1>
       {(models.isPending || (model && record.isPending)) && <LoadingState label="Loading record" />}
       {models.isError && <ErrorState error={models.error} onRetry={() => void models.refetch()} />}
       {record.isError && <ErrorState error={record.error} onRetry={() => void record.refetch()} />}

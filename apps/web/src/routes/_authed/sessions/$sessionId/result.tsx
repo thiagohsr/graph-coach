@@ -25,17 +25,17 @@ function ResultPage() {
       <RouteFocus title={result.data ? `Result: ${result.data.puzzle.name}` : 'Result'} />
       {result.isPending && (
         <>
-          <h1 className="text-2xl font-semibold">Result</h1>
+          <h1 className="text-2xl leading-[30px] font-bold tracking-tight sm:text-[30px] sm:leading-9">Result</h1>
           <LoadingState label="Loading result" rows={4} />
         </>
       )}
       {result.isError && isCode(result.error, 'SESSION_NOT_SUBMITTED') && (
         <>
-          <h1 className="text-2xl font-semibold">Result</h1>
+          <h1 className="text-2xl leading-[30px] font-bold tracking-tight sm:text-[30px] sm:leading-9">Result</h1>
           <EmptyState
             title="This session has not been submitted yet."
             action={
-              <Link to={'/puzzles' as never} className="underline">
+              <Link to={'/puzzles' as never} className="font-medium text-primary underline underline-offset-4 hover:text-primary-hover">
                 Back to puzzles
               </Link>
             }
@@ -44,7 +44,7 @@ function ResultPage() {
       )}
       {result.isError && !isCode(result.error, 'SESSION_NOT_SUBMITTED') && (
         <>
-          <h1 className="text-2xl font-semibold">Result</h1>
+          <h1 className="text-2xl leading-[30px] font-bold tracking-tight sm:text-[30px] sm:leading-9">Result</h1>
           <ErrorState error={result.error} onRetry={() => void result.refetch()} />
         </>
       )}

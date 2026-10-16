@@ -7,7 +7,7 @@ const WINDOW_TEXT: Record<string, string> = { hour: 'this hour', month: 'this mo
 export function RateLimitNotice({ message, window, retryAt }: { message: string; window?: string | undefined; retryAt?: Date | null | undefined }) {
   const windowText = window ? WINDOW_TEXT[window] : undefined;
   return (
-    <Alert variant="destructive" aria-live="polite">
+    <Alert variant="warning" aria-live="polite">
       <p>
         {message}
         {windowText ? ` (${windowText})` : ''}

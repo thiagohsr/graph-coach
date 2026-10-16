@@ -17,7 +17,7 @@ export function CreationLimitNotice({ error, redeem }: { error: ApiClientError; 
     : null;
   return (
     <div className="flex flex-col gap-3">
-      <Alert variant="destructive" aria-live="polite">
+      <Alert variant="warning" aria-live="polite">
         <p>{`You have reached the limit for ${kind ?? 'creations'}${window ? ` ${window}` : ''}.`}</p>
         {reset && <p className="mt-1">{reset}</p>}
       </Alert>

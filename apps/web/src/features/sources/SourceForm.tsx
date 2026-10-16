@@ -32,7 +32,7 @@ export interface SourceFormProps {
 }
 
 const selectClass =
-  'flex h-10 w-fit items-center rounded-md border border-input bg-transparent px-3 py-2 text-sm outline-none focus-visible:ring-[3px] focus-visible:ring-ring/50';
+  'flex h-10 w-fit items-center rounded-md border border-input bg-transparent px-3 py-2 text-sm outline-none focus-visible:outline-solid focus-visible:outline-3 focus-visible:outline-offset-2 focus-visible:outline-ring';
 
 /** The upload form of `/sources/new` (contracts/ui-screens.md). Every non-202 outcome keeps what was typed. */
 export function SourceForm({ redeemSlot, disabled, describedBy, submitBlocked, onLimit }: SourceFormProps) {
@@ -101,11 +101,11 @@ export function SourceForm({ redeemSlot, disabled, describedBy, submitBlocked, o
           <AlertDescription>
             You already added this material.{' '}
             {duplicate.taskId ? (
-              <Link to="/tasks/$taskId" params={{ taskId: duplicate.taskId }} className="underline">
+              <Link to="/tasks/$taskId" params={{ taskId: duplicate.taskId }} className="font-medium text-primary underline underline-offset-4 hover:text-primary-hover">
                 View the run
               </Link>
             ) : (
-              <Link to="/sources" className="underline">
+              <Link to="/sources" className="font-medium text-primary underline underline-offset-4 hover:text-primary-hover">
                 See your sources
               </Link>
             )}

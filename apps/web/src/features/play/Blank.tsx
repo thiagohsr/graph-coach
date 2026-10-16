@@ -41,15 +41,18 @@ export function Blank({ slot, word, selected, disabled, onActivate, onKeyDown, r
       onKeyDown={(event) => onKeyDown(slot.id, event)}
       {...drag.listeners}
       className={cn(
-        'mx-1 inline-flex min-h-11 min-w-24 items-center justify-center rounded-md border-2 border-dashed px-3 py-1 align-middle text-base font-medium outline-none',
-        'focus-visible:ring-[3px] focus-visible:ring-ring/60',
-        word ? 'border-solid bg-secondary text-secondary-foreground' : 'bg-background text-muted-foreground',
-        selected && 'ring-2 ring-primary',
-        drop.isOver && 'border-primary bg-accent',
+        'mx-0.5 inline-flex h-11 min-w-[84px] items-center justify-center rounded-md border-[1.5px] px-3.5 align-middle text-base font-semibold outline-none sm:h-10 sm:min-w-[104px]',
+        'transition-colors duration-(--duration-base) ease-(--ease-standard) disabled:cursor-not-allowed disabled:opacity-50',
+        'focus-visible:outline-solid focus-visible:outline-3 focus-visible:outline-offset-2 focus-visible:outline-ring',
+        word
+          ? 'border-solid border-primary bg-primary-soft text-primary'
+          : 'border-dashed border-input bg-background text-muted-foreground hover:border-solid hover:border-primary hover:bg-primary-soft',
+        selected && 'border-solid border-ring bg-card shadow-[0_0_0_6px_color-mix(in_oklab,var(--ring)_12%,transparent)]',
+        drop.isOver && 'border-solid border-primary bg-primary-soft',
         drag.isDragging && 'opacity-40',
       )}
     >
-      {word ? word.text : <span aria-hidden="true">&nbsp;</span>}
+      {word ? word.text : <span aria-hidden="true" className={cn('h-0.5 w-8 rounded-full bg-input', selected && 'bg-ring')} />}
     </button>
   );
 }

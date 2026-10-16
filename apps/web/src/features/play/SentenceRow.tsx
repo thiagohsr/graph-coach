@@ -20,11 +20,14 @@ export function SentenceRow({ question, sentenceNumber, state, disabled, onActiv
   const split = splitSentence(question.sentence, question.blanks);
   if (!split.ok) return null; // the board refuses to render a mismatched puzzle before getting here
   return (
-    <li className="flex items-baseline gap-2 text-lg leading-[3rem]">
-      <span aria-hidden="true" className="w-6 shrink-0 text-right text-muted-foreground">
-        {sentenceNumber}.
+    <li className="grid grid-cols-[28px_1fr] gap-2.5 px-3.5 py-3.5 sm:grid-cols-[32px_1fr] sm:gap-3.5 sm:px-6 sm:py-[18px]">
+      <span
+        aria-hidden="true"
+        className="grid size-7 place-items-center rounded-full border bg-background font-mono text-xs text-muted-foreground sm:size-8 sm:text-[13px]"
+      >
+        {sentenceNumber}
       </span>
-      <p className="min-w-0 break-words">
+      <p className="min-w-0 text-base leading-[46px] break-words sm:text-lg sm:leading-[44px]">
         {split.segments.map((segment, i) => {
           if (segment.kind === 'text') return <span key={i}>{segment.text}</span>;
           const slot = state.slots.find((s) => s.questionId === question.id && s.blank === segment.index);

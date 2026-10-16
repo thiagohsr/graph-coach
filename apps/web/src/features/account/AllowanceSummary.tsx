@@ -1,3 +1,4 @@
+import { PauseIcon } from 'lucide-react';
 import type { AllowanceDto, CreationKind } from '@coach/types';
 import { hourlyState } from '~/features/create/allowance';
 
@@ -11,7 +12,7 @@ export function AllowanceSummary({ allowance, now = new Date() }: { allowance: A
   const hour = hourlyState(allowance, now);
   return (
     <div className="flex flex-col gap-3">
-      <div className="overflow-x-auto">
+      <div className="overflow-x-auto rounded-lg border bg-card px-4 pt-3 pb-1 shadow-xs">
         <table className="w-full text-left text-sm">
           <caption className="mb-2 text-left text-lg font-semibold">This month</caption>
           <thead>
@@ -60,7 +61,10 @@ export function AllowanceSummary({ allowance, now = new Date() }: { allowance: A
         </table>
       </div>
       <p className="text-sm">{hour.text}</p>
-      {!allowance.creationEnabled && <p className="text-sm font-medium">Puzzle creation is paused.</p>}
+      {!allowance.creationEnabled && <p className="flex items-center gap-2 rounded-md border border-warning bg-warning-soft px-4 py-3 text-sm font-semibold text-foreground">
+          <PauseIcon aria-hidden="true" className="size-5 shrink-0 text-warning" />
+          Puzzle creation is paused.
+        </p>}
     </div>
   );
 }

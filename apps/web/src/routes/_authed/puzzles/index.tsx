@@ -18,7 +18,7 @@ function PuzzlesPage() {
   return (
     <div className="flex flex-col gap-4">
       <RouteFocus title="Puzzles" />
-      <h1 className="text-2xl font-semibold">Puzzles</h1>
+      <h1 className="text-2xl leading-[30px] font-bold tracking-tight sm:text-[30px] sm:leading-9">Puzzles</h1>
       {puzzles.isPending && <LoadingState label="Loading puzzles" />}
       {puzzles.isError && <ErrorState error={puzzles.error} onRetry={() => void puzzles.refetch()} />}
       {puzzles.isSuccess && puzzles.data.length === 0 && (
@@ -26,10 +26,10 @@ function PuzzlesPage() {
           title="No puzzles yet."
           action={
             <div className="flex gap-4">
-              <Link to={'/sources/new' as never} className="underline">
+              <Link to={'/sources/new' as never} className="font-medium text-primary underline underline-offset-4 hover:text-primary-hover">
                 Create a puzzle
               </Link>
-              <Link to={'/coach' as never} className="underline">
+              <Link to={'/coach' as never} className="font-medium text-primary underline underline-offset-4 hover:text-primary-hover">
                 Ask the Coach
               </Link>
             </div>

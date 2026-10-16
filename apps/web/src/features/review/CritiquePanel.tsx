@@ -3,7 +3,7 @@ import type { DraftQuestionDto } from '@coach/types';
 /** Right-hand pane of a prompt draft: the critic's verdict and note, in the place where a passage would be. */
 export function CritiquePanel({ draft }: { draft: Pick<DraftQuestionDto, 'critique'> }) {
   return (
-    <section aria-label="Critic's check" className="flex flex-col gap-2 rounded-lg border p-4">
+    <section aria-label="Critic's check" className="flex flex-col gap-2 rounded-lg border bg-card p-4 shadow-xs">
       <h2 className="text-lg font-semibold">Critic&apos;s check</h2>
       {draft.critique ? (
         <>

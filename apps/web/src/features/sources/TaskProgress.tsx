@@ -1,6 +1,7 @@
 import { PROMPT_ORIGIN_NOTICE, type TaskDto, type TaskStatus } from '@coach/types';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { Link } from '@tanstack/react-router';
+import { TriangleAlertIcon } from 'lucide-react';
 import { LiveRegion } from '~/components/a11y/LiveRegion';
 import { describeError } from '~/components/states/error-messages';
 import { Alert, AlertDescription } from '~/components/ui/alert';
@@ -61,13 +62,18 @@ export function TaskProgress({ task, state, playablePuzzleIds, onRetried }: Task
     <section aria-label="Run progress" className="flex flex-col gap-4">
       <LiveRegion message={`Run status: ${statusLabel}`} />
       <div className="flex flex-wrap items-center gap-3">
-        <Badge variant={task.status === 'failed' ? 'destructive' : 'secondary'}>{statusLabel}</Badge>
+        <Badge variant={task.status === 'failed' ? 'destructive' : task.status === 'done' ? 'success' : 'secondary'}>{statusLabel}</Badge>
         <p className="text-sm text-muted-foreground">
           {task.produced.concepts} concepts · {task.produced.questions} questions
         </p>
       </div>
 
-      {task.kind !== 'ingest' && <p className="text-sm text-muted-foreground">{PROMPT_ORIGIN_NOTICE}</p>}
+      {task.kind !== 'ingest' && (
+        <p className="flex w-fit max-w-full items-start gap-1.5 rounded-md bg-warning-soft px-2.5 py-1.5 text-[13px] leading-[18px] font-semibold text-warning">
+          <TriangleAlertIcon aria-hidden="true" className="mt-px size-3.5 shrink-0" />
+          <span>{PROMPT_ORIGIN_NOTICE}</span>
+        </p>
+      )}
 
       <TransportLine transport={state.transport} />
 
@@ -76,7 +82,7 @@ export function TaskProgress({ task, state, playablePuzzleIds, onRetried }: Task
       <StepLog kind={task.kind} state={state} />
 
       {task.status === 'awaiting_review' && (
-        <Alert role="status">
+        <Alert role="status" variant="success">
           <AlertDescription className="flex flex-wrap items-center gap-3">
             <span>Drafts are ready</span>
             <Link
@@ -114,7 +120,7 @@ export function TaskProgress({ task, state, playablePuzzleIds, onRetried }: Task
             <p>
               The run is finished.{' '}
               {puzzleId && playablePuzzleIds?.has(puzzleId) && (
-                <Link to="/puzzles/$puzzleId/play" params={{ puzzleId }} className="underline">
+                <Link to="/puzzles/$puzzleId/play" params={{ puzzleId }} className="font-medium text-primary underline underline-offset-4 hover:text-primary-hover">
                   Play
                 </Link>
               )}

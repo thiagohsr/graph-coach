@@ -32,11 +32,11 @@ interface ChoiceProps {
 function Choice({ kind, title, description, difference, expanded, onToggle, line, blocked, children }: ChoiceProps) {
   const panelId = `choice-panel-${kind}`;
   return (
-    <section className="flex flex-col gap-3 rounded-lg border p-4" aria-labelledby={`choice-heading-${kind}`}>
+    <section className="flex flex-col gap-3 rounded-lg border bg-card p-4 shadow-xs" aria-labelledby={`choice-heading-${kind}`}>
       <h2 id={`choice-heading-${kind}`} className="text-lg font-semibold">
         <button
           type="button"
-          className="text-left underline-offset-4 hover:underline focus-visible:ring-[3px] focus-visible:ring-ring/50 focus-visible:outline-none"
+          className="text-left underline-offset-4 hover:underline focus-visible:outline-solid focus-visible:outline-3 focus-visible:outline-offset-2 focus-visible:outline-ring focus-visible:outline-none"
           aria-expanded={expanded}
           aria-controls={panelId}
           onClick={onToggle}
@@ -109,7 +109,7 @@ export function CreatePage({ initialChoice = null }: { initialChoice?: CreationK
   return (
     <div className="flex flex-col gap-4">
       <RouteFocus title="Create a puzzle" />
-      <h1 className="text-2xl font-semibold">Create a puzzle</h1>
+      <h1 className="text-2xl leading-[30px] font-bold tracking-tight sm:text-[30px] sm:leading-9">Create a puzzle</h1>
       <div role="group" aria-label="How do you want to create a puzzle?" className="grid gap-4 md:grid-cols-2">
         <Choice
           kind="prompt"
@@ -140,7 +140,7 @@ export function CreatePage({ initialChoice = null }: { initialChoice?: CreationK
       </div>
 
       {granted && (
-        <div role="status" className="rounded-md border p-3 text-sm">
+        <div role="status" className="rounded-md border border-success bg-success-soft p-3 text-sm">
           <ul className="list-none">
             {grantedLines(granted).map((text) => (
               <li key={text}>{text}</li>

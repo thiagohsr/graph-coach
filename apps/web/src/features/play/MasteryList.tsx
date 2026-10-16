@@ -1,4 +1,6 @@
 import { Link } from '@tanstack/react-router';
+import { ConceptChip, MASTERY_SOLID, masteryStep } from '~/components/mastery/ConceptChip';
+import { cn } from '~/lib/utils';
 import { EmptyState } from '~/components/states/EmptyState';
 import type { MasteryItem } from '~/lib/api/gameplay-schemas';
 
@@ -18,7 +20,7 @@ export function MasteryList({ items }: { items: MasteryItem[] }) {
       <EmptyState
         title="Play a puzzle to start building your mastery."
         action={
-          <Link to={'/puzzles' as never} className="underline">
+          <Link to={'/puzzles' as never} className="font-medium text-primary underline underline-offset-4 hover:text-primary-hover">
             Go to puzzles
           </Link>
         }
@@ -29,12 +31,16 @@ export function MasteryList({ items }: { items: MasteryItem[] }) {
     <ul className="flex flex-col gap-3">
       {weakestFirst(items).map((item) => {
         const percent = `${Math.round(item.score * 100)}%`;
+        const step = masteryStep(item.score);
         const labelId = `mastery-${item.conceptId}`;
         return (
-          <li key={item.conceptId} className="flex flex-col gap-1 rounded-lg border p-3">
+          <li key={item.conceptId} className="flex flex-col gap-2 rounded-lg border bg-card p-4 shadow-xs">
             <div className="flex flex-wrap items-baseline justify-between gap-2">
-              <span id={labelId} className="font-medium">
-                {item.name}
+              <span className="flex flex-wrap items-center gap-2">
+                <span id={labelId} className="font-semibold">
+                  {item.name}
+                </span>
+                <ConceptChip step={step} />
               </span>
               <span className="text-sm text-muted-foreground">
                 {item.attempts} {item.attempts === 1 ? 'attempt' : 'attempts'} · last seen {formatDate(item.lastSeen)}
@@ -48,11 +54,11 @@ export function MasteryList({ items }: { items: MasteryItem[] }) {
                 aria-valuemax={1}
                 aria-valuenow={item.score}
                 aria-valuetext={percent}
-                className="h-3 flex-1 overflow-hidden rounded-full bg-muted"
+                className="h-2.5 flex-1 overflow-hidden rounded-full bg-muted"
               >
-                <div className="h-full bg-primary" style={{ width: percent }} />
+                <div className={cn('h-full', MASTERY_SOLID[step])} style={{ width: percent }} />
               </div>
-              <span className="w-12 text-right text-sm font-medium">{percent}</span>
+              <span className="w-12 text-right font-mono text-sm font-medium">{percent}</span>
             </div>
           </li>
         );

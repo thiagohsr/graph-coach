@@ -41,15 +41,22 @@ export function WordButton({ word, useCount, selected, tabIndex, disabled, onAct
       onFocus={onFocus}
       {...drag.listeners}
       className={cn(
-        'inline-flex min-h-11 flex-col items-center justify-center rounded-md border bg-background px-3 py-1 text-base font-medium outline-none',
-        'hover:bg-accent focus-visible:ring-[3px] focus-visible:ring-ring/60',
-        selected && 'ring-2 ring-primary',
-        drag.isDragging && 'opacity-40',
+        'inline-flex h-11 cursor-grab touch-manipulation items-center justify-center gap-1.5 rounded-full border border-input bg-card px-3.5 text-base font-semibold shadow-xs outline-none sm:h-10',
+        'transition-colors duration-(--duration-fast) ease-(--ease-standard) hover:border-muted-foreground hover:bg-accent disabled:cursor-not-allowed disabled:opacity-50',
+        'focus-visible:outline-solid focus-visible:outline-3 focus-visible:outline-offset-2 focus-visible:outline-ring',
+        useCount > 0 && 'border-primary',
+        selected && 'border-primary bg-primary text-primary-foreground hover:border-primary hover:bg-primary-hover',
+        drag.isDragging && 'border-dashed opacity-45 shadow-none',
       )}
     >
       <span>{word.text}</span>
       {useCount > 0 && (
-        <span aria-hidden="true" className="text-xs font-normal text-muted-foreground">
+        <span
+          aria-hidden="true"
+          className={cn(
+            'rounded-full bg-primary-soft px-1.5 py-[3px] font-mono text-[11px] leading-none font-medium text-primary',
+          )}
+        >
           used in {useCount} {useCount === 1 ? 'blank' : 'blanks'}
         </span>
       )}

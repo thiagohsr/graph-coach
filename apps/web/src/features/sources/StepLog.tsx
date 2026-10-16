@@ -8,7 +8,7 @@ export function StepLog({ kind, state }: { kind: TaskKind; state: PipelineState 
     <div
       role="log"
       aria-label="Run log"
-      className="max-h-64 min-h-12 overflow-y-auto rounded-md border bg-muted/30 p-3 font-mono text-xs"
+      className="max-h-64 min-h-12 overflow-y-auto rounded-md border bg-muted p-3 font-mono text-xs"
     >
       {lines.length === 0 ? (
         <p className="text-muted-foreground">No log lines yet.</p>

@@ -20,7 +20,7 @@ export function AdminLinks({ links }: { links: AdminLink[] }) {
             <dd>
               {link.kind === 'count' && <span>{link.count}</span>}
               {link.kind === 'route' && (
-                <Link to={link.href as never} className="underline">
+                <Link to={link.href as never} className="font-medium text-primary underline underline-offset-4 hover:text-primary-hover">
                   {link.label}
                 </Link>
               )}
@@ -31,7 +31,7 @@ export function AdminLinks({ links }: { links: AdminLink[] }) {
                     {link.items.map((item) => (
                       <li key={item.id}>
                         {link.model ? (
-                          <Link to="/admin/$model/$id" params={{ model: link.model, id: item.id }} className="underline">
+                          <Link to="/admin/$model/$id" params={{ model: link.model, id: item.id }} className="font-medium text-primary underline underline-offset-4 hover:text-primary-hover">
                             {item.title}
                           </Link>
                         ) : (

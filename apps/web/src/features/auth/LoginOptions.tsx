@@ -31,7 +31,7 @@ export function LoginErrorAlert({ error }: { error: LoginError }) {
       ref={ref}
       role="alert"
       tabIndex={-1}
-      className="rounded-lg border border-destructive/60 px-4 py-3 text-sm text-destructive outline-none focus-visible:ring-[3px] focus-visible:ring-ring/50"
+      className="rounded-md border border-danger bg-danger-soft px-4 py-3 text-sm text-danger outline-none focus-visible:outline-solid focus-visible:outline-3 focus-visible:outline-offset-2 focus-visible:outline-ring"
     >
       {LOGIN_ERROR_MESSAGES[error]}
     </div>
@@ -44,8 +44,8 @@ export function LoginOptions({ redirect, error, onSignOut }: { redirect: string;
   const unverified = error === 'unverified';
 
   return (
-    <section className="mx-auto flex max-w-md flex-col gap-5 p-6">
-      <h1 className="text-2xl font-semibold" tabIndex={-1}>
+    <section className="mx-auto my-10 flex max-w-md flex-col gap-5 rounded-xl border bg-card p-6 shadow-sm max-sm:mx-4 max-sm:my-6">
+      <h1 className="text-2xl leading-[30px] font-bold tracking-tight sm:text-[30px] sm:leading-9" tabIndex={-1}>
         Sign in
       </h1>
       {error && <LoginErrorAlert error={error} />}

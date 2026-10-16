@@ -5,7 +5,7 @@ export function WhyPathList({ steps, headingId }: { steps: string[]; headingId: 
       <h2 id={headingId} className="text-lg font-semibold">
         The same path as text
       </h2>
-      <ol className="list-decimal space-y-1 pl-6">
+      <ol className="list-decimal space-y-1.5 rounded-lg border bg-card py-4 pr-5 pl-9 shadow-xs marker:font-mono marker:text-graph">
         {steps.map((step, index) => (
           <li key={index}>{step}</li>
         ))}

@@ -45,7 +45,7 @@ function CoachPage() {
   return (
     <div className="flex flex-col gap-4">
       <RouteFocus title="What next?" />
-      <h1 className="text-2xl font-semibold">What next?</h1>
+      <h1 className="text-2xl leading-[30px] font-bold tracking-tight sm:text-[30px] sm:leading-9">What next?</h1>
       <LiveRegion message={announcement.message} seq={announcement.seq} />
 
       {!recommendation && !ask.isPending && !ask.isError && (

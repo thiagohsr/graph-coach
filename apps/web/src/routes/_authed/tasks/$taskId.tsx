@@ -29,11 +29,11 @@ function TaskPage() {
     <div className="flex flex-col gap-4">
       <RouteFocus title="Run" />
       <p className="text-sm">
-        <Link to="/sources" className="underline">
+        <Link to="/sources" className="font-medium text-primary underline underline-offset-4 hover:text-primary-hover">
           Back to sources
         </Link>
       </p>
-      <h1 className="text-2xl font-semibold">Run</h1>
+      <h1 className="text-2xl leading-[30px] font-bold tracking-tight sm:text-[30px] sm:leading-9">Run</h1>
       {task.isPending && <LoadingState label="Loading run" rows={3} />}
       {task.isError && <ErrorState error={task.error} onRetry={() => void task.refetch()} />}
       {task.data && <TaskProgress task={task.data} state={state} playablePuzzleIds={playable} onRetried={reset} />}

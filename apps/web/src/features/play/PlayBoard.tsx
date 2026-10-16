@@ -10,6 +10,7 @@ import {
   type DragStartEvent,
 } from '@dnd-kit/core';
 import { Link } from '@tanstack/react-router';
+import { BookTypeIcon, InfoIcon } from 'lucide-react';
 import { useEffect, useReducer, useRef, useState, type KeyboardEvent, type MouseEvent } from 'react';
 import { LiveRegion } from '~/components/a11y/LiveRegion';
 import { describeError } from '~/components/states/error-messages';
@@ -47,7 +48,7 @@ export function PlayBoard({ puzzle }: { puzzle: PlayPuzzle }) {
       <EmptyState
         title="This puzzle has no questions."
         action={
-          <Link to={'/puzzles' as never} className="underline">
+          <Link to={'/puzzles' as never} className="font-medium text-primary underline underline-offset-4 hover:text-primary-hover">
             Back to puzzles
           </Link>
         }
@@ -153,9 +154,10 @@ function Board({ puzzle }: { puzzle: PlayPuzzle }) {
   };
 
   return (
-    <div ref={root} role="group" aria-label="Play board" onKeyDown={onBoardKeyDown} className="flex flex-col gap-4" aria-describedby={HINT_ID}>
-      <p id={HINT_ID} className="text-sm text-muted-foreground">
-        {HINT}
+    <div ref={root} role="group" aria-label="Play board" onKeyDown={onBoardKeyDown} className="grid gap-4 lg:grid-cols-[minmax(0,1fr)_340px] lg:items-start lg:gap-x-7 lg:[&>*:not([data-bank-area])]:col-start-1" aria-describedby={HINT_ID}>
+      <p id={HINT_ID} className="flex items-start gap-2 text-sm text-muted-foreground">
+        <InfoIcon aria-hidden="true" className="mt-0.5 size-4 shrink-0 text-info" />
+        <span>{HINT}</span>
       </p>
       <LiveRegion message={state.announcement.text} seq={state.announcement.seq} />
 
@@ -166,7 +168,7 @@ function Board({ puzzle }: { puzzle: PlayPuzzle }) {
         onDragEnd={onDragEnd}
         onDragCancel={() => setActiveDragId(null)}
       >
-        <ol aria-label="Sentences" className="flex flex-col gap-2">
+        <ol aria-label="Sentences" className="flex flex-col divide-y overflow-hidden rounded-lg border bg-card shadow-xs">
           {questions.map((question, index) => (
             <SentenceRow
               key={question.id}
@@ -184,52 +186,76 @@ function Board({ puzzle }: { puzzle: PlayPuzzle }) {
           ))}
         </ol>
 
-        <section
-          aria-label="Words"
-          className="sticky bottom-0 -mx-4 max-h-[40dvh] overflow-y-auto border-t bg-background p-4 md:static md:mx-0 md:max-h-none md:rounded-lg md:border"
+        {state.status === 'submit_failed' && state.error && (
+          <div ref={errorBox} tabIndex={-1} className="outline-none">
+            <Alert variant="destructive">
+              <AlertTitle>Your answers were not submitted</AlertTitle>
+              <AlertDescription>{describeError(state.error).message}</AlertDescription>
+              <Button type="button" variant="outline" size="sm" className="mt-3" onClick={() => void submit()}>
+                Retry
+              </Button>
+            </Alert>
+          </div>
+        )}
+
+        <div
+          data-bank-area
+          className="sticky bottom-0 z-10 -mx-4 flex max-h-[40dvh] flex-col gap-3 rounded-t-2xl border-t bg-card px-4 pt-3 pb-3 shadow-[0_-8px_24px_rgb(27_31_36/0.10)] lg:contents"
         >
-          <WordBank
-            words={state.words}
-            useCountOf={(wordId) => useCount(state, wordId)}
-            selection={state.selection}
-            disabled={submitting}
-            onActivate={onWord}
-          />
-        </section>
+          <section
+            aria-label="Words"
+            className="min-h-0 overflow-y-auto lg:col-start-2 lg:row-span-3 lg:row-start-1 lg:sticky lg:top-5 lg:max-h-none lg:overflow-visible lg:rounded-lg lg:border lg:bg-card lg:p-5 lg:shadow-xs"
+          >
+            <h3 className="mb-3 flex items-center gap-2 text-sm leading-5 font-semibold lg:text-lg lg:leading-6">
+              <BookTypeIcon aria-hidden="true" className="hidden size-4 text-text-secondary lg:block" />
+              Word bank
+            </h3>
+            <WordBank
+              words={state.words}
+              useCountOf={(wordId) => useCount(state, wordId)}
+              selection={state.selection}
+              disabled={submitting}
+              onActivate={onWord}
+            />
+          </section>
+
+          <div className="flex shrink-0 flex-col gap-3 sm:flex-row sm:items-center lg:col-start-1 lg:mt-1">
+            <div className="flex items-center gap-3">
+              <p className="text-sm font-medium text-text-secondary">
+                {total - empties} of {total} blanks filled
+              </p>
+              <span aria-hidden="true" className="hidden h-1.5 w-[120px] overflow-hidden rounded-full bg-muted sm:block">
+                <span
+                  className="block h-full bg-primary transition-[width] duration-(--duration-base) ease-(--ease-standard)"
+                  style={{ width: `${total === 0 ? 0 : ((total - empties) / total) * 100}%` }}
+                />
+              </span>
+            </div>
+            <div className="flex gap-2 max-sm:[&>*]:flex-1 sm:ml-auto">
+              <Button
+                type="button"
+                variant="ghost"
+                className="max-lg:border max-lg:border-input max-lg:bg-card"
+                disabled={submitting}
+                onClick={() => dispatch({ type: 'RESET' })}
+              >
+                Clear all
+              </Button>
+              <Button ref={submitButton} type="button" disabled={submitting} onClick={requestSubmit}>
+                {submitting ? 'Submitting…' : 'Submit answers'}
+              </Button>
+            </div>
+          </div>
+        </div>
 
         <DragOverlay dropAnimation={reducedMotion ? null : undefined}>
           {activeWordText ? (
-            <div className="inline-flex min-h-11 items-center rounded-md border bg-background px-3 text-base font-medium shadow-md">
+            <div className="inline-flex h-10 -rotate-3 items-center rounded-full border border-ring bg-card px-3.5 text-base font-semibold shadow-lg motion-reduce:rotate-0">
               {activeWordText}
             </div>
           ) : null}
         </DragOverlay>
       </DndContext>
-
-      <p className="text-sm font-medium">
-        {total - empties} of {total} blanks filled
-      </p>
-
-      {state.status === 'submit_failed' && state.error && (
-        <div ref={errorBox} tabIndex={-1} className="outline-none">
-          <Alert variant="destructive">
-            <AlertTitle>Your answers were not submitted</AlertTitle>
-            <AlertDescription>{describeError(state.error).message}</AlertDescription>
-            <Button type="button" variant="outline" size="sm" className="mt-3" onClick={() => void submit()}>
-              Retry
-            </Button>
-          </Alert>
-        </div>
-      )}
-
-      <div className="flex flex-wrap gap-2">
-        <Button type="button" variant="outline" disabled={submitting} onClick={() => dispatch({ type: 'RESET' })}>
-          Clear all
-        </Button>
-        <Button ref={submitButton} type="button" disabled={submitting} onClick={requestSubmit}>
-          {submitting ? 'Submitting…' : 'Submit answers'}
-        </Button>
-      </div>
 
       <Dialog open={confirmOpen} onOpenChange={setConfirmOpen}>
         <DialogContent>
@@ -263,7 +289,7 @@ function Board({ puzzle }: { puzzle: PlayPuzzle }) {
 export function PlayHeader({ puzzle }: { puzzle: Pick<PlayPuzzle, 'name' | 'origin'> }) {
   return (
     <header className="flex flex-col gap-1">
-      <h1 className="text-2xl font-semibold">{puzzle.name}</h1>
+      <h1 className="text-2xl leading-[30px] font-bold tracking-tight sm:text-[30px] sm:leading-9">{puzzle.name}</h1>
       {puzzle.origin === 'prompt' && <OriginLabel origin="prompt" />}
     </header>
   );

@@ -31,7 +31,7 @@ class GraphBoundary extends Component<{ children: ReactNode }, { failed: boolean
   override render() {
     if (this.state.failed) {
       return (
-        <Alert>
+        <Alert variant="warning">
           <AlertDescription>The graph is unavailable. The path is shown as text above.</AlertDescription>
         </Alert>
       );

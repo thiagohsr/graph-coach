@@ -1,5 +1,6 @@
 import type { RecommendationDto } from '@coach/types';
 import { Link } from '@tanstack/react-router';
+import { InfoIcon, WaypointsIcon } from 'lucide-react';
 import { useEffect, useRef } from 'react';
 import { ErrorState } from '~/components/states/ErrorState';
 import { Alert, AlertDescription } from '~/components/ui/alert';
@@ -17,12 +18,17 @@ export function RecommendationCard({ recommendation: r }: { recommendation: Reco
 
   const notices = flagNotices(r.flags);
   return (
-    <article className="flex flex-col gap-4 rounded-lg border p-4" aria-labelledby="coach-card-heading">
+    <article className="flex flex-col gap-4 rounded-lg border bg-card p-5 shadow-xs sm:p-6" aria-labelledby="coach-card-heading">
       <div className="flex flex-col gap-1">
-        <h2 id="coach-card-heading" ref={heading} tabIndex={-1} className="text-xl font-semibold">
+        <h2 id="coach-card-heading" ref={heading} tabIndex={-1} className="text-[22px] leading-7 font-bold">
           {r.target ? r.target.name : 'No specific concept'}
         </h2>
-        {r.reused && <p className="text-sm text-muted-foreground">Reused from a recent decision</p>}
+        {r.reused && (
+          <p className="flex w-fit items-center gap-1.5 rounded-md bg-info-soft px-2.5 py-1 text-sm text-info">
+            <InfoIcon aria-hidden="true" className="size-4" />
+            Reused from a recent decision
+          </p>
+        )}
       </div>
 
       <p>{r.summary}</p>
@@ -31,7 +37,7 @@ export function RecommendationCard({ recommendation: r }: { recommendation: Reco
         <ul className="flex flex-wrap gap-2" aria-label="Notes">
           {notices.map((text) => (
             <li key={text}>
-              <Badge variant="secondary" className="whitespace-normal">
+              <Badge variant="warning" className="rounded-md whitespace-normal">
                 {text}
               </Badge>
             </li>
@@ -49,7 +55,7 @@ export function RecommendationCard({ recommendation: r }: { recommendation: Reco
           </ul>
           {r.coverageTaskId && (
             // The task page is built in a later phase, so its route is not in the typed tree yet.
-            <Link to={`/tasks/${encodeURIComponent(r.coverageTaskId)}` as never} className="underline">
+            <Link to={`/tasks/${encodeURIComponent(r.coverageTaskId)}` as never} className="font-semibold text-primary underline underline-offset-4 hover:text-primary-hover">
               Follow the content request
             </Link>
           )}
@@ -77,7 +83,7 @@ export function RecommendationCard({ recommendation: r }: { recommendation: Reco
       </div>
 
       <div className="text-sm">
-        <h3 className="font-medium">Alternatives</h3>
+        <h3 className="font-semibold">Alternatives</h3>
         {r.alternatives.length > 0 ? (
           <ul className="list-disc pl-6">
             {r.alternatives.map((a) => (
@@ -89,7 +95,12 @@ export function RecommendationCard({ recommendation: r }: { recommendation: Reco
         )}
       </div>
 
-      <Link to="/decisions/$decisionId" params={{ decisionId: r.decisionId }} className="w-fit underline">
+      <Link
+        to="/decisions/$decisionId"
+        params={{ decisionId: r.decisionId }}
+        className="inline-flex w-fit items-center gap-2 font-semibold text-primary underline underline-offset-4 hover:text-primary-hover"
+      >
+        <WaypointsIcon aria-hidden="true" className="size-4 text-graph" />
         Why this?
       </Link>
     </article>
@@ -104,10 +115,10 @@ export function CoachError({ error, onRetry }: { error: unknown; onRetry?: () =>
         <AlertDescription className="flex flex-col gap-2">
           <span>There is nothing to practise yet.</span>
           <span className="flex gap-4">
-            <Link to={'/sources/new' as never} className="underline">
+            <Link to={'/sources/new' as never} className="font-semibold text-primary underline underline-offset-4">
               Create a puzzle
             </Link>
-            <Link to="/puzzles" className="underline">
+            <Link to="/puzzles" className="font-semibold text-primary underline underline-offset-4">
               Browse puzzles
             </Link>
           </span>

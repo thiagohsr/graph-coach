@@ -9,6 +9,8 @@ export interface PathNodeVM {
   kind: string;
   kindLabel: string;
   roleLabel?: string;
+  /** Raw role from the BECAUSE edge (target, driver, alternative, answer, ...), for styling only. */
+  role?: string;
   title: string;
   depth: number;
   position: { x: number; y: number };
@@ -20,6 +22,8 @@ export interface PathEdgeVM {
   source: string;
   target: string;
   label: string;
+  /** The graph edge type (RECOMMENDED, PREREQUISITE_OF, ...), for styling only. */
+  type: string;
   weight?: number;
 }
 
@@ -150,7 +154,10 @@ export function buildWhyPath(dto: DecisionPathDto, orientation: Orientation = 'L
         position: orientation === 'LR' ? { x: depth * 260, y: index * 110 } : { x: index * 200, y: depth * 140 },
         details: detailsOf(n.props),
       };
-      if (role !== undefined) vm.roleLabel = ROLE_LABELS[role] ?? role;
+      if (role !== undefined) {
+        vm.roleLabel = ROLE_LABELS[role] ?? role;
+        vm.role = role;
+      }
       nodes.push(vm);
     });
   }
@@ -161,6 +168,7 @@ export function buildWhyPath(dto: DecisionPathDto, orientation: Orientation = 'L
       source: e.from,
       target: e.to,
       label: e.reason ?? edgeTypePhrase(e.type),
+      type: e.type,
     };
     if (e.weight !== undefined) vm.weight = e.weight;
     return vm;

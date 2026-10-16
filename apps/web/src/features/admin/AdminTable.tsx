@@ -37,7 +37,7 @@ export function AdminTable({ model, items, total, page, pageSize, search, onSear
           // The first column carries the link to the record.
           if (index === 0) {
             return (
-              <Link to="/admin/$model/$id" params={{ model: model.name, id: row.original.id }} className="underline">
+              <Link to="/admin/$model/$id" params={{ model: model.name, id: row.original.id }} className="font-medium text-primary underline underline-offset-4 hover:text-primary-hover">
                 {text || row.original.title}
               </Link>
             );

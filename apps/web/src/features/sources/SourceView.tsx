@@ -40,25 +40,25 @@ export function SourceView({ sourceId }: { sourceId: string }) {
     <div className="flex flex-col gap-4">
       <RouteFocus title={data?.title ?? 'Source'} />
       <p className="text-sm">
-        <Link to="/sources" className="underline">
+        <Link to="/sources" className="font-medium text-primary underline underline-offset-4 hover:text-primary-hover">
           Back to sources
         </Link>
       </p>
       {source.isPending && (
         <>
-          <h1 className="text-2xl font-semibold">Source</h1>
+          <h1 className="text-2xl leading-[30px] font-bold tracking-tight sm:text-[30px] sm:leading-9">Source</h1>
           <LoadingState label="Loading source" rows={2} />
         </>
       )}
       {source.isError && (
         <>
-          <h1 className="text-2xl font-semibold">Source</h1>
+          <h1 className="text-2xl leading-[30px] font-bold tracking-tight sm:text-[30px] sm:leading-9">Source</h1>
           <ErrorState error={source.error} onRetry={() => void source.refetch()} />
         </>
       )}
       {data && (
         <article className="flex flex-col gap-3" aria-labelledby="source-title">
-          <h1 id="source-title" className="text-2xl font-semibold break-words">
+          <h1 id="source-title" className="text-2xl leading-[30px] font-bold tracking-tight sm:text-[30px] sm:leading-9 break-words">
             {data.title}
           </h1>
           <p className="text-sm text-muted-foreground">
