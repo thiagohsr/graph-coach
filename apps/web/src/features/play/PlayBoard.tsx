@@ -21,7 +21,7 @@ import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, D
 import { OriginLabel } from '~/features/origin/OriginLabel';
 import type { PlayPuzzle } from '~/lib/api/gameplay-schemas';
 import { useReducedMotion } from '~/lib/a11y/use-reduced-motion';
-import { boardReducer, createInitialState, emptyCount, slotWord, useCount } from './board-state';
+import { boardReducer, createInitialState, draftOf, emptyCount, loadDraft, saveDraft, slotWord, useCount } from './board-state';
 import { dragToAction } from './drag';
 import { findSentenceMismatch } from './sentence';
 import { SentenceRow } from './SentenceRow';
@@ -93,8 +93,19 @@ function Board({ puzzle }: { puzzle: PlayPuzzle }) {
     else if (target === 'error') errorBox.current?.focus();
     else blanks.current.get(target)?.focus();
     // Only a new request (a new seq) moves focus.
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [focusSeq]);
+
+  // Draft placements (sessionStorage, effects only so server rendering never touches it). The untouched initial
+  // placements are not saved, so a restore cannot be overwritten by the first render's empty board.
+  const initialPlacements = useRef(state.placements);
+  useEffect(() => {
+    dispatch({ type: 'RESTORE_DRAFT', draft: loadDraft(puzzle.id) });
+  }, [puzzle.id]);
+  useEffect(() => {
+    if (state.placements === initialPlacements.current || state.status === 'submitting') return;
+    saveDraft(state.puzzleId, draftOf(state));
+    // Placements and status are the only inputs; puzzleId changes only with a new board.
+  }, [state.placements, state.status]);
 
   if (notFound) return <NotFoundPage />;
 

@@ -47,6 +47,7 @@ export type Action =
   | { type: 'SELECT_WORD'; wordId: string; via?: Via }
   | { type: 'CLEAR_SELECTION' }
   | { type: 'RESET' }
+  | { type: 'RESTORE_DRAFT'; draft: unknown }
   | { type: 'SUBMIT_START' }
   | { type: 'SESSION_CREATED'; sessionId: string }
   | { type: 'SUBMIT_FAIL'; error: ApiClientError };
@@ -107,6 +108,64 @@ export function nextEmptySlot(state: BoardState, afterSlotId: string): string | 
   }
   return null;
 }
+
+// ---------------------------------------------------------------------------------------------
+// Draft placements (stretch; data-model.md §5): slot id -> word text, kept in sessionStorage so a reload keeps them.
+// The bank order changes with each shuffle, the words do not, so words are stored by text and looked up on restore.
+
+export type Draft = Record<string, string>;
+
+export const draftKey = (puzzleId: string) => `gc.play.${puzzleId}`;
+
+/** Only filled slots; word text, never ids. */
+export function draftOf(state: BoardState): Draft {
+  const draft: Draft = {};
+  for (const s of state.slots) {
+    const word = slotWord(state, s.id);
+    if (word) draft[s.id] = word.text;
+  }
+  return draft;
+}
+
+/** Placements for the slots of `state` found in `draft`; unknown slots and words missing from the bank are dropped. */
+export function restoreDraft(state: BoardState, draft: unknown): BoardState {
+  if (!draft || typeof draft !== 'object' || Array.isArray(draft)) return state;
+  const placements = { ...state.placements };
+  let changed = false;
+  for (const s of state.slots) {
+    const text = (draft as Record<string, unknown>)[s.id];
+    if (typeof text !== 'string') continue;
+    const word = state.words.find((w) => w.text === text);
+    if (word) {
+      placements[s.id] = word.id;
+      changed = true;
+    }
+  }
+  return changed ? { ...state, placements } : state;
+}
+
+/** Storage access only from effects and handlers; every call is safe on the server and when storage is blocked. */
+export function loadDraft(puzzleId: string): unknown {
+  if (typeof window === 'undefined') return null;
+  try {
+    const raw = window.sessionStorage.getItem(draftKey(puzzleId));
+    return raw ? JSON.parse(raw) : null;
+  } catch {
+    return null;
+  }
+}
+
+export function saveDraft(puzzleId: string, draft: Draft): void {
+  if (typeof window === 'undefined') return;
+  try {
+    if (Object.keys(draft).length === 0) window.sessionStorage.removeItem(draftKey(puzzleId));
+    else window.sessionStorage.setItem(draftKey(puzzleId), JSON.stringify(draft));
+  } catch {
+    // Storage is a convenience only.
+  }
+}
+
+export const clearDraft = (puzzleId: string): void => saveDraft(puzzleId, {});
 
 export function toSubmitRequest(state: BoardState): SubmitRequest {
   return {
@@ -214,6 +273,9 @@ function move(state: BoardState, action: Action): BoardState {
 
     case 'CLEAR_SELECTION':
       return { ...s, selection: { kind: 'none' }, ...announce(s, 'Selection cleared.') };
+
+    case 'RESTORE_DRAFT':
+      return restoreDraft(s, action.draft);
 
     case 'RESET': {
       const first = s.slots[0];

@@ -5,7 +5,7 @@ import { ApiClientError, isCode, isStatus } from '~/lib/api/errors';
 import { createSession, submitSession } from '~/lib/api/gameplay';
 import type { SubmitResult } from '~/lib/api/gameplay-schemas';
 import { keys } from '~/lib/query/keys';
-import { toSubmitRequest, type Action, type BoardState } from './board-state';
+import { clearDraft, toSubmitRequest, type Action, type BoardState } from './board-state';
 
 /** Thrown out of the mutation so the caller knows which session the failed attempt belonged to. */
 class SubmitFlowError extends Error {
@@ -57,6 +57,7 @@ export function useSubmitSession(state: BoardState, dispatch: Dispatch<Action>) 
     dispatch({ type: 'SUBMIT_START' });
     try {
       const { sessionId, result } = await mutation.mutateAsync(latest.current);
+      clearDraft(latest.current.puzzleId);
       queryClient.setQueryData(keys.sessions.result(sessionId), result);
       void queryClient.invalidateQueries({ queryKey: keys.mastery });
       queryClient.removeQueries({ queryKey: keys.coach.latest });
@@ -66,6 +67,7 @@ export function useSubmitSession(state: BoardState, dispatch: Dispatch<Action>) 
       const sessionId = thrown instanceof SubmitFlowError ? thrown.sessionId : null;
       if (sessionId && isCode(error, 'SESSION_ALREADY_SUBMITTED')) {
         // The earlier attempt was recorded: its result is the answer.
+        clearDraft(latest.current.puzzleId);
         await goToResult(sessionId);
       } else if (isStatus(error, 404)) {
         setNotFound(true);

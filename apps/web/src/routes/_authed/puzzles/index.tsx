@@ -5,6 +5,7 @@ import { EmptyState } from '~/components/states/EmptyState';
 import { ErrorState } from '~/components/states/ErrorState';
 import { LoadingState } from '~/components/states/LoadingState';
 import { PuzzleCard } from '~/features/play/PuzzleCard';
+import { PuzzleActions } from '~/features/sharing/PuzzleActions';
 import { puzzlesListOptions } from '~/lib/api/gameplay';
 
 export const Route = createFileRoute('/_authed/puzzles/')({
@@ -12,6 +13,7 @@ export const Route = createFileRoute('/_authed/puzzles/')({
 });
 
 function PuzzlesPage() {
+  const { user } = Route.useRouteContext();
   const puzzles = useQuery(puzzlesListOptions());
   return (
     <div className="flex flex-col gap-4">
@@ -38,7 +40,10 @@ function PuzzlesPage() {
         <ul className="grid gap-4 sm:grid-cols-2" aria-label="Puzzles">
           {puzzles.data.map((puzzle) => (
             <li key={puzzle.id}>
-              <PuzzleCard puzzle={puzzle} />
+              <PuzzleCard
+                puzzle={puzzle}
+                actions={<PuzzleActions puzzle={puzzle} role={user.role} ownEmail={user.email} />}
+              />
             </li>
           ))}
         </ul>

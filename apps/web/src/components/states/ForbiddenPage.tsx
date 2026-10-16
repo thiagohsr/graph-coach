@@ -1,9 +1,11 @@
 import { Link } from '@tanstack/react-router';
+import { RouteFocus } from '~/components/a11y/RouteFocus';
 
 /** 403 FORBIDDEN and the role guard only. Ownership never produces this page (it is a 404). */
 export function ForbiddenPage() {
   return (
     <section className="mx-auto flex max-w-md flex-col gap-3 p-6">
+      <RouteFocus title="Forbidden" />
       <h1 tabIndex={-1} className="text-2xl font-semibold">
         Forbidden
       </h1>

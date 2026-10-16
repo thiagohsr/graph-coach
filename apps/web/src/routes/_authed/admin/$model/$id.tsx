@@ -3,6 +3,7 @@ import { Link, createFileRoute } from '@tanstack/react-router';
 import { RouteFocus } from '~/components/a11y/RouteFocus';
 import { describeError } from '~/components/states/error-messages';
 import { ErrorState } from '~/components/states/ErrorState';
+import { ForbiddenPage } from '~/components/states/ForbiddenPage';
 import { LoadingState } from '~/components/states/LoadingState';
 import { NotFoundPage } from '~/components/states/NotFoundPage';
 import { AdminForm } from '~/features/admin/AdminForm';
@@ -32,6 +33,8 @@ function AdminRecordPage() {
     },
   });
 
+  const failed = models.error ?? record.error;
+  if (failed && describeError(failed).kind === 'forbidden') return <ForbiddenPage />;
   if (models.isSuccess && !model) return <NotFoundPage />;
   if (record.isError && describeError(record.error).kind === 'not-found') return <NotFoundPage />;
 

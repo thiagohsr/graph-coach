@@ -17,8 +17,6 @@ export function shouldRetry(failureCount: number, error: unknown): boolean {
 }
 
 export function createQueryClient({ onUnauthenticated, onBlocked }: QueryClientHandlers): QueryClient {
-  let client!: QueryClient;
-
   const handle = (error: unknown) => {
     if (!isApiClientError(error)) return;
     if (error.status === 401) {
@@ -31,7 +29,7 @@ export function createQueryClient({ onUnauthenticated, onBlocked }: QueryClientH
     }
   };
 
-  client = new QueryClient({
+  const client: QueryClient = new QueryClient({
     queryCache: new QueryCache({ onError: handle }),
     mutationCache: new MutationCache({ onError: handle }),
     defaultOptions: {

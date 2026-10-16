@@ -3,6 +3,7 @@ import { Link, createFileRoute } from '@tanstack/react-router';
 import { RouteFocus } from '~/components/a11y/RouteFocus';
 import { describeError } from '~/components/states/error-messages';
 import { ErrorState } from '~/components/states/ErrorState';
+import { ForbiddenPage } from '~/components/states/ForbiddenPage';
 import { LoadingState } from '~/components/states/LoadingState';
 import { NotFoundPage } from '~/components/states/NotFoundPage';
 import { AdminTable } from '~/features/admin/AdminTable';
@@ -42,6 +43,8 @@ function AdminListPage() {
   const params = { search: search.search ?? '', page: search.page ?? 1, pageSize: search.pageSize ?? model?.pageSize ?? 25 };
   const records = useQuery({ ...recordsOptions(modelName, params), enabled: model !== undefined });
 
+  const failed = models.error ?? records.error;
+  if (failed && describeError(failed).kind === 'forbidden') return <ForbiddenPage />;
   if (models.isSuccess && !model) return <NotFoundPage />;
   if (records.isError && describeError(records.error).kind === 'not-found') return <NotFoundPage />;
 

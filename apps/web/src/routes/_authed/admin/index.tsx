@@ -1,7 +1,9 @@
 import { useQuery } from '@tanstack/react-query';
 import { Link, createFileRoute } from '@tanstack/react-router';
 import { RouteFocus } from '~/components/a11y/RouteFocus';
+import { describeError } from '~/components/states/error-messages';
 import { EmptyState } from '~/components/states/EmptyState';
+import { ForbiddenPage } from '~/components/states/ForbiddenPage';
 import { ErrorState } from '~/components/states/ErrorState';
 import { LoadingState } from '~/components/states/LoadingState';
 import { modelsOptions } from '~/lib/api/admin';
@@ -12,6 +14,8 @@ export const Route = createFileRoute('/_authed/admin/')({
 
 function AdminHome() {
   const models = useQuery(modelsOptions());
+  // A 403 FORBIDDEN from the API is honoured like the route guard.
+  if (models.isError && describeError(models.error).kind === 'forbidden') return <ForbiddenPage />;
   const groups = new Map<string, { name: string; label: string }[]>();
   for (const m of models.data ?? []) {
     groups.set(m.group, [...(groups.get(m.group) ?? []), { name: m.name, label: m.label }]);

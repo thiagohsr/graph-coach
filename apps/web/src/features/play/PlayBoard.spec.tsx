@@ -33,6 +33,7 @@ function setup() {
 }
 
 beforeEach(() => {
+  window.sessionStorage.clear();
   createSession.mockReset().mockResolvedValue({ sessionId: 's-1' });
   submitSession.mockReset().mockResolvedValue(submitResult);
 });
@@ -195,6 +196,26 @@ describe('PlayBoard (keyboard)', () => {
     await user.click(within(alert).getByRole('button', { name: 'Retry' }));
     expect(createSession).toHaveBeenCalledTimes(1);
     expect(submitSession).toHaveBeenCalledTimes(2);
+  });
+});
+
+describe('PlayBoard (long sentence, many blanks)', () => {
+  it('keeps every blank an inline button inside its sentence paragraph', () => {
+    const words = ['alpha', 'bravo', 'charlie', 'delta', 'echo', 'foxtrot', 'golf', 'hotel'];
+    const filler = 'a rather long stretch of explanatory text that has to wrap on a narrow phone screen';
+    const sentence = `${words.map(() => `${filler} ___`).join(', ')}.`;
+    renderWithQuery(
+      <PlayBoard puzzle={{ ...playPuzzle, questions: [{ id: 'q-long', order: 1, sentence, blanks: words.length }], wordBank: words }} />,
+    );
+    const blanks = screen.getAllByRole('button', { name: /^Sentence 1, blank \d+ of 8, empty$/ });
+    expect(blanks).toHaveLength(8);
+    const paragraph = blanks[0]!.closest('p');
+    expect(paragraph).not.toBeNull();
+    for (const b of blanks) {
+      expect(b.closest('p')).toBe(paragraph);
+      expect(b.tagName).toBe('BUTTON');
+    }
+    expect(screen.getByText('0 of 8 blanks filled')).toBeInTheDocument();
   });
 });
 

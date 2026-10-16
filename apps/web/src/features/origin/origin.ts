@@ -1,8 +1,5 @@
+import { PROMPT_ORIGIN_NOTICE } from '@coach/types';
 import type { Origin } from '~/lib/api/gameplay-schemas';
-
-// TEMPORARY LOCAL COPY (reconciliation J3/J16): the label must come from the `PROMPT_ORIGIN_NOTICE` constant
-// in `@coach/types`, which does not exist yet. Replace this import when it does (task T092 owns that switch).
-export const PROMPT_ORIGIN_NOTICE = 'Generated from a prompt, not checked against a source';
 
 /** `access` is the puzzle list item's value; omit it where the viewer is the owner by construction. */
 export function originLabel(origin: Origin, access?: 'owner' | 'shared' | 'public'): string {

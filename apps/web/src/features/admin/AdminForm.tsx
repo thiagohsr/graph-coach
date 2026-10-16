@@ -60,7 +60,7 @@ export function AdminForm({ model, detail, onSave }: AdminFormProps) {
   const recordKey = JSON.stringify(detail.record.values);
   useEffect(() => {
     setValues(initial);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+    // Deliberately keyed on recordKey (the serialized record), not on `initial`.
   }, [recordKey]);
 
   const fieldByName = (name: string): AdminFieldMeta | undefined => model.fields.find((f) => f.name === name);

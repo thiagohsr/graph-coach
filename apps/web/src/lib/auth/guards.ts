@@ -19,7 +19,6 @@ export function roleAtLeast(role: Role, minimum: Role): boolean {
 export function safeRedirect(value: string | null | undefined, fallback: string = DEFAULT_REDIRECT): string {
   if (typeof value !== 'string' || value.length === 0) return fallback;
   if (!value.startsWith('/') || value.startsWith('//') || value.startsWith('/\\')) return fallback;
-  // eslint-disable-next-line no-control-regex
   if (/[\u0000-\u001f\u007f\\]/.test(value)) return fallback;
   return value;
 }

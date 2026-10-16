@@ -1,8 +1,14 @@
-import { describe, expect, it } from 'vitest';
+import { beforeEach, describe, expect, it } from 'vitest';
 import { ApiClientError } from '~/lib/api/errors';
 import {
   boardReducer,
+  clearDraft,
   createInitialState,
+  draftKey,
+  draftOf,
+  loadDraft,
+  restoreDraft,
+  saveDraft,
   emptyCount,
   nextEmptySlot,
   slotWord,
@@ -317,5 +323,49 @@ describe('toSubmitRequest', () => {
         { questionId: 'q-2', blank: 0, word: 'index' },
       ],
     });
+  });
+});
+
+describe('draft placements (sessionStorage)', () => {
+  beforeEach(() => window.sessionStorage.clear());
+
+  it('stores only filled slots, as slot -> word text', () => {
+    const s = run(fresh(), { type: 'PLACE', wordId: W_INDEX, slotId: S1, via: 'pointer' });
+    expect(draftOf(s)).toEqual({ [S1]: 'index' });
+  });
+
+  it('restores by word text against a differently shuffled bank', () => {
+    const placed = run(
+      fresh(),
+      { type: 'PLACE', wordId: W_INDEX, slotId: S1, via: 'pointer' },
+      { type: 'PLACE', wordId: W_WRITES, slotId: S2, via: 'pointer' },
+    );
+    saveDraft(placed.puzzleId, draftOf(placed));
+    const shuffled = createInitialState({ ...playPuzzle, wordBank: ['table', 'index', 'writes', 'cache'] });
+    const restored = boardReducer(shuffled, { type: 'RESTORE_DRAFT', draft: loadDraft(shuffled.puzzleId) });
+    expect(slotWord(restored, S1)?.text).toBe('index');
+    expect(slotWord(restored, S2)?.text).toBe('writes');
+    expect(slotWord(restored, S3)).toBeNull();
+    expect(restored.words.find((w) => w.text === 'index')?.id).toBe(restored.placements[S1]);
+  });
+
+  it('drops unknown slots, words missing from the bank, and malformed values', () => {
+    const base = fresh();
+    expect(restoreDraft(base, { [S1]: 'gone', 'nope:0': 'index', [S2]: 7 })).toBe(base);
+    expect(restoreDraft(base, null)).toBe(base);
+    expect(restoreDraft(base, ['index'])).toBe(base);
+  });
+
+  it('saves under gc.play.<puzzleId>, removes the key when empty, and clears on demand', () => {
+    saveDraft('pz', { 'q:0': 'a' });
+    expect(window.sessionStorage.getItem('gc.play.pz')).toBe('{"q:0":"a"}');
+    expect(draftKey('pz')).toBe('gc.play.pz');
+    clearDraft('pz');
+    expect(window.sessionStorage.getItem('gc.play.pz')).toBeNull();
+  });
+
+  it('ignores corrupt stored data', () => {
+    window.sessionStorage.setItem('gc.play.pz', '{not json');
+    expect(loadDraft('pz')).toBeNull();
   });
 });

@@ -14,15 +14,21 @@ import { Route as AuthedRouteImport } from './routes/_authed'
 import { Route as BlockedRouteImport } from './routes/blocked'
 import { Route as HealthzRouteImport } from './routes/healthz'
 import { Route as LoginRouteImport } from './routes/login'
+import { Route as AuthedAccountRouteImport } from './routes/_authed/account'
 import { Route as AuthedAdminRouteImport } from './routes/_authed/admin'
 import { Route as AuthedCoachRouteImport } from './routes/_authed/coach'
 import { Route as AuthedMasteryRouteImport } from './routes/_authed/mastery'
+import { Route as AuthedReviewRouteImport } from './routes/_authed/review'
 import { Route as ApiSplatRouteImport } from './routes/api/$'
 import { Route as AuthCallbackRouteImport } from './routes/auth/callback'
 import { Route as AuthLoginRouteImport } from './routes/auth/login'
 import { Route as AuthedAdminIndexRouteImport } from './routes/_authed/admin/index'
 import { Route as AuthedDecisionsDecisionIdRouteImport } from './routes/_authed/decisions/$decisionId'
 import { Route as AuthedPuzzlesIndexRouteImport } from './routes/_authed/puzzles/index'
+import { Route as AuthedSourcesIndexRouteImport } from './routes/_authed/sources/index'
+import { Route as AuthedSourcesSourceIdRouteImport } from './routes/_authed/sources/$sourceId'
+import { Route as AuthedSourcesNewRouteImport } from './routes/_authed/sources/new'
+import { Route as AuthedTasksTaskIdRouteImport } from './routes/_authed/tasks/$taskId'
 import { Route as AuthedAdminModelIndexRouteImport } from './routes/_authed/admin/$model/index'
 import { Route as AuthedAdminModelIdRouteImport } from './routes/_authed/admin/$model/$id'
 import { Route as AuthedPuzzlesPuzzleIdPlayRouteImport } from './routes/_authed/puzzles/$puzzleId/play'
@@ -52,6 +58,11 @@ const LoginRoute = LoginRouteImport.update({
   path: '/login',
   getParentRoute: () => rootRouteImport,
 } as any)
+const AuthedAccountRoute = AuthedAccountRouteImport.update({
+  id: '/account',
+  path: '/account',
+  getParentRoute: () => AuthedRoute,
+} as any)
 const AuthedAdminRoute = AuthedAdminRouteImport.update({
   id: '/admin',
   path: '/admin',
@@ -65,6 +76,11 @@ const AuthedCoachRoute = AuthedCoachRouteImport.update({
 const AuthedMasteryRoute = AuthedMasteryRouteImport.update({
   id: '/mastery',
   path: '/mastery',
+  getParentRoute: () => AuthedRoute,
+} as any)
+const AuthedReviewRoute = AuthedReviewRouteImport.update({
+  id: '/review',
+  path: '/review',
   getParentRoute: () => AuthedRoute,
 } as any)
 const ApiSplatRoute = ApiSplatRouteImport.update({
@@ -98,6 +114,26 @@ const AuthedPuzzlesIndexRoute = AuthedPuzzlesIndexRouteImport.update({
   path: '/puzzles/',
   getParentRoute: () => AuthedRoute,
 } as any)
+const AuthedSourcesIndexRoute = AuthedSourcesIndexRouteImport.update({
+  id: '/sources/',
+  path: '/sources/',
+  getParentRoute: () => AuthedRoute,
+} as any)
+const AuthedSourcesSourceIdRoute = AuthedSourcesSourceIdRouteImport.update({
+  id: '/sources/$sourceId',
+  path: '/sources/$sourceId',
+  getParentRoute: () => AuthedRoute,
+} as any)
+const AuthedSourcesNewRoute = AuthedSourcesNewRouteImport.update({
+  id: '/sources/new',
+  path: '/sources/new',
+  getParentRoute: () => AuthedRoute,
+} as any)
+const AuthedTasksTaskIdRoute = AuthedTasksTaskIdRouteImport.update({
+  id: '/tasks/$taskId',
+  path: '/tasks/$taskId',
+  getParentRoute: () => AuthedRoute,
+} as any)
 const AuthedAdminModelIndexRoute = AuthedAdminModelIndexRouteImport.update({
   id: '/$model/',
   path: '/$model/',
@@ -126,15 +162,21 @@ export interface FileRoutesByFullPath {
   '/blocked': typeof BlockedRoute
   '/healthz': typeof HealthzRoute
   '/login': typeof LoginRoute
+  '/account': typeof AuthedAccountRoute
   '/admin': typeof AuthedAdminRouteWithChildren
   '/coach': typeof AuthedCoachRoute
   '/mastery': typeof AuthedMasteryRoute
+  '/review': typeof AuthedReviewRoute
   '/api/$': typeof ApiSplatRoute
   '/auth/callback': typeof AuthCallbackRoute
   '/auth/login': typeof AuthLoginRoute
   '/decisions/$decisionId': typeof AuthedDecisionsDecisionIdRoute
+  '/sources/$sourceId': typeof AuthedSourcesSourceIdRoute
+  '/sources/new': typeof AuthedSourcesNewRoute
+  '/tasks/$taskId': typeof AuthedTasksTaskIdRoute
   '/admin/': typeof AuthedAdminIndexRoute
   '/puzzles/': typeof AuthedPuzzlesIndexRoute
+  '/sources/': typeof AuthedSourcesIndexRoute
   '/admin/$model/$id': typeof AuthedAdminModelIdRoute
   '/puzzles/$puzzleId/play': typeof AuthedPuzzlesPuzzleIdPlayRoute
   '/sessions/$sessionId/result': typeof AuthedSessionsSessionIdResultRoute
@@ -145,14 +187,20 @@ export interface FileRoutesByTo {
   '/blocked': typeof BlockedRoute
   '/healthz': typeof HealthzRoute
   '/login': typeof LoginRoute
+  '/account': typeof AuthedAccountRoute
   '/coach': typeof AuthedCoachRoute
   '/mastery': typeof AuthedMasteryRoute
+  '/review': typeof AuthedReviewRoute
   '/api/$': typeof ApiSplatRoute
   '/auth/callback': typeof AuthCallbackRoute
   '/auth/login': typeof AuthLoginRoute
   '/decisions/$decisionId': typeof AuthedDecisionsDecisionIdRoute
+  '/sources/$sourceId': typeof AuthedSourcesSourceIdRoute
+  '/sources/new': typeof AuthedSourcesNewRoute
+  '/tasks/$taskId': typeof AuthedTasksTaskIdRoute
   '/admin': typeof AuthedAdminIndexRoute
   '/puzzles': typeof AuthedPuzzlesIndexRoute
+  '/sources': typeof AuthedSourcesIndexRoute
   '/admin/$model/$id': typeof AuthedAdminModelIdRoute
   '/puzzles/$puzzleId/play': typeof AuthedPuzzlesPuzzleIdPlayRoute
   '/sessions/$sessionId/result': typeof AuthedSessionsSessionIdResultRoute
@@ -165,15 +213,21 @@ export interface FileRoutesById {
   '/blocked': typeof BlockedRoute
   '/healthz': typeof HealthzRoute
   '/login': typeof LoginRoute
+  '/_authed/account': typeof AuthedAccountRoute
   '/_authed/admin': typeof AuthedAdminRouteWithChildren
   '/_authed/coach': typeof AuthedCoachRoute
   '/_authed/mastery': typeof AuthedMasteryRoute
+  '/_authed/review': typeof AuthedReviewRoute
   '/api/$': typeof ApiSplatRoute
   '/auth/callback': typeof AuthCallbackRoute
   '/auth/login': typeof AuthLoginRoute
   '/_authed/decisions/$decisionId': typeof AuthedDecisionsDecisionIdRoute
+  '/_authed/sources/$sourceId': typeof AuthedSourcesSourceIdRoute
+  '/_authed/sources/new': typeof AuthedSourcesNewRoute
+  '/_authed/tasks/$taskId': typeof AuthedTasksTaskIdRoute
   '/_authed/admin/': typeof AuthedAdminIndexRoute
   '/_authed/puzzles/': typeof AuthedPuzzlesIndexRoute
+  '/_authed/sources/': typeof AuthedSourcesIndexRoute
   '/_authed/admin/$model/$id': typeof AuthedAdminModelIdRoute
   '/_authed/puzzles/$puzzleId/play': typeof AuthedPuzzlesPuzzleIdPlayRoute
   '/_authed/sessions/$sessionId/result': typeof AuthedSessionsSessionIdResultRoute
@@ -186,15 +240,21 @@ export interface FileRouteTypes {
     | '/blocked'
     | '/healthz'
     | '/login'
+    | '/account'
     | '/admin'
     | '/coach'
     | '/mastery'
+    | '/review'
     | '/api/$'
     | '/auth/callback'
     | '/auth/login'
     | '/decisions/$decisionId'
+    | '/sources/$sourceId'
+    | '/sources/new'
+    | '/tasks/$taskId'
     | '/admin/'
     | '/puzzles/'
+    | '/sources/'
     | '/admin/$model/$id'
     | '/puzzles/$puzzleId/play'
     | '/sessions/$sessionId/result'
@@ -205,14 +265,20 @@ export interface FileRouteTypes {
     | '/blocked'
     | '/healthz'
     | '/login'
+    | '/account'
     | '/coach'
     | '/mastery'
+    | '/review'
     | '/api/$'
     | '/auth/callback'
     | '/auth/login'
     | '/decisions/$decisionId'
+    | '/sources/$sourceId'
+    | '/sources/new'
+    | '/tasks/$taskId'
     | '/admin'
     | '/puzzles'
+    | '/sources'
     | '/admin/$model/$id'
     | '/puzzles/$puzzleId/play'
     | '/sessions/$sessionId/result'
@@ -224,15 +290,21 @@ export interface FileRouteTypes {
     | '/blocked'
     | '/healthz'
     | '/login'
+    | '/_authed/account'
     | '/_authed/admin'
     | '/_authed/coach'
     | '/_authed/mastery'
+    | '/_authed/review'
     | '/api/$'
     | '/auth/callback'
     | '/auth/login'
     | '/_authed/decisions/$decisionId'
+    | '/_authed/sources/$sourceId'
+    | '/_authed/sources/new'
+    | '/_authed/tasks/$taskId'
     | '/_authed/admin/'
     | '/_authed/puzzles/'
+    | '/_authed/sources/'
     | '/_authed/admin/$model/$id'
     | '/_authed/puzzles/$puzzleId/play'
     | '/_authed/sessions/$sessionId/result'
@@ -287,6 +359,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof LoginRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/_authed/account': {
+      id: '/_authed/account'
+      path: '/account'
+      fullPath: '/account'
+      preLoaderRoute: typeof AuthedAccountRouteImport
+      parentRoute: typeof AuthedRoute
+    }
     '/_authed/admin': {
       id: '/_authed/admin'
       path: '/admin'
@@ -306,6 +385,13 @@ declare module '@tanstack/react-router' {
       path: '/mastery'
       fullPath: '/mastery'
       preLoaderRoute: typeof AuthedMasteryRouteImport
+      parentRoute: typeof AuthedRoute
+    }
+    '/_authed/review': {
+      id: '/_authed/review'
+      path: '/review'
+      fullPath: '/review'
+      preLoaderRoute: typeof AuthedReviewRouteImport
       parentRoute: typeof AuthedRoute
     }
     '/api/$': {
@@ -348,6 +434,34 @@ declare module '@tanstack/react-router' {
       path: '/puzzles'
       fullPath: '/puzzles/'
       preLoaderRoute: typeof AuthedPuzzlesIndexRouteImport
+      parentRoute: typeof AuthedRoute
+    }
+    '/_authed/sources/': {
+      id: '/_authed/sources/'
+      path: '/sources'
+      fullPath: '/sources/'
+      preLoaderRoute: typeof AuthedSourcesIndexRouteImport
+      parentRoute: typeof AuthedRoute
+    }
+    '/_authed/sources/$sourceId': {
+      id: '/_authed/sources/$sourceId'
+      path: '/sources/$sourceId'
+      fullPath: '/sources/$sourceId'
+      preLoaderRoute: typeof AuthedSourcesSourceIdRouteImport
+      parentRoute: typeof AuthedRoute
+    }
+    '/_authed/sources/new': {
+      id: '/_authed/sources/new'
+      path: '/sources/new'
+      fullPath: '/sources/new'
+      preLoaderRoute: typeof AuthedSourcesNewRouteImport
+      parentRoute: typeof AuthedRoute
+    }
+    '/_authed/tasks/$taskId': {
+      id: '/_authed/tasks/$taskId'
+      path: '/tasks/$taskId'
+      fullPath: '/tasks/$taskId'
+      preLoaderRoute: typeof AuthedTasksTaskIdRouteImport
       parentRoute: typeof AuthedRoute
     }
     '/_authed/admin/$model/': {
@@ -398,21 +512,33 @@ const AuthedAdminRouteWithChildren = AuthedAdminRoute._addFileChildren(
 )
 
 interface AuthedRouteChildren {
+  AuthedAccountRoute: typeof AuthedAccountRoute
   AuthedAdminRoute: typeof AuthedAdminRouteWithChildren
   AuthedCoachRoute: typeof AuthedCoachRoute
   AuthedMasteryRoute: typeof AuthedMasteryRoute
+  AuthedReviewRoute: typeof AuthedReviewRoute
   AuthedDecisionsDecisionIdRoute: typeof AuthedDecisionsDecisionIdRoute
+  AuthedSourcesSourceIdRoute: typeof AuthedSourcesSourceIdRoute
+  AuthedSourcesNewRoute: typeof AuthedSourcesNewRoute
+  AuthedTasksTaskIdRoute: typeof AuthedTasksTaskIdRoute
   AuthedPuzzlesIndexRoute: typeof AuthedPuzzlesIndexRoute
+  AuthedSourcesIndexRoute: typeof AuthedSourcesIndexRoute
   AuthedPuzzlesPuzzleIdPlayRoute: typeof AuthedPuzzlesPuzzleIdPlayRoute
   AuthedSessionsSessionIdResultRoute: typeof AuthedSessionsSessionIdResultRoute
 }
 
 const AuthedRouteChildren: AuthedRouteChildren = {
+  AuthedAccountRoute: AuthedAccountRoute,
   AuthedAdminRoute: AuthedAdminRouteWithChildren,
   AuthedCoachRoute: AuthedCoachRoute,
   AuthedMasteryRoute: AuthedMasteryRoute,
+  AuthedReviewRoute: AuthedReviewRoute,
   AuthedDecisionsDecisionIdRoute: AuthedDecisionsDecisionIdRoute,
+  AuthedSourcesSourceIdRoute: AuthedSourcesSourceIdRoute,
+  AuthedSourcesNewRoute: AuthedSourcesNewRoute,
+  AuthedTasksTaskIdRoute: AuthedTasksTaskIdRoute,
   AuthedPuzzlesIndexRoute: AuthedPuzzlesIndexRoute,
+  AuthedSourcesIndexRoute: AuthedSourcesIndexRoute,
   AuthedPuzzlesPuzzleIdPlayRoute: AuthedPuzzlesPuzzleIdPlayRoute,
   AuthedSessionsSessionIdResultRoute: AuthedSessionsSessionIdResultRoute,
 }

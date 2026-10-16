@@ -5,6 +5,7 @@ import { LiveRegion } from '~/components/a11y/LiveRegion';
 import { RouteFocus } from '~/components/a11y/RouteFocus';
 import { LoadingState } from '~/components/states/LoadingState';
 import { Button } from '~/components/ui/button';
+import { GoalInput, goalProblem } from '~/features/coach/GoalInput';
 import { CoachError, RecommendationCard } from '~/features/coach/RecommendationCard';
 import { requestRecommendation } from '~/lib/api/coach';
 import { keys } from '~/lib/query/keys';
@@ -17,6 +18,7 @@ export const Route = createFileRoute('/_authed/coach')({
 function CoachPage() {
   const queryClient = useQueryClient();
   const [announcement, setAnnouncement] = useState({ message: '', seq: 0 });
+  const [goal, setGoal] = useState('');
 
   // `coach.latest` is client-only: the last recommendation of this browser session (data-model §2).
   const latest = useQuery({
@@ -28,7 +30,7 @@ function CoachPage() {
   });
 
   const ask = useMutation({
-    mutationFn: () => requestRecommendation(),
+    mutationFn: () => requestRecommendation(goal.trim() ? { goal: goal.trim() } : {}),
     onSuccess: (recommendation) => {
       queryClient.setQueryData(keys.coach.latest, recommendation);
       setAnnouncement((a) => ({
@@ -53,8 +55,10 @@ function CoachPage() {
         </p>
       )}
 
+      <GoalInput value={goal} onChange={setGoal} />
+
       <div>
-        <Button type="button" onClick={() => ask.mutate()} disabled={ask.isPending}>
+        <Button type="button" onClick={() => ask.mutate()} disabled={ask.isPending || goalProblem(goal) !== null}>
           {ask.isPending ? 'Thinking…' : 'What next?'}
         </Button>
       </div>
