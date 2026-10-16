@@ -47,18 +47,6 @@ describe('buildWhyPath', () => {
     expect(node(vm, 'lone').depth).toBe(2 - 1 + 1);
   });
 
-  it('positions deterministically for LR and TB, sorted by title then id', () => {
-    const lr = buildWhyPath(path, 'LR');
-    // depth 1: Coach, Databases 101..., B-trees, Indexes -> sorted by title: B-trees, Coach, Databases..., Indexes
-    expect(node(lr, 'c-bt').position).toEqual({ x: 260, y: 0 });
-    expect(node(lr, 'Coach').position).toEqual({ x: 260, y: 110 });
-    expect(node(lr, 'c-ix').position).toEqual({ x: 260, y: 330 });
-    const tb = buildWhyPath(path, 'TB');
-    expect(node(tb, 'c-bt').position).toEqual({ x: 0, y: 140 });
-    expect(node(tb, 'Coach').position).toEqual({ x: 200, y: 140 });
-    expect(buildWhyPath(path, 'LR')).toEqual(lr);
-  });
-
   it('labels an edge with its reason, else with a phrase for its type', () => {
     const vm = buildWhyPath(path);
     expect(vm.edges.find((e) => e.target === 'pz-1')!.label).toBe('recommends');

@@ -27,4 +27,11 @@ describe('WhyPath', () => {
     expect(screen.getByText('No evidence was stored for this decision.')).toBeInTheDocument();
     expect(screen.queryByRole('list')).not.toBeInTheDocument();
   });
+
+  it('collapses identical consecutive lines into one with a count', () => {
+    const line = 'Session on Databases 101, 2026-10-16 — 6 wrong answers on these concepts.';
+    render(<WhyPath path={{ ...path, steps: ['First.', line, line, line, 'Last.'] }} />);
+    const items = within(screen.getByRole('list')).getAllByRole('listitem').map((li) => li.textContent);
+    expect(items).toEqual(['First.', `${line} (3 times)`, 'Last.']);
+  });
 });

@@ -45,7 +45,7 @@ const LIST_HEADING_ID = 'why-path-list-heading';
 /** One response object, two renderings: the ordered text list first, then the graph. */
 export function WhyPath({ path }: { path: DecisionPathDto }) {
   const orientation = useOrientation();
-  const model = useMemo(() => buildWhyPath(path, orientation), [path, orientation]);
+  const model = useMemo(() => buildWhyPath(path), [path]);
 
   if (model.isEmpty) {
     return (

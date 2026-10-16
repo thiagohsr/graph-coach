@@ -13,7 +13,6 @@ export interface PathNodeVM {
   role?: string;
   title: string;
   depth: number;
-  position: { x: number; y: number };
   details: [string, string][];
 }
 
@@ -98,7 +97,7 @@ function detailsOf(props: Record<string, unknown>): [string, string][] {
   return out;
 }
 
-export function buildWhyPath(dto: DecisionPathDto, orientation: Orientation = 'LR'): WhyPathVM {
+export function buildWhyPath(dto: DecisionPathDto): WhyPathVM {
   const ids = new Set(dto.nodes.map((n) => n.id));
   const validEdges = dto.edges.filter((e) => ids.has(e.from) && ids.has(e.to));
   const droppedEdges = dto.edges.length - validEdges.length;
@@ -144,14 +143,13 @@ export function buildWhyPath(dto: DecisionPathDto, orientation: Orientation = 'L
   const nodes: PathNodeVM[] = [];
   for (const [depth, group] of [...byDepth.entries()].sort((a, b) => a[0] - b[0])) {
     const sorted = [...group].sort((a, b) => (a.title < b.title ? -1 : a.title > b.title ? 1 : a.id < b.id ? -1 : a.id > b.id ? 1 : 0));
-    sorted.forEach((n, index) => {
+    sorted.forEach((n) => {
       const role = roles.get(n.id);
       const vm: PathNodeVM = {
         id: n.id,
         ...kindOf(n.label),
         title: n.title,
         depth,
-        position: orientation === 'LR' ? { x: depth * 260, y: index * 110 } : { x: index * 200, y: depth * 140 },
         details: detailsOf(n.props),
       };
       if (role !== undefined) {
