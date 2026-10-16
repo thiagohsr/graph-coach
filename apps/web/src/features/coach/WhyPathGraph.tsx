@@ -12,7 +12,8 @@ import {
   type Node,
   type NodeProps,
 } from '@xyflow/react';
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
+import { X } from 'lucide-react';
 import { cn } from '~/lib/utils';
 import { Button } from '~/components/ui/button';
 import { useReducedMotion } from '~/lib/a11y/use-reduced-motion';
@@ -25,7 +26,7 @@ import {
 } from './why-graph';
 import type { Orientation, WhyPathVM } from './why-path';
 
-type PathNodeData = { vm: DisplayNode; orientation: Orientation };
+type PathNodeData = { vm: DisplayNode; orientation: Orientation; active: boolean };
 
 /** Node look by kind (design-system "Why-path graph"): puzzle teal, concepts violet, evidence quiet. */
 function nodeShape(vm: DisplayNode): string {
@@ -51,7 +52,7 @@ function nodeLabel(vm: DisplayNode): string {
 
 /** Kind and role are written as text in the node, never colour only. */
 function PathNode({ data }: NodeProps<Node<PathNodeData>>) {
-  const { vm, orientation } = data;
+  const { vm, orientation, active } = data;
   const horizontal = orientation === 'LR';
   return (
     <div
@@ -60,6 +61,7 @@ function PathNode({ data }: NodeProps<Node<PathNodeData>>) {
         'flex flex-col justify-center overflow-hidden px-3 py-2 text-foreground',
         nodeShape(vm),
         vm.faded && 'opacity-60',
+        active && 'shadow-md ring-2 ring-ring ring-offset-2 ring-offset-card',
       )}
     >
       <Handle
@@ -130,6 +132,41 @@ function ZoomControls({
       </Button>
     </Panel>
   );
+}
+
+// Room the details panel takes over the canvas: 320 px wide plus its 12 px inset on the right (LR),
+// or up to 60% of the height from the top (TB).
+const PANEL_WIDTH = 332;
+const PANEL_HEIGHT_SHARE = 0.6;
+
+/** Pans the selected node into the part of the canvas the details panel leaves free. */
+function KeepSelectedVisible({
+  selectedId,
+  orientation,
+  canvasHeight,
+}: {
+  selectedId: string | null;
+  orientation: Orientation;
+  canvasHeight: number;
+}) {
+  const flow = useReactFlow();
+  const reduced = useReducedMotion();
+  useEffect(() => {
+    if (!selectedId) return;
+    const node = flow.getNode(selectedId);
+    if (!node) return;
+    const zoom = flow.getZoom();
+    const cx = node.position.x + nodeWidth(orientation) / 2;
+    const cy = node.position.y + NODE_HEIGHT / 2;
+    // setCenter centres the point on the whole canvas; shift it by half the panel so the node
+    // lands in the middle of the free area instead.
+    const target =
+      orientation === 'LR'
+        ? { x: cx + PANEL_WIDTH / 2 / zoom, y: cy }
+        : { x: cx, y: cy - (canvasHeight * PANEL_HEIGHT_SHARE) / 2 / zoom };
+    void flow.setCenter(target.x, target.y, { zoom, duration: reduced ? 0 : 250 });
+  }, [selectedId, orientation, canvasHeight, flow, reduced]);
+  return null;
 }
 
 function toFlowEdge(e: DisplayEdge, active: boolean): Edge {
@@ -230,11 +267,11 @@ export default function WhyPathGraph({
         position: vm.position,
         width: nodeWidth(orientation),
         height: NODE_HEIGHT,
-        data: { vm, orientation },
+        data: { vm, orientation, active: vm.id === selectedId },
         draggable: false,
         connectable: false,
       })),
-    [graph, orientation],
+    [graph, orientation, selectedId],
   );
   const activeId = selectedId ?? hoveredId;
   const edges = useMemo<Edge[]>(
@@ -248,6 +285,16 @@ export default function WhyPathGraph({
   const selected = graph.nodes.find((n) => n.id === selectedId) ?? null;
   // The canvas grows with the layout, between 360 and 560 px.
   const height = Math.min(560, Math.max(360, graph.height + 24));
+
+  // Escape closes the details panel.
+  useEffect(() => {
+    if (!selectedId) return;
+    const onKey = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') setSelectedId(null);
+    };
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, [selectedId]);
 
   return (
     <div className="flex flex-col gap-3">
@@ -285,7 +332,7 @@ export default function WhyPathGraph({
       </div>
       <div
         style={{ height }}
-        className="w-full overflow-hidden rounded-lg border bg-card shadow-xs"
+        className="relative w-full overflow-hidden rounded-lg border bg-card shadow-xs"
         data-testid="why-graph-canvas"
       >
         <ReactFlowProvider>
@@ -310,40 +357,65 @@ export default function WhyPathGraph({
             proOptions={{ hideAttribution: true }}
           >
             <Background gap={24} size={1.5} color="var(--border)" />
+            <KeepSelectedVisible
+              selectedId={selectedId}
+              orientation={orientation}
+              canvasHeight={height}
+            />
             <ZoomControls
               fit={fit}
               position={orientation === 'LR' ? 'top-right' : 'bottom-right'}
             />
           </ReactFlow>
         </ReactFlowProvider>
+        {/* Details sit inside the canvas, next to the clicked node, so they are seen without scrolling. */}
+        {selected && (
+          <aside
+            aria-live="polite"
+            aria-label="Node details"
+            className={cn(
+              'absolute z-10 overflow-y-auto rounded-lg border bg-card p-4 text-sm shadow-lg',
+              orientation === 'LR' ? 'top-14 right-3 bottom-3 w-80' : 'inset-x-3 top-3 max-h-[60%]',
+            )}
+          >
+            <div className="flex items-start justify-between gap-2">
+              <p className="font-semibold">
+                {selected.kindLabel}
+                {selected.roleLabel ? ` · ${selected.roleLabel}` : ''}: {selected.title}
+              </p>
+              <Button
+                type="button"
+                size="icon"
+                variant="ghost"
+                className="-mt-1 -mr-2 size-7 shrink-0"
+                aria-label="Close details"
+                onClick={() => setSelectedId(null)}
+              >
+                <X aria-hidden="true" />
+              </Button>
+            </div>
+            {selected.details.length > 0 && (
+              <dl className="mt-2 grid grid-cols-[auto_1fr] gap-x-3 gap-y-1">
+                {selected.details.map(([label, value]) => (
+                  <div key={label} className="contents">
+                    <dt className="text-muted-foreground">{label}</dt>
+                    <dd className="break-words">{value}</dd>
+                  </div>
+                ))}
+              </dl>
+            )}
+            {selected.items.length > 0 && (
+              <ul className="mt-2 list-disc space-y-1 pl-5">
+                {selected.items.map((item, index) => (
+                  <li key={index} className="break-words">
+                    {item}
+                  </li>
+                ))}
+              </ul>
+            )}
+          </aside>
+        )}
       </div>
-      {selected && (
-        <div className="rounded-lg border bg-card p-4 text-sm shadow-sm" aria-live="polite">
-          <p className="font-semibold">
-            {selected.kindLabel}
-            {selected.roleLabel ? ` · ${selected.roleLabel}` : ''}: {selected.title}
-          </p>
-          {selected.details.length > 0 && (
-            <dl className="mt-2 grid grid-cols-[auto_1fr] gap-x-3 gap-y-1">
-              {selected.details.map(([label, value]) => (
-                <div key={label} className="contents">
-                  <dt className="text-muted-foreground">{label}</dt>
-                  <dd className="break-words">{value}</dd>
-                </div>
-              ))}
-            </dl>
-          )}
-          {selected.items.length > 0 && (
-            <ul className="mt-2 list-disc space-y-1 pl-5">
-              {selected.items.map((item, index) => (
-                <li key={index} className="break-words">
-                  {item}
-                </li>
-              ))}
-            </ul>
-          )}
-        </div>
-      )}
     </div>
   );
 }

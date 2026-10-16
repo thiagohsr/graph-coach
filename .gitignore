@@ -37,3 +37,4 @@ backend.hcl
 # Spike scratch data
 spike/data/
 spike/node_modules/
+.playwright-mcp/

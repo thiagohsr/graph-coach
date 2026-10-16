@@ -16,7 +16,7 @@ export function WhyPathList({ steps, headingId }: { steps: string[]; headingId: 
       <h2 id={headingId} className="text-lg font-semibold">
         The same path as text
       </h2>
-      <ol className="list-decimal space-y-1.5 rounded-lg border bg-card py-4 pr-5 pl-9 shadow-xs marker:font-mono marker:text-graph">
+      <ol className="list-decimal space-y-1.5 rounded-lg border bg-card py-4 pr-5 pl-13 shadow-xs marker:font-mono marker:text-graph">
         {collapseRepeats(steps).map(({ step, count }, index) => (
           <li key={index}>{count > 1 ? `${step} (${count} times)` : step}</li>
         ))}
