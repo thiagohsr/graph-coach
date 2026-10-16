@@ -1,6 +1,7 @@
 import { Langfuse } from 'langfuse';
 import { LangfuseUsageTracer, type LangfuseClientLike } from './langfuse-usage-tracer';
 import { NoopUsageTracer } from './noop-usage-tracer';
+import type { ProviderName } from './types';
 import type { Usage } from './usage';
 
 export type RunKind = 'ingest' | 'generate' | 'cover' | 'coach';
@@ -16,7 +17,7 @@ export interface StepHandle {
 /** Everything a tracer may know about a model call. There is no field for prompt, response, source, or brief text. */
 export interface CallRecord {
   model: string;
-  provider: 'stub' | 'openai' | 'ollama';
+  provider: ProviderName;
   usage: Usage;
   durationMs: number;
   ok: boolean;

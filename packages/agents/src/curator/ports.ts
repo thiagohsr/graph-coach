@@ -59,6 +59,9 @@ export interface TaskPatch {
   result?: TaskResultName | null;
   error?: string | null;
   lastCompletedStep?: StepName | null;
+  /** The chat provider and model this run resolved to (spec 002); steps copy them from the task when written. */
+  llmProvider?: string;
+  llmModel?: string;
 }
 
 /** What `update_task` returns for the row it changed. */
@@ -123,6 +126,8 @@ export interface ChunkWrite {
   text: string;
   prevId: string | null;
   embedding: number[] | null;
+  /** The model that produced `embedding`; stored on the Chunk so mixed-model vectors can be found. */
+  embeddingModel?: string | null;
 }
 
 export interface ConceptWrite {

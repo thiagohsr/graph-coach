@@ -132,8 +132,12 @@ describe('explain with model phrasing', () => {
     expect(recorded.inputTokens).toBe(stubTokens(stub.calls[0]!.messages.map((m) => m.content).join('\n')));
     expect(recorded.outputTokens).toBe(stubTokens(response));
     expect(recorded.embeddingTokens).toBe(0);
-    const { summary: _s, modelCalls: _m, inputTokens: _i, outputTokens: _o, ...rest } = recorded;
-    const { summary: _bs, modelCalls: _bm, inputTokens: _bi, outputTokens: _bo, ...baseRest } = baseline.recorded[0]!;
+    // The run's chat provider and model are recorded (reconciliation M7); a run with no model call leaves them empty.
+    expect([recorded.llmProvider, recorded.llmModel]).toEqual([stub.name, stub.model]);
+    expect([baseline.recorded[0]!.llmProvider, baseline.recorded[0]!.llmModel]).toEqual(['', '']);
+    const { summary: _s, modelCalls: _m, inputTokens: _i, outputTokens: _o, llmProvider: _p, llmModel: _l, ...rest } = recorded;
+    const { summary: _bs, modelCalls: _bm, inputTokens: _bi, outputTokens: _bo, llmProvider: _bp, llmModel: _bl, ...baseRest } =
+      baseline.recorded[0]!;
     expect(rest).toEqual(baseRest);
   });
 

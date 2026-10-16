@@ -44,6 +44,10 @@ class LlmLifecycle implements OnApplicationBootstrap, OnApplicationShutdown {
       }
     }
 
+    if (env.llm.provider === 'ollama-with-fallback' && !env.llm.fallback) {
+      this.logger.warn('LLM_PROVIDER=ollama-with-fallback without OPENROUTER_API_KEY: there is no fallback if Ollama is down');
+    }
+
     const { publicKey, secretKey, host } = env.tracer;
     const set = [publicKey, secretKey, host].filter((value) => value !== undefined).length;
     if (set > 0 && set < 3) {
@@ -80,7 +84,8 @@ class LlmLifecycle implements OnApplicationBootstrap, OnApplicationShutdown {
     {
       provide: CHAT_PROVIDER,
       inject: [ENV, USAGE_TRACER],
-      useFactory: (env: Env, tracer: UsageTracer) => createChatProvider(env.llm, { tracer }),
+      useFactory: (env: Env, tracer: UsageTracer) =>
+        createChatProvider(env.llm, { tracer, logger: new Logger('LlmProvider') }),
     },
     {
       provide: EMBEDDINGS_PROVIDER,

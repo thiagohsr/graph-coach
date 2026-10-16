@@ -12,7 +12,7 @@ import {
   type StepName,
   type TaskRow,
 } from '@coach/agents/curator';
-import type { ChatProvider, EmbeddingsProvider, RunHandle, UsageTracer } from '@coach/agents/llm';
+import { chatForRun, type ChatProvider, type EmbeddingsProvider, type RunHandle, type UsageTracer } from '@coach/agents/llm';
 import type { ConflictDetails } from '@coach/types';
 import { AccountsService } from '../accounts/accounts.service';
 import { AllowanceService } from '../allowance/allowance.service';
@@ -202,11 +202,11 @@ export class RunOrchestrator {
     return read?.source.outline != null;
   }
 
-  private async deps(): Promise<CuratorDeps> {
+  private async deps(chat: ChatProvider): Promise<CuratorDeps> {
     const settings = await this.settings.getAll();
     return {
       graph: this.graph,
-      chat: this.chat,
+      chat,
       embeddings: this.embeddings,
       recorder: this.recorder,
       tracer: this.tracer,
@@ -248,11 +248,14 @@ export class RunOrchestrator {
     );
     let ok = false;
     try {
+      // Resolved once: the whole run, every step, uses this provider and model (spec 002 provider-factory contract).
+      const chat = await chatForRun(this.chat);
+      await this.recorder.setTaskStatus(taskId, ['in_progress'], { llmProvider: chat.name, llmModel: chat.model });
       let outcome: 'awaiting_review' | 'nothing_usable';
       if (entry === 'finalise') {
         outcome = task.questions > 0 ? 'awaiting_review' : 'nothing_usable';
       } else if (isPromptKind(task.kind)) {
-        const result = await runPromptCreation(await this.deps(), {
+        const result = await runPromptCreation(await this.deps(chat), {
           taskId,
           sourceId,
           ownerId: requesterId,
@@ -261,7 +264,7 @@ export class RunOrchestrator {
         });
         outcome = result.outcome;
       } else {
-        const result = await runCurator(await this.deps(), {
+        const result = await runCurator(await this.deps(chat), {
           taskId,
           kind: 'ingest',
           sourceId,

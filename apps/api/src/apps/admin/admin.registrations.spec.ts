@@ -29,10 +29,10 @@ const CANONICAL_PROPERTIES: Record<string, string[]> = {
   Concept: ['id', 'slug', 'name', 'description', 'createdAt'],
   Source: ['id', 'title', 'kind', 'fingerprint', 'content', 'brief', 'outline', 'createdAt'],
   Puzzle: ['id', 'name', 'origin', 'status', 'visibility', 'distractors', 'createdAt'],
-  Decision: ['id', 'kind', 'summary', 'flags', 'modelCalls', 'inputTokens', 'outputTokens', 'embeddingTokens', 'createdAt'],
+  Decision: ['id', 'kind', 'summary', 'flags', 'modelCalls', 'inputTokens', 'outputTokens', 'embeddingTokens', 'llmProvider', 'llmModel', 'createdAt'],
   Task: [
     'id', 'kind', 'status', 'result', 'lastCompletedStep', 'error', 'modelCalls', 'inputTokens', 'outputTokens',
-    'embeddingTokens', 'createdAt', 'updatedAt',
+    'embeddingTokens', 'llmProvider', 'llmModel', 'createdAt', 'updatedAt',
   ],
 };
 

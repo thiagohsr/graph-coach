@@ -382,6 +382,24 @@ describe('add_step', () => {
     expect(await tg.count('Step')).toBe(2);
   });
 
+  it('copies the provider and model the run resolved to from the task onto each step', async () => {
+    await q('add_step', base());
+    await q('update_task', {
+      id: 'task-1',
+      expectedStatuses: ['queued', 'in_progress'],
+      patch: { llmProvider: 'openrouter', llmModel: 'openai/gpt-4o-mini' },
+      now: NOW + 1,
+    });
+    await q('add_step', base({ id: 'step-2', node: 'embed', order: 2 }));
+    const rows = await tg.cypher<{ id: string; p: string | null; m: string | null }>(
+      `MATCH (s:Step) RETURN s.id AS id, s.llmProvider AS p, s.llmModel AS m ORDER BY id`,
+    );
+    expect(rows).toEqual([
+      { id: 'step-1', p: null, m: null },
+      { id: 'step-2', p: 'openrouter', m: 'openai/gpt-4o-mini' },
+    ]);
+  });
+
   it('returns no row for an unknown task and creates nothing', async () => {
     expect(await q('add_step', base({ taskId: 'nope' }))).toEqual([]);
     expect(await tg.count('Step')).toBe(0);
@@ -705,6 +723,15 @@ describe('add_chunks', () => {
       embedding: embedding ? vec(0, 0, 1) : null,
     },
   ];
+
+  it('records the embedding model next to the vector', async () => {
+    const withModel = rows(true).map((r) => ({ ...r, embeddingModel: 'qwen/qwen3-embedding-8b' }));
+    await q('add_chunks', { sourceId: 'S2', chunks: withModel });
+    const stored = await tg.cypher<{ m: string | null }>(
+      `MATCH (c:Chunk) WHERE c.id STARTS WITH 'n-' RETURN DISTINCT c.embeddingModel AS m`,
+    );
+    expect(stored).toEqual([{ m: 'qwen/qwen3-embedding-8b' }]);
+  });
 
   it('writes chunks with HAS_CHUNK and an ordered NEXT chain, without vectors', async () => {
     expect(await q('add_chunks', { sourceId: 'S2', chunks: rows(false) })).toEqual([

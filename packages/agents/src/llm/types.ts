@@ -2,7 +2,7 @@ import type { z } from 'zod';
 import type { StepHandle } from './usage-tracer';
 import type { ChatResult, EmbeddingsResult, StructuredResult } from './usage';
 
-export type ProviderName = 'stub' | 'openai' | 'ollama';
+export type ProviderName = 'stub' | 'openai' | 'ollama' | 'openrouter';
 
 export interface ChatMessage {
   role: 'system' | 'user' | 'assistant';

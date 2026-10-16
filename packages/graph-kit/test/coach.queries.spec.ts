@@ -476,6 +476,8 @@ const recordParams = (learnerId: string, over: Record<string, unknown> = {}): Qu
     inputTokens: 0,
     outputTokens: 0,
     embeddingTokens: 0,
+    llmProvider: '',
+    llmModel: '',
     puzzleId: seedIds.puzzle('storage-and-b-trees'),
     goalId: '',
     evidence: workedEvidence(),
@@ -509,6 +511,15 @@ describe('record_decision, get_decision, recent_decision', () => {
     // SC-C02: no decision without a BECAUSE edge
     const orphans = await tg.cypher<{ c: number }>(`MATCH (d:Decision) WHERE NOT (d)-[:BECAUSE]->() RETURN count(d) AS c`);
     expect(orphans[0]!.c).toBe(0);
+  });
+
+  it('stores the chat provider and model of the run next to the usage numbers', async () => {
+    const { learnerId } = await loadWorkedExample(tg);
+    await q('record_decision', recordParams(learnerId, { llmProvider: 'openrouter', llmModel: 'openai/gpt-4o-mini' }));
+    const rows = await tg.cypher<Record<string, string>>(
+      `MATCH (d:Decision) RETURN d.llmProvider AS llmProvider, d.llmModel AS llmModel`,
+    );
+    expect(rows).toEqual([{ llmProvider: 'openrouter', llmModel: 'openai/gpt-4o-mini' }]);
   });
 
   it('stores the usage numbers exactly as passed, zeros included', async () => {
@@ -692,7 +703,7 @@ describe('decision_path', () => {
     });
     await q('record_decision', {
       decisionId: 'd-safe', learnerId: L1, kind: 'recommendation', summary: 's', flags: [], now: NOW,
-      modelCalls: 0, inputTokens: 0, outputTokens: 0, embeddingTokens: 0, puzzleId: 'sp', goalId: '',
+      modelCalls: 0, inputTokens: 0, outputTokens: 0, embeddingTokens: 0, llmProvider: '', llmModel: '', puzzleId: 'sp', goalId: '',
       evidence: [
         { label: 'Concept', nodeId: cid('c'), role: 'target', reason: 'target', weight: 0.5 },
         { label: 'Question', nodeId: 'sq', role: 'answer', reason: 'missed 1 time', weight: 0.2 },
@@ -722,7 +733,7 @@ describe('decision_path', () => {
     );
     await q('record_decision', {
       decisionId: 'd-pass', learnerId: L1, kind: 'recommendation', summary: 's', flags: [], now: NOW,
-      modelCalls: 0, inputTokens: 0, outputTokens: 0, embeddingTokens: 0, puzzleId: 'pp', goalId: '',
+      modelCalls: 0, inputTokens: 0, outputTokens: 0, embeddingTokens: 0, llmProvider: '', llmModel: '', puzzleId: 'pp', goalId: '',
       evidence: [
         { label: 'Concept', nodeId: cid('c'), role: 'target', reason: 'target', weight: 0.5 },
         { label: 'Chunk', nodeId: 'chunk-1', role: 'passage', reason: 'matched the goal (similarity 0.82)', weight: 0.4 },
@@ -749,7 +760,7 @@ describe('decision_path', () => {
     await loadPassages(tg);
     await q('record_decision', {
       decisionId: 'd-passages', learnerId: L1, kind: 'recommendation', summary: 's', flags: [], now: NOW,
-      modelCalls: 0, inputTokens: 0, outputTokens: 0, embeddingTokens: 0, puzzleId: 'pass-puzzle', goalId: '',
+      modelCalls: 0, inputTokens: 0, outputTokens: 0, embeddingTokens: 0, llmProvider: '', llmModel: '', puzzleId: 'pass-puzzle', goalId: '',
       evidence: [
         { label: 'Concept', nodeId: cid('topic'), role: 'target', reason: 'target', weight: 0.5 },
         { label: 'Chunk', nodeId: 'pass-chunk', role: 'passage', reason: 'matched the goal (similarity 0.82)', weight: 0.4 },
@@ -1095,7 +1106,7 @@ describe('create_cover_task', () => {
     await loadDiamond(tg);
     await q('record_decision', {
       decisionId: 'dec-cover', learnerId: L1, kind: 'coverage_request', summary: 's', flags: ['coverage_gap'], now: NOW,
-      modelCalls: 0, inputTokens: 0, outputTokens: 0, embeddingTokens: 0, puzzleId: '', goalId: '',
+      modelCalls: 0, inputTokens: 0, outputTokens: 0, embeddingTokens: 0, llmProvider: '', llmModel: '', puzzleId: '', goalId: '',
       evidence: [{ label: 'Concept', nodeId: cid('top'), role: 'target', reason: 'target', weight: 0.5 }],
     });
   });
@@ -1150,7 +1161,7 @@ describe('create_cover_task', () => {
 describe('goal and task parts of decision_path and get_decision (T061)', () => {
   const baseDecision = (over: Record<string, unknown>) =>
     ({
-      learnerId: L1, summary: 's', now: NOW, modelCalls: 0, inputTokens: 0, outputTokens: 0, embeddingTokens: 0, puzzleId: '',
+      learnerId: L1, summary: 's', now: NOW, modelCalls: 0, inputTokens: 0, outputTokens: 0, embeddingTokens: 0, llmProvider: '', llmModel: '', puzzleId: '',
       evidence: [{ label: 'Concept', nodeId: cid('top'), role: 'target', reason: 'target', weight: 0.5 }],
       ...over,
     }) as QueryParams;

@@ -1,7 +1,7 @@
 import { randomUUID } from 'node:crypto';
 import { Inject, Injectable, Logger, Optional } from '@nestjs/common';
 import { buildDecisionPath, createCoachQueries, runCoach, type CoachQueries, type DecisionRow } from '@coach/agents/coach';
-import type { ChatProvider, EmbeddingsProvider, UsageTracer } from '@coach/agents/llm';
+import { chatForRun, type ChatProvider, type EmbeddingsProvider, type UsageTracer } from '@coach/agents/llm';
 import { GraphKit, toIso, type QueryParams } from '@coach/graph-kit';
 import type { CoachFlag } from '@coach/types';
 import { assertOwner, callerParams } from '../../common/access/access';
@@ -52,6 +52,8 @@ export class CoachService {
     const settings = await loadCoachSettings(this.settings);
     const queries = this.queries();
     const allowance = this.allowance;
+    // Resolved once per run, so the run never switches model midway (spec 002 provider-factory contract).
+    const chat = this.chat ? await chatForRun(this.chat) : undefined;
     let result;
     try {
       result = await runCoach(
@@ -60,7 +62,7 @@ export class CoachService {
           settings,
           newId: randomUUID,
           ...(this.tracer ? { tracer: this.tracer } : {}),
-          ...(this.chat ? { chatModel: this.chat } : {}),
+          ...(chat ? { chatModel: chat } : {}),
           ...(this.embeddings ? { embeddings: this.embeddings } : {}),
           ...(allowance ? { coverageAllowance: () => allowance.check(user, 'prompt') } : {}),
           logger: { warn: (event, data) => this.logger.warn(`${event} ${JSON.stringify(data ?? {})}`) },

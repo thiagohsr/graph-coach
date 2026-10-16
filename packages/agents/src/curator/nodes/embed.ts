@@ -53,6 +53,7 @@ export const embedNode: NodeFactory = (deps) => async (state) => {
       text: chunk.text,
       prevId: previous.get(chunk.id) ?? null,
       embedding: result.vectors[i]!,
+      embeddingModel: deps.embeddings.model,
     }));
     for (const batch of batches(writes, WRITE_BATCH_CHUNKS))
       await deps.graph.addChunks(sourceId, batch);

@@ -1,5 +1,6 @@
 import { ChatOllama, OllamaEmbeddings } from '@langchain/ollama';
 import type { EmbeddingsConfig, LlmConfig } from './config';
+import { cfAccessHeaders } from './headers';
 import { messageText } from './openai-compatible';
 import {
   RemoteChatProvider,
@@ -16,8 +17,12 @@ const num = (v: unknown): number | undefined => (typeof v === 'number' && Number
 export function ollamaChatTransport(config: LlmConfig): ChatTransport {
   return {
     async invoke(req) {
+      const headers = cfAccessHeaders(config.cfAccess);
       const model = new ChatOllama({
         model: config.model,
+        // qwen3 reasons before answering by default; that doubles latency and pollutes JSON output.
+        think: false,
+        ...(headers ? { headers } : {}),
         ...(config.baseUrl ? { baseUrl: config.baseUrl } : {}),
         temperature: req.temperature,
         ...(req.maxTokens !== undefined ? { numPredict: req.maxTokens } : {}),
@@ -41,8 +46,10 @@ req.signal ? { signal: req.signal } : {}),
 }
 
 export function ollamaEmbedTransport(config: EmbeddingsConfig): EmbedTransport {
+  const headers = cfAccessHeaders(config.cfAccess);
   const embeddings = new OllamaEmbeddings({
     model: config.model,
+    ...(headers ? { headers } : {}),
     ...(config.baseUrl ? { baseUrl: config.baseUrl } : {}),
   });
   return {

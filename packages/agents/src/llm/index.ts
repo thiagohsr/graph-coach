@@ -4,9 +4,27 @@ export * from './types';
 export {
   LlmConfig,
   EmbeddingsConfig,
+  CfAccess,
+  OpenRouterConfig,
+  OPENROUTER_BASE_URL,
+  OPENROUTER_APP_TITLE,
+  DEFAULT_OLLAMA_BASE_URL,
+  DEFAULT_OLLAMA_MODEL,
+  DEFAULT_OPENROUTER_MODEL,
+  DEFAULT_OPENROUTER_EMBEDDING_MODEL,
+  cfAccessFromEnv,
   llmConfigFromEnv,
   embeddingsConfigFromEnv,
 } from './config';
+export { cfAccessHeaders, openRouterHeaders } from './headers';
+export { createOllamaHealthCheck, HEALTH_CACHE_TTL_MS, HEALTH_TIMEOUT_MS } from './ollama-health';
+export {
+  FallbackChatProvider,
+  chatForRun,
+  isRunScoped,
+  type FallbackLogger,
+  type RunScopedChatProvider,
+} from './fallback';
 export { createChatProvider, createEmbeddingsProvider } from './factory';
 export {
   StubChatProvider,
@@ -38,5 +56,10 @@ export {
   type ChatTransportResponse,
   type EmbedTransport,
 } from './remote';
-export { createOpenAiChatProvider, createOpenAiEmbeddingsProvider } from './openai-compatible';
+export {
+  createOpenAiChatProvider,
+  createOpenAiEmbeddingsProvider,
+  createOpenRouterChatProvider,
+  createOpenRouterEmbeddingsProvider,
+} from './openai-compatible';
 export { createOllamaChatProvider, createOllamaEmbeddingsProvider } from './ollama';

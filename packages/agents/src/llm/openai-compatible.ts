@@ -1,5 +1,6 @@
 import { ChatOpenAI, OpenAIEmbeddings } from '@langchain/openai';
-import type { EmbeddingsConfig, LlmConfig } from './config';
+import { OPENROUTER_BASE_URL, type EmbeddingsConfig, type LlmConfig, type OpenRouterConfig } from './config';
+import { openRouterHeaders } from './headers';
 import {
   RemoteChatProvider,
   RemoteEmbeddingsProvider,
@@ -42,7 +43,8 @@ export function openAiTokens(msg: MessageLike): { inputTokens?: number | undefin
   };
 }
 
-export function openAiChatTransport(config: LlmConfig): ChatTransport {
+/** `headers` are sent on every request (OpenRouter attribution). */
+export function openAiChatTransport(config: LlmConfig, headers?: Record<string, string>): ChatTransport {
   return {
     async invoke(req) {
       const model = new ChatOpenAI({
@@ -52,7 +54,9 @@ export function openAiChatTransport(config: LlmConfig): ChatTransport {
         ...(req.maxTokens !== undefined ? { maxTokens: req.maxTokens } : {}),
         timeout: req.timeoutMs,
         maxRetries: 0,
-        ...(config.baseUrl ? { configuration: { baseURL: config.baseUrl } } : {}),
+        ...(config.baseUrl || headers
+          ? { configuration: { ...(config.baseUrl ? { baseURL: config.baseUrl } : {}), ...(headers ? { defaultHeaders: headers } : {}) } }
+          : {}),
         ...(req.json ? { modelKwargs: { response_format: { type: 'json_object' } } } : {}),
       });
       const pairs = req.messages.map((m): [string, string] => [m.role, m.content]);
@@ -75,12 +79,14 @@ class RawOpenAIEmbeddings extends OpenAIEmbeddings {
   }
 }
 
-export function openAiEmbedTransport(config: EmbeddingsConfig): EmbedTransport {
+export function openAiEmbedTransport(config: EmbeddingsConfig, headers?: Record<string, string>): EmbedTransport {
   const client = new RawOpenAIEmbeddings({
     model: config.model,
     ...(config.apiKey ? { apiKey: config.apiKey } : {}),
     maxRetries: 0,
-    ...(config.baseUrl ? { configuration: { baseURL: config.baseUrl } } : {}),
+    ...(config.baseUrl || headers
+      ? { configuration: { ...(config.baseUrl ? { baseURL: config.baseUrl } : {}), ...(headers ? { defaultHeaders: headers } : {}) } }
+      : {}),
   });
   return {
     async embed(texts, req) {
@@ -110,6 +116,40 @@ export function createOpenAiEmbeddingsProvider(
     config.model,
     config.dimension,
     extras.transport ?? openAiEmbedTransport(config),
+    extras,
+  );
+}
+
+/** OpenRouter chat: the OpenAI-compatible API with attribution headers. */
+export function createOpenRouterChatProvider(
+  config: OpenRouterConfig,
+  extras: { tracer?: UsageTracer | undefined; logger?: Logger | undefined; transport?: ChatTransport | undefined } = {},
+): RemoteChatProvider {
+  const asLlm: LlmConfig = {
+    provider: 'openai',
+    model: config.model,
+    apiKey: config.apiKey,
+    baseUrl: config.baseUrl ?? OPENROUTER_BASE_URL,
+  };
+  return new RemoteChatProvider(
+    'openrouter',
+    config.model,
+    extras.transport ?? openAiChatTransport(asLlm, openRouterHeaders()),
+    extras,
+  );
+}
+
+/** OpenRouter embeddings. The provider rejects any vector whose length is not `config.dimension`. */
+export function createOpenRouterEmbeddingsProvider(
+  config: EmbeddingsConfig,
+  extras: { tracer?: UsageTracer | undefined; logger?: Logger | undefined; transport?: EmbedTransport | undefined } = {},
+): RemoteEmbeddingsProvider {
+  const withUrl: EmbeddingsConfig = { ...config, baseUrl: config.baseUrl ?? OPENROUTER_BASE_URL };
+  return new RemoteEmbeddingsProvider(
+    'openrouter',
+    config.model,
+    config.dimension,
+    extras.transport ?? openAiEmbedTransport(withUrl, openRouterHeaders()),
     extras,
   );
 }

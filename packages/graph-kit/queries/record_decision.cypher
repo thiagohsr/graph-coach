@@ -1,7 +1,7 @@
 // name: record_decision
 // owner: 004
 // mode: write
-// params: $decisionId (string), $learnerId (string), $kind (string), $summary (string), $flags (list of strings), $now (integer), $modelCalls (integer), $inputTokens (integer), $outputTokens (integer), $embeddingTokens (integer), $puzzleId (string, '' = none), $goalId (string, '' = none), $evidence (list of {label, nodeId, role, reason, weight})
+// params: $decisionId (string), $learnerId (string), $kind (string), $summary (string), $flags (list of strings), $now (integer), $modelCalls (integer), $inputTokens (integer), $outputTokens (integer), $embeddingTokens (integer), $llmProvider (string, '' = no model called), $llmModel (string, '' = no model called), $puzzleId (string, '' = none), $goalId (string, '' = none), $evidence (list of {label, nodeId, role, reason, weight})
 // returns: decisionId, becauseCount, linkedPuzzle
 // The single decision write, atomic on the pinned FalkorDB (spike S10): Decision, MADE, FOR, one BECAUSE per matched
 // evidence node, RECOMMENDED only when a puzzle was chosen, TOWARD only for a goal. If no evidence node matches,
@@ -17,7 +17,8 @@ WHERE n IS NOT NULL
 WITH l, ag, collect({node: n, role: ev.role, reason: ev.reason, weight: ev.weight}) AS items
 CREATE (d:Decision {id: $decisionId, kind: $kind, summary: $summary, createdAt: $now, flags: $flags,
                     modelCalls: $modelCalls, inputTokens: $inputTokens,
-                    outputTokens: $outputTokens, embeddingTokens: $embeddingTokens})
+                    outputTokens: $outputTokens, embeddingTokens: $embeddingTokens,
+                    llmProvider: $llmProvider, llmModel: $llmModel})
 CREATE (ag)-[:MADE]->(d)
 CREATE (d)-[:FOR]->(l)
 WITH d, items

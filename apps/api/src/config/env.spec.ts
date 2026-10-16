@@ -450,3 +450,87 @@ describe('Langfuse settings', () => {
     );
   });
 });
+
+describe('Ollama with OpenRouter fallback', () => {
+  const withFallback: NodeJS.ProcessEnv = {
+    ...base,
+    LLM_PROVIDER: 'ollama-with-fallback',
+    OPENROUTER_API_KEY: SECRET_VALUE,
+    CF_ACCESS_CLIENT_ID: 'cf-id.access',
+    CF_ACCESS_CLIENT_SECRET: SECRET_VALUE,
+  };
+
+  it('defaults the Ollama host and model and the cheap OpenRouter model', () => {
+    const { llm } = parseEnv(withFallback);
+    expect(llm).toEqual({
+      provider: 'ollama-with-fallback',
+      model: 'qwen3:8b',
+      baseUrl: 'https://ollama.example.com',
+      cfAccess: { clientId: 'cf-id.access', clientSecret: SECRET_VALUE },
+      fallback: { apiKey: SECRET_VALUE, model: 'openai/gpt-4o-mini' },
+    });
+  });
+
+  it('takes OLLAMA_* and OPENROUTER_MODEL overrides', () => {
+    const { llm } = parseEnv({
+      ...withFallback,
+      OLLAMA_BASE_URL: 'http://localhost:11434',
+      OLLAMA_MODEL: 'qwen3:14b',
+      OPENROUTER_MODEL: 'openai/gpt-4o-mini-2',
+    });
+    expect(llm).toMatchObject({ baseUrl: 'http://localhost:11434', model: 'qwen3:14b' });
+    expect(llm.fallback?.model).toBe('openai/gpt-4o-mini-2');
+  });
+
+  it('runs without the token or the key outside production', () => {
+    const { llm } = parseEnv({ ...base, LLM_PROVIDER: 'ollama-with-fallback' });
+    expect(llm.cfAccess).toBeUndefined();
+    expect(llm.fallback).toBeUndefined();
+  });
+
+  it('wants both Cloudflare Access variables or neither', () => {
+    expect(problems({ ...withFallback, CF_ACCESS_CLIENT_SECRET: '' })).toEqual([
+      'ENV CF_ACCESS_CLIENT_SECRET: must be set together with the other Cloudflare Access variable',
+    ]);
+  });
+
+  it('refuses to start in production without OPENROUTER_API_KEY', () => {
+    const prod = { ...prodOk, LLM_PROVIDER: 'ollama-with-fallback', LLM_API_KEY: '' };
+    expect(problems(prod)).toEqual([
+      'ENV OPENROUTER_API_KEY: required in production when LLM_PROVIDER=ollama-with-fallback',
+    ]);
+    expect(parseEnv({ ...prod, OPENROUTER_API_KEY: SECRET_VALUE }).llm.provider).toBe('ollama-with-fallback');
+  });
+
+  it('embeddings via openrouter: default model, key from OPENROUTER_API_KEY, dimension required', () => {
+    const { embeddings } = parseEnv({
+      ...base,
+      EMBEDDING_PROVIDER: 'openrouter',
+      EMBEDDING_DIM: '4096',
+      OPENROUTER_API_KEY: SECRET_VALUE,
+    });
+    expect(embeddings).toMatchObject({
+      provider: 'openrouter',
+      model: 'qwen/qwen3-embedding-8b',
+      baseUrl: 'https://openrouter.ai/api/v1',
+      apiKey: SECRET_VALUE,
+      dimension: 4096,
+    });
+    expect(problems({ ...base, EMBEDDING_PROVIDER: 'openrouter', EMBEDDING_DIM: '4096' })).toEqual([
+      'ENV OPENROUTER_API_KEY: required when EMBEDDING_PROVIDER=openrouter',
+    ]);
+    expect(problems({ ...base, EMBEDDING_PROVIDER: 'openrouter', OPENROUTER_API_KEY: SECRET_VALUE })).toEqual([
+      'ENV EMBEDDING_DIM: required when EMBEDDING_PROVIDER=openrouter',
+    ]);
+  });
+
+  it('keeps each provider value to its own variable', () => {
+    expect(problems({ ...base, LLM_PROVIDER: 'openrouter' })[0]).toMatch(/LLM_PROVIDER: must be one of/);
+    expect(problems({ ...base, EMBEDDING_PROVIDER: 'ollama-with-fallback' })[0]).toMatch(/EMBEDDING_PROVIDER: must be one of/);
+  });
+
+  it('never puts a secret in an error message', () => {
+    const text = problems({ ...withFallback, OLLAMA_BASE_URL: 'not a url', CF_ACCESS_CLIENT_SECRET: '' }).join('\n');
+    expect(text).not.toContain(SECRET_VALUE);
+  });
+});

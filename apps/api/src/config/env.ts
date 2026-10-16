@@ -6,6 +6,12 @@ import { z } from 'zod';
 
 // The three provider config types live next to the provider code in `@coach/agents/llm` (contracts §4.3).
 import type { EmbeddingsConfig, LlmConfig, TracerConfig } from '@coach/agents/llm';
+import {
+  DEFAULT_OLLAMA_BASE_URL,
+  DEFAULT_OLLAMA_MODEL,
+  DEFAULT_OPENROUTER_EMBEDDING_MODEL,
+  DEFAULT_OPENROUTER_MODEL,
+} from '@coach/agents/llm';
 
 export type { EmbeddingsConfig, LlmConfig, TracerConfig };
 
@@ -79,6 +85,13 @@ const KNOWN_KEYS = [
   'EMBEDDING_BASE_URL',
   'EMBEDDING_API_KEY',
   'EMBEDDING_DIM',
+  'OLLAMA_BASE_URL',
+  'OLLAMA_MODEL',
+  'CF_ACCESS_CLIENT_ID',
+  'CF_ACCESS_CLIENT_SECRET',
+  'OPENROUTER_API_KEY',
+  'OPENROUTER_MODEL',
+  'OPENROUTER_EMBEDDING_MODEL',
   'ALLOW_STUB_PROVIDERS',
   'COVER_POLL_SECONDS',
   'LANGFUSE_PUBLIC_KEY',
@@ -259,24 +272,52 @@ export function parseEnv(source: NodeJS.ProcessEnv = process.env): Env {
     });
   }
 
-  // Providers
-  const provider = (prefix: 'LLM' | 'EMBEDDING'): LlmConfig => {
-    const kind = oneOf(`${prefix}_PROVIDER`, ['stub', 'openai', 'ollama'] as const, 'stub');
-    const model = raw[`${prefix}_MODEL`];
-    const baseUrl = raw[`${prefix}_BASE_URL`];
-    const apiKey = raw[`${prefix}_API_KEY`];
+  // Providers. `ollama-with-fallback` (chat) and `openrouter` (embeddings) read the OLLAMA_*, CF_ACCESS_*, and
+  // OPENROUTER_* variables; the per-prefix LLM_*/EMBEDDING_* variables still override the model where they apply.
+  const cfId = raw.CF_ACCESS_CLIENT_ID;
+  const cfSecret = raw.CF_ACCESS_CLIENT_SECRET;
+  if ((cfId === undefined) !== (cfSecret === undefined)) {
+    fail(
+      cfId === undefined ? 'CF_ACCESS_CLIENT_ID' : 'CF_ACCESS_CLIENT_SECRET',
+      'must be set together with the other Cloudflare Access variable',
+    );
+  }
+  const cfAccess = cfId !== undefined && cfSecret !== undefined ? { clientId: cfId, clientSecret: cfSecret } : undefined;
+  const openRouterBase = 'https://openrouter.ai/api/v1';
+
+  type Kind = 'stub' | 'openai' | 'ollama' | 'ollama-with-fallback' | 'openrouter';
+  const provider = (
+    prefix: 'LLM' | 'EMBEDDING',
+    extra: 'ollama-with-fallback' | 'openrouter',
+  ): { kind: Kind; model: string; baseUrl?: string; apiKey?: string } => {
+    const kind = oneOf<Kind>(`${prefix}_PROVIDER`, ['stub', 'openai', 'ollama', extra], 'stub');
+    const model =
+      kind === 'ollama-with-fallback'
+        ? (raw.OLLAMA_MODEL ?? raw.LLM_MODEL ?? DEFAULT_OLLAMA_MODEL)
+        : kind === 'openrouter'
+          ? (raw.EMBEDDING_MODEL ?? raw.OPENROUTER_EMBEDDING_MODEL ?? DEFAULT_OPENROUTER_EMBEDDING_MODEL)
+          : raw[`${prefix}_MODEL`];
+    const baseUrl =
+      kind === 'ollama-with-fallback'
+        ? (raw.OLLAMA_BASE_URL ?? raw.LLM_BASE_URL ?? DEFAULT_OLLAMA_BASE_URL)
+        : kind === 'openrouter'
+          ? (raw[`${prefix}_BASE_URL`] ?? openRouterBase)
+          : raw[`${prefix}_BASE_URL`];
+    const apiKey =
+      kind === 'openrouter' ? (raw[`${prefix}_API_KEY`] ?? raw.OPENROUTER_API_KEY) : raw[`${prefix}_API_KEY`];
     if (kind !== 'stub') {
       const needs = `required when ${prefix}_PROVIDER=${kind}`;
       if (model === undefined) fail(`${prefix}_MODEL`, needs);
       if (kind === 'ollama' && baseUrl === undefined) fail(`${prefix}_BASE_URL`, needs);
       if (kind === 'openai' && apiKey === undefined) fail(`${prefix}_API_KEY`, needs);
+      if (kind === 'openrouter' && apiKey === undefined) fail('OPENROUTER_API_KEY', needs);
     }
     if (baseUrl !== undefined && baseUrl.startsWith('file://')) {
       if (!(prefix === 'LLM' && kind === 'stub'))
         fail(`${prefix}_BASE_URL`, 'a file:// URL is only allowed when LLM_PROVIDER=stub');
       else if (baseUrl.length <= 'file://'.length) fail(`${prefix}_BASE_URL`, 'file:// URL needs a directory');
     } else if (baseUrl !== undefined && !isHttpUrl(baseUrl))
-      fail(`${prefix}_BASE_URL`, 'must be an http:// or https:// URL');
+      fail(kind === 'ollama-with-fallback' ? 'OLLAMA_BASE_URL' : `${prefix}_BASE_URL`, 'must be an http:// or https:// URL');
     if (production && kind === 'stub' && raw.ALLOW_STUB_PROVIDERS !== 'true') {
       fail(
         `${prefix}_PROVIDER`,
@@ -284,14 +325,40 @@ export function parseEnv(source: NodeJS.ProcessEnv = process.env): Env {
       );
     }
     return {
-      provider: kind,
+      kind,
       model: model ?? (kind === 'stub' ? 'stub' : ''),
       ...(baseUrl !== undefined ? { baseUrl } : {}),
       ...(apiKey !== undefined ? { apiKey } : {}),
     };
   };
-  const llm = provider('LLM');
-  const embeddingBase = provider('EMBEDDING');
+
+  const chat = provider('LLM', 'ollama-with-fallback');
+  if (chat.kind === 'ollama-with-fallback' && production && raw.OPENROUTER_API_KEY === undefined) {
+    fail('OPENROUTER_API_KEY', 'required in production when LLM_PROVIDER=ollama-with-fallback');
+  }
+  const llm: LlmConfig = {
+    provider: chat.kind as LlmConfig['provider'],
+    model: chat.model,
+    ...(chat.baseUrl !== undefined ? { baseUrl: chat.baseUrl } : {}),
+    ...(chat.kind !== 'ollama-with-fallback' && chat.apiKey !== undefined ? { apiKey: chat.apiKey } : {}),
+    ...(cfAccess && (chat.kind === 'ollama' || chat.kind === 'ollama-with-fallback') ? { cfAccess } : {}),
+    ...(chat.kind === 'ollama-with-fallback' && raw.OPENROUTER_API_KEY !== undefined
+      ? {
+          fallback: {
+            apiKey: raw.OPENROUTER_API_KEY,
+            model: raw.OPENROUTER_MODEL ?? DEFAULT_OPENROUTER_MODEL,
+          },
+        }
+      : {}),
+  };
+  const emb = provider('EMBEDDING', 'openrouter');
+  const embeddingBase: Omit<EmbeddingsConfig, 'dimension'> = {
+    provider: emb.kind as EmbeddingsConfig['provider'],
+    model: emb.model,
+    ...(emb.baseUrl !== undefined ? { baseUrl: emb.baseUrl } : {}),
+    ...(emb.apiKey !== undefined ? { apiKey: emb.apiKey } : {}),
+    ...(cfAccess && emb.kind === 'ollama' ? { cfAccess } : {}),
+  };
 
   let dimension = 64;
   if (raw.EMBEDDING_DIM !== undefined) {

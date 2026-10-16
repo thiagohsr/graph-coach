@@ -103,6 +103,8 @@ export const taskAdmin = registerAdmin({
     inputTokens: { type: 'integer', label: 'Input tokens', readonly: true },
     outputTokens: { type: 'integer', label: 'Output tokens', readonly: true },
     embeddingTokens: { type: 'integer', label: 'Embedding tokens', readonly: true },
+    llmProvider: { type: 'string', label: 'Chat provider', readonly: true },
+    llmModel: { type: 'string', label: 'Chat model', readonly: true },
   },
   links: [
     {

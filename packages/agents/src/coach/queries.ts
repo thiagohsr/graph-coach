@@ -30,6 +30,9 @@ export interface RecordDecisionParams {
   inputTokens: number;
   outputTokens: number;
   embeddingTokens: number;
+  /** The chat provider and model of the run; '' when it called no model. */
+  llmProvider: string;
+  llmModel: string;
   /** '' when no puzzle was chosen. */
   puzzleId: string;
   /** '' outside the goal stretch. */
@@ -181,6 +184,8 @@ export function createCoachQueries(query: QueryFn): CoachQueries {
         inputTokens: p.inputTokens,
         outputTokens: p.outputTokens,
         embeddingTokens: p.embeddingTokens,
+        llmProvider: p.llmProvider,
+        llmModel: p.llmModel,
         puzzleId: p.puzzleId,
         goalId: p.goalId,
         evidence: p.evidence.map((e) => ({
