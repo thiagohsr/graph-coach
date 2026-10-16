@@ -622,3 +622,31 @@ describe('input hardening', () => {
     expect((await app.http.post(`/puzzles/${'x'.repeat(65)}/sessions`).set(c.auth)).status).toBe(422);
   });
 });
+
+// SC-G03: submitting a 10-question puzzle takes under 500 ms (median of 5). Opt-in: set RUN_PERF=1 in the environment.
+describe('SC-G03: submit latency', () => {
+  it.skipIf(!process.env.RUN_PERF)('median of 5 submit round trips on a 10-question puzzle is under 500 ms', async () => {
+    const words = Array.from({ length: 10 }, (_, i) => `term${i}`);
+    await run(
+      `MATCH (m:Learner {id: $M})
+       CREATE (m)-[:OWNS]->(p:Puzzle {id: 'PPERF', name: 'Perf', status: 'published', visibility: 'public', origin: 'seed'})
+       WITH p
+       UNWIND range(0, 9) AS i
+       CREATE (p)-[:CONTAINS {order: i + 1}]->(:Question {id: 'pq' + toString(i), sentence: 'Fill ___ ' + toString(i) + '.',
+                                    status: 'approved', answers: [$words[i]]})`,
+      { M: m.id, words },
+    );
+    const times: number[] = [];
+    for (let i = 0; i < 5; i += 1) {
+      const sessionId = await start(a, 'PPERF');
+      const answers = words.map((word, q) => ({ questionId: `pq${q}`, blank: 0, word }));
+      const t0 = performance.now();
+      const res = await submit(a, sessionId, answers);
+      times.push(performance.now() - t0);
+      expect(res.status).toBe(200);
+      expect(res.body.score).toBe(100);
+    }
+    const median = [...times].sort((x, y) => x - y)[2]!;
+    expect(median).toBeLessThan(500);
+  });
+});

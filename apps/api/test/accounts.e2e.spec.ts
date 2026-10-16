@@ -7,6 +7,7 @@ import { GraphKit, GraphUnavailableError } from '@coach/graph-kit';
 import { AccountsService } from '../src/apps/accounts/accounts.service';
 import { userIdentities, users } from '../src/apps/accounts/user.model';
 import { UserDirectory } from '../src/apps/accounts/user-directory';
+import { DevAuthController } from '../src/apps/accounts/dev-auth.controller';
 import { CognitoTokenVerifier } from '../src/common/auth/cognito-token-verifier';
 import { Roles } from '../src/common/auth/decorators';
 import { TOKEN_VERIFIER } from '../src/common/auth/token-verifier';
@@ -564,6 +565,11 @@ describe('POST /auth/dev-login and GET /auth/dev-users', () => {
     const list = await c.http.get('/auth/dev-users');
     expect(list.status).toBe(404);
     expect(list.body.error.code).toBe('NOT_FOUND');
+  });
+
+  it('registers DevAuthController in dev mode only', () => {
+    expect(d.app.get(DevAuthController, { strict: false })).toBeInstanceOf(DevAuthController);
+    expect(() => c.app.get(DevAuthController, { strict: false })).toThrow();
   });
 });
 

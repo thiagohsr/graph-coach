@@ -41,7 +41,7 @@ const taskColumns = {
 export const TaskReadRow = z.object(taskColumns);
 export type TaskReadRow = z.infer<typeof TaskReadRow>;
 
-/** A step as load_task returns it: a map of nulls when the task has no step yet. */
+/** A step as the task queries return it: a map of nulls when the task has no step yet. */
 const LoadedStep = z.object({
   stepId: nullableString,
   node: nullableString,
@@ -96,6 +96,13 @@ export const OpenTaskRow = z.object({
   sourceId: nullableString,
 });
 export type OpenTaskRow = z.infer<typeof OpenTaskRow>;
+
+/** An open `cover` task with the concepts it concerns (open_tasks returns them; the start-up resume ignores them). */
+export const CoverTaskRow = OpenTaskRow.extend({ conceptIds: z.array(z.string()) });
+export type CoverTaskRow = z.infer<typeof CoverTaskRow>;
+
+export const CoverConceptRow = z.object({ id: z.string(), name: z.string(), description: z.string() });
+export type CoverConceptRow = z.infer<typeof CoverConceptRow>;
 
 export const TaskCreatedRow = z.object({ taskId: z.string(), status: z.string() });
 
@@ -193,3 +200,17 @@ export const SourceListRow = z.object({
     .transform((s) => s ?? null),
 });
 export type SourceListRow = z.infer<typeof SourceListRow>;
+
+export const RemainingRow = z.object({
+  remaining: z.number(),
+  approved: z.number(),
+  rejected: z.number(),
+});
+
+export const PublishedRow = z.object({
+  id: z.string(),
+  status: z.enum(['draft', 'published']),
+  visibility: z.enum(['private', 'public']),
+  origin: z.enum(['upload', 'prompt']),
+  approved: z.number(),
+});

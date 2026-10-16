@@ -24,7 +24,8 @@ export function configureApp(
 ): void {
   app.setGlobalPrefix('api');
   app.enableCors({
-    origin: env.WEB_ORIGIN,
+    // Exactly WEB_ORIGIN; any other (or missing) Origin gets no CORS headers, without an error.
+    origin: (origin, callback) => callback(null, origin === env.WEB_ORIGIN),
     methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
     allowedHeaders: ['Authorization', 'Content-Type', 'X-Id-Token'],
     credentials: false,

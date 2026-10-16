@@ -4,28 +4,12 @@
 import { isIP } from 'node:net';
 import { z } from 'zod';
 
-export type Provider = 'stub' | 'openai' | 'ollama';
+// The three provider config types live next to the provider code in `@coach/agents/llm` (contracts §4.3).
+import type { EmbeddingsConfig, LlmConfig, TracerConfig } from '@coach/agents/llm';
 
-/** Same shape as `LlmConfig` in `@coach/agents/llm` (contracts §4.3). */
-export interface LlmConfig {
-  provider: Provider;
-  model: string;
-  baseUrl?: string;
-  apiKey?: string;
-}
+export type { EmbeddingsConfig, LlmConfig, TracerConfig };
 
-/** Same shape as `EmbeddingsConfig` in `@coach/agents/llm`. */
-export interface EmbeddingsConfig extends LlmConfig {
-  dimension: number;
-}
-
-/** Same shape as `TracerConfig` in `@coach/agents/llm`. */
-export interface TracerConfig {
-  publicKey?: string;
-  secretKey?: string;
-  host?: string;
-  captureContent: boolean;
-}
+export type Provider = LlmConfig['provider'];
 
 export type AuthConfig =
   | { mode: 'dev'; jwtSecret: string }
@@ -55,6 +39,8 @@ export type Env = {
   llm: LlmConfig;
   embeddings: EmbeddingsConfig;
   ALLOW_STUB_PROVIDERS: boolean;
+  /** Seconds between looks for queued `cover` tasks (spec 005 US7); 0 turns the poller off. */
+  COVER_POLL_SECONDS: number;
   tracer: TracerConfig;
 };
 
@@ -94,6 +80,7 @@ const KNOWN_KEYS = [
   'EMBEDDING_API_KEY',
   'EMBEDDING_DIM',
   'ALLOW_STUB_PROVIDERS',
+  'COVER_POLL_SECONDS',
   'LANGFUSE_PUBLIC_KEY',
   'LANGFUSE_SECRET_KEY',
   'LANGFUSE_HOST',
@@ -284,7 +271,11 @@ export function parseEnv(source: NodeJS.ProcessEnv = process.env): Env {
       if (kind === 'ollama' && baseUrl === undefined) fail(`${prefix}_BASE_URL`, needs);
       if (kind === 'openai' && apiKey === undefined) fail(`${prefix}_API_KEY`, needs);
     }
-    if (baseUrl !== undefined && !isHttpUrl(baseUrl))
+    if (baseUrl !== undefined && baseUrl.startsWith('file://')) {
+      if (!(prefix === 'LLM' && kind === 'stub'))
+        fail(`${prefix}_BASE_URL`, 'a file:// URL is only allowed when LLM_PROVIDER=stub');
+      else if (baseUrl.length <= 'file://'.length) fail(`${prefix}_BASE_URL`, 'file:// URL needs a directory');
+    } else if (baseUrl !== undefined && !isHttpUrl(baseUrl))
       fail(`${prefix}_BASE_URL`, 'must be an http:// or https:// URL');
     if (production && kind === 'stub' && raw.ALLOW_STUB_PROVIDERS !== 'true') {
       fail(
@@ -320,6 +311,13 @@ export function parseEnv(source: NodeJS.ProcessEnv = process.env): Env {
   const allowStub = parseBool(raw.ALLOW_STUB_PROVIDERS);
   if (allowStub === undefined) fail('ALLOW_STUB_PROVIDERS', 'must be true or false');
 
+  // Coverage requests (005 US7): seconds between looks for queued cover tasks; 0 = off.
+  let coverPollSeconds = 30;
+  if (raw.COVER_POLL_SECONDS !== undefined) {
+    if (/^\d{1,5}$/.test(raw.COVER_POLL_SECONDS)) coverPollSeconds = Number(raw.COVER_POLL_SECONDS);
+    else fail('COVER_POLL_SECONDS', 'must be a whole number of seconds, 0 or more');
+  }
+
   // Usage tracer: none, some, or all of the three may be set; the consumer decides what to do.
   const captureContent = parseBool(raw.LANGFUSE_CAPTURE_CONTENT);
   if (captureContent === undefined) fail('LANGFUSE_CAPTURE_CONTENT', 'must be true or false');
@@ -348,6 +346,7 @@ export function parseEnv(source: NodeJS.ProcessEnv = process.env): Env {
     llm,
     embeddings: { ...embeddingBase, dimension },
     ALLOW_STUB_PROVIDERS: allowStub === true,
+    COVER_POLL_SECONDS: coverPollSeconds,
     tracer: {
       ...(raw.LANGFUSE_PUBLIC_KEY !== undefined ? { publicKey: raw.LANGFUSE_PUBLIC_KEY } : {}),
       ...(raw.LANGFUSE_SECRET_KEY !== undefined ? { secretKey: raw.LANGFUSE_SECRET_KEY } : {}),

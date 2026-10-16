@@ -1,5 +1,6 @@
 // RunOrchestrator with an in-memory graph and mocked graph runners: what it decides (entry, status changes, retry,
 // start-up resume, concurrency) and what it never does (invoke a graph for a blocked requester or a finished task).
+import { Logger } from '@nestjs/common';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import {
   CuratorStepError,
@@ -239,6 +240,31 @@ describe('a failing run', () => {
     expect(stored.error).toBe('draftQuestions: INCONSISTENT_STATE: The run stopped unexpectedly');
     expect(stored.error).not.toContain('SECRET');
     expect(h.orchestrator.isRunning('t1')).toBe(false);
+  });
+
+  it('never logs the message of an unknown error (Principle VII), only class, task, step and tag', async () => {
+    const secret = 'SECRET passage text from the source';
+    class ProviderBoom extends Error {}
+    const logged: string[] = [];
+    const spies = (['error', 'warn', 'log', 'debug', 'verbose'] as const).map((level) =>
+      vi.spyOn(Logger.prototype, level).mockImplementation((...args: unknown[]) => {
+        logged.push(args.map(String).join(' '));
+      }),
+    );
+    try {
+      const h = harness([task('t1', { lastCompletedStep: 'linkPrerequisites' })]);
+      runCuratorMock.mockRejectedValue(new ProviderBoom(secret));
+      h.orchestrator.start('t1');
+      await h.orchestrator.whenIdle('t1');
+      expect(logged.length).toBeGreaterThan(0);
+      expect(logged.join('\n')).not.toContain(secret);
+      expect(logged.join('\n')).toContain('ProviderBoom');
+      expect(logged.join('\n')).toContain('task=t1');
+      expect(logged.join('\n')).toContain('step=draftQuestions');
+      expect(h.tasks.get('t1')!.error).not.toContain(secret);
+    } finally {
+      for (const spy of spies) spy.mockRestore();
+    }
   });
 
   it('an ACCOUNT_BLOCKED step error is stored with that tag', async () => {

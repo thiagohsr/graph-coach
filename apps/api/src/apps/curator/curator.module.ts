@@ -1,4 +1,5 @@
 import { Module } from '@nestjs/common';
+import { CoverPickupService } from './cover-pickup.service';
 import { CuratorGraph } from './curator.graph-port';
 import { RunOrchestrator } from './run-orchestrator.service';
 import { SourcesController } from './sources.controller';
@@ -23,6 +24,7 @@ import { TasksService } from './tasks.service';
     TaskRecorder,
     RunOrchestrator,
     StartupResumeService,
+    CoverPickupService,
     SourcesService,
     TaskReadQueries,
     TasksService,

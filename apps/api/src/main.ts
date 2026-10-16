@@ -18,7 +18,7 @@ async function bootstrap(): Promise<void> {
     throw error;
   }
 
-  const app = await NestFactory.create<NestExpressApplication>(AppModule, {
+  const app = await NestFactory.create<NestExpressApplication>(AppModule.forRoot(env.auth.mode), {
     logger: LOG_LEVELS[env.LOG_LEVEL],
   });
   configureApp(app, env);

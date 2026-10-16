@@ -1,7 +1,9 @@
+import { Logger } from '@nestjs/common';
 import { afterAll, beforeAll, describe, expect, it, vi } from 'vitest';
-import { COACH_FLAGS } from '@coach/agents/coach';
+import { ProviderUnavailableError, stubTokens } from '@coach/agents/llm';
+import { StubEmbeddingsProvider } from '@coach/agents/testing';
 import { GraphKit, GraphUnavailableError, seedIds } from '@coach/graph-kit';
-import { CoachFlag } from '@coach/types';
+import { SettingsService } from '../src/common/settings/settings.service';
 import {
   addAgents,
   addConcepts,
@@ -17,11 +19,6 @@ import { createTestApp, type TestApp, type TestUser } from './support/test-app';
 
 const MINUTE = 60_000;
 
-describe('Coach flag list', () => {
-  it('the agents package repeats the CoachFlag list of @coach/types exactly', () => {
-    expect([...COACH_FLAGS].sort()).toEqual([...CoachFlag.options].sort());
-  });
-});
 const recommend = (app: TestApp, user: TestUser, body: unknown = {}) =>
   app.http.post('/coach/recommendations').set(user.auth).send(body as object);
 
@@ -441,5 +438,312 @@ describe('Coach: respects ownership (S5)', () => {
       expect(res.status).toBe(201);
       expect(res.body.puzzle.id).toBe('p-public');
     }
+  });
+});
+
+// ---- Goal stretch (T057) ----
+
+interface PathBody {
+  nodes: Array<{ id: string; label: string; title: string; props: Record<string, unknown> }>;
+  edges: Array<{ from: string; to: string; type: string; role?: string }>;
+  steps: string[];
+}
+
+const taskCount = async (app: TestApp): Promise<number> =>
+  (await app.testGraph.cypher<{ c: number }>('MATCH (t:Task) RETURN count(t) AS c'))[0]!.c;
+
+describe('Coach: practising toward a goal and requesting coverage (S4)', () => {
+  const GOAL = 'Teach me about zeta';
+  let app: TestApp;
+  let learner: TestUser;
+  let exhausted: TestUser;
+  let decisionId: string;
+  let taskId: string;
+
+  beforeAll(async () => {
+    app = await createTestApp();
+    learner = await app.createUser({ role: 'learner', name: 'Goal Learner' });
+    exhausted = await app.createUser({ role: 'learner', name: 'No Allowance' });
+    const publisher = await app.createUser({ role: 'admin', name: 'Publisher' });
+    await addAgents(app);
+    // zeta (the goal concept) has no puzzle; its prerequisite alpha is weak and has one.
+    await addConcepts(app, [{ slug: 'alpha' }, { slug: 'zeta', prereqs: ['alpha'] }]);
+    for (const user of [learner, exhausted]) {
+      await addMastery(app, user.id, [{ slug: 'alpha', score: 0.2, attempts: 3, daysAgo: 3 }]);
+    }
+    await addPuzzle(app, { id: 'p-alpha', name: 'Alpha basics', ownerId: publisher.id, visibility: 'public', tests: ['alpha', 'alpha'] });
+  });
+  afterAll(async () => {
+    await app?.close();
+  });
+
+  it('a goal is stored, narrows the candidates, and a cover task is requested for the missing concept', async () => {
+    const res = await recommend(app, learner, { goal: GOAL });
+    expect(res.status).toBe(201);
+    decisionId = res.body.decisionId;
+    taskId = res.body.coverageTaskId;
+    expect(typeof taskId).toBe('string');
+    expect(res.body.target).toEqual({ conceptId: cid('alpha'), name: 'ALPHA' });
+    expect(res.body.puzzle).toEqual({ id: 'p-alpha', name: 'Alpha basics' });
+    expect(res.body.flags).toEqual(['coverage_gap', 'coverage_requested']);
+    expect(res.body.coverageGap).toEqual({ concepts: [{ conceptId: cid('zeta'), name: 'ZETA' }] });
+    expect(res.body.summary).toContain('No puzzle covers "ZETA" yet, so I requested new puzzles for it.');
+
+    const goals = await app.testGraph.cypher<{ text: string; active: boolean; targets: string[] }>(
+      `MATCH (:Learner {id: $id})-[:HAS_GOAL]->(g:Goal)-[:TARGETS]->(c:Concept)
+       RETURN g.text AS text, g.active AS active, collect(c.id) AS targets`,
+      { id: learner.id },
+    );
+    expect(goals).toEqual([{ text: GOAL, active: true, targets: [cid('zeta')] }]);
+    const task = await app.testGraph.cypher<Record<string, unknown>>(
+      `MATCH (l:Learner {id: $id})-[:REQUESTED]->(t:Task {id: $task})<-[:REQUESTED]-(d:Decision {id: $decision}),
+             (t)-[:ASSIGNED_TO]->(a:Agent {name: 'Curator'}), (t)-[:CONCERNS]->(c:Concept)
+       RETURN t.kind AS kind, t.status AS status, collect(c.id) AS concepts`,
+      { id: learner.id, task: taskId, decision: decisionId },
+    );
+    expect(task).toEqual([{ kind: 'cover', status: 'queued', concepts: [cid('zeta')] }]);
+    // one embedding request, stored on the decision; no chat call
+    const usage = await app.testGraph.cypher<Record<string, number>>(
+      `MATCH (d:Decision {id: $id}) RETURN d.modelCalls AS modelCalls, d.inputTokens AS inputTokens,
+              d.outputTokens AS outputTokens, d.embeddingTokens AS embeddingTokens`,
+      { id: decisionId },
+    );
+    expect(usage).toEqual([{ modelCalls: 1, inputTokens: 0, outputTokens: 0, embeddingTokens: stubTokens(GOAL) }]);
+  });
+
+  it('GET /decisions/:id/path includes the Goal and Task nodes and their steps', async () => {
+    const res = await app.http.get(`/decisions/${decisionId}/path`).set(learner.auth);
+    expect(res.status).toBe(200);
+    const body = res.body as PathBody;
+    expect(body.nodes.find((n) => n.label === 'Goal')).toMatchObject({ title: GOAL, props: { text: GOAL } });
+    expect(body.nodes.find((n) => n.label === 'Task')).toMatchObject({ id: taskId, title: 'Coverage request' });
+    for (const type of ['TOWARD', 'TARGETS', 'REQUESTED', 'CONCERNS']) {
+      expect(body.edges.some((e) => e.type === type)).toBe(true);
+    }
+    expect(body.steps).toContain(`The Coach was working toward your goal "${GOAL}".`);
+    expect(body.steps).toContain('The Coach asked the Curator for new puzzles on: ZETA.');
+    const stored = await app.http.get(`/decisions/${decisionId}`).set(learner.auth);
+    expect(stored.status).toBe(200);
+    expect(stored.body.flags).toEqual(['coverage_gap', 'coverage_requested']);
+  });
+
+  it('a second identical request inside the window is reused and keeps the task', async () => {
+    const before = await decisionCount(app);
+    const res = await recommend(app, learner, { goal: `  ${GOAL.toUpperCase()}  ` });
+    expect(res.status).toBe(201);
+    expect(res.body.reused).toBe(true);
+    expect(res.body.decisionId).toBe(decisionId);
+    expect(res.body.coverageTaskId).toBe(taskId);
+    expect(res.body.coverageGap).toEqual({ concepts: [{ conceptId: cid('zeta'), name: 'ZETA' }] });
+    expect(await decisionCount(app)).toBe(before);
+    expect(await taskCount(app)).toBe(1);
+  });
+
+  it('a different goal text is a new decision even inside the window', async () => {
+    const res = await recommend(app, learner, { goal: 'Teach me about zeta in depth' });
+    expect(res.status).toBe(201);
+    expect(res.body.reused).toBe(false);
+    expect(res.body.decisionId).not.toBe(decisionId);
+    // the earlier goal became inactive; the same missing concept gives the same deterministic task
+    expect(res.body.coverageTaskId).toBe(taskId);
+    expect(await taskCount(app)).toBe(1);
+    const goals = await app.testGraph.cypher<{ active: boolean }>(
+      `MATCH (:Learner {id: $id})-[:HAS_GOAL]->(g:Goal) RETURN g.active AS active ORDER BY g.createdAt, g.text`,
+      { id: learner.id },
+    );
+    expect(goals.filter((g) => g.active)).toHaveLength(1);
+    expect(goals).toHaveLength(2);
+  });
+
+  it('an unmatched goal falls back to the normal recommendation with the goal_unmatched flag', async () => {
+    const other = await app.createUser({ role: 'learner' });
+    await addMastery(app, other.id, [{ slug: 'alpha', score: 0.2, attempts: 3, daysAgo: 3 }]);
+    const res = await recommend(app, other, { goal: 'quantum basket weaving' });
+    expect(res.status).toBe(201);
+    expect(res.body.flags).toEqual(['goal_unmatched']);
+    expect(res.body.target).toEqual({ conceptId: cid('alpha'), name: 'ALPHA' });
+    expect(res.body.coverageTaskId).toBeUndefined();
+    expect(res.body.summary).toContain('No concept matches your goal');
+  });
+
+  it('503 PROVIDER_UNAVAILABLE when the embeddings provider is down; no decision is created', async () => {
+    const other = await app.createUser({ role: 'learner' });
+    await addMastery(app, other.id, [{ slug: 'alpha', score: 0.2, attempts: 3, daysAgo: 3 }]);
+    const before = await decisionCount(app);
+    const spy = vi
+      .spyOn(app.embeddings, 'embed')
+      .mockRejectedValue(new ProviderUnavailableError('embeddings are down', { provider: 'stub' }));
+    try {
+      const res = await recommend(app, other, { goal: GOAL });
+      expect(res.status).toBe(503);
+      expect(res.body.error.code).toBe('PROVIDER_UNAVAILABLE');
+    } finally {
+      spy.mockRestore();
+    }
+    expect(await decisionCount(app)).toBe(before);
+    // without a goal the provider is not needed
+    expect((await recommend(app, other)).status).toBe(201);
+  });
+
+  it('with the prompt allowance exhausted no task is created and the gap is still stated', async () => {
+    await app.app.get(SettingsService).set('monthlyPromptAllowance', 0);
+    const tasksBefore = await taskCount(app);
+    const res = await recommend(app, exhausted, { goal: GOAL });
+    expect(res.status).toBe(201);
+    expect(res.body.coverageTaskId).toBeUndefined();
+    expect(res.body.flags).toEqual(['coverage_gap', 'coverage_not_requested']);
+    expect(res.body.coverageGap).toEqual({ concepts: [{ conceptId: cid('zeta'), name: 'ZETA' }] });
+    expect(res.body.summary).toContain('no puzzle-creation allowance left');
+    expect(await taskCount(app)).toBe(tasksBefore);
+    const nodes = (await app.http.get(`/decisions/${res.body.decisionId}/path`).set(exhausted.auth)).body as PathBody;
+    expect(nodes.nodes.some((n) => n.label === 'Task')).toBe(false);
+    expect(nodes.nodes.some((n) => n.label === 'Goal')).toBe(true);
+    // the Coach only reads the allowance: nothing was consumed
+    const used = await app.testGraph.cypher<{ c: number }>(
+      `MATCH (:Learner {id: $id})-[:OWNS]->(s:Source) RETURN count(s) AS c`,
+      { id: exhausted.id },
+    );
+    expect(used[0]!.c).toBe(0);
+  });
+});
+
+describe('Coach: structured log events (T068, constitution VII)', () => {
+  it('logs coach.recommended, coach.reused, and coach.no_content with ids and flags only', async () => {
+    const app = await createTestApp();
+    const lines: string[] = [];
+    const spy = vi.spyOn(Logger.prototype, 'log').mockImplementation((message: unknown) => {
+      lines.push(String(message));
+    });
+    try {
+      const empty = await app.createUser({ role: 'learner', name: 'Private Display Name', email: 'private.person@example.test' });
+      await addAgents(app);
+      expect((await recommend(app, empty)).status).toBe(409);
+
+      await addConcepts(app, [{ slug: 'omega' }]);
+      await addMastery(app, empty.id, [{ slug: 'omega', score: 0.2, attempts: 3, daysAgo: 3 }]);
+      await addPuzzle(app, { id: 'p-omega', name: 'Omega puzzle', ownerId: empty.id, visibility: 'public', tests: ['omega', 'omega'] });
+      const goal = 'a secret goal about omega';
+      const first = await recommend(app, empty, { goal });
+      const second = await recommend(app, empty, { goal });
+      expect(second.body.reused).toBe(true);
+
+      const events = lines.filter((l) => l.startsWith('coach.'));
+      expect(events.map((l) => l.split(' ')[0])).toEqual(['coach.no_content', 'coach.recommended', 'coach.reused']);
+      const recommended = JSON.parse(events[1]!.slice('coach.recommended '.length)) as Record<string, unknown>;
+      expect(recommended).toEqual({
+        learnerId: empty.id,
+        decisionId: first.body.decisionId,
+        puzzleId: 'p-omega',
+        targetConceptId: cid('omega'),
+        flags: [],
+        coverageTaskId: null,
+      });
+      const text = events.join('\n');
+      for (const forbidden of [goal, first.body.summary, 'Private Display Name', 'private.person@example.test', 'Omega puzzle']) {
+        expect(text).not.toContain(forbidden);
+      }
+    } finally {
+      spy.mockRestore();
+      await app.close();
+    }
+  });
+});
+
+describe('Coach: passages follow source access (G6, G8)', () => {
+  const GOAL = 'Help me master kappa';
+  let app: TestApp;
+  let owner: TestUser;
+  let learner: TestUser;
+  let admin: TestUser;
+  let decisionId: string;
+
+  beforeAll(async () => {
+    app = await createTestApp();
+    owner = await app.createUser({ role: 'learner', name: 'Source Owner' });
+    learner = await app.createUser({ role: 'learner', name: 'Reader' });
+    admin = await app.createUser({ role: 'admin', name: 'Admin Reader' });
+    await addAgents(app);
+    await addConcepts(app, [{ slug: 'kappa' }, { slug: 'lambda' }]);
+    await addMastery(app, learner.id, [{ slug: 'kappa', score: 0.2, attempts: 3, daysAgo: 3 }]);
+    await addPuzzle(app, { id: 'p-kappa', name: 'Kappa deep dive', ownerId: owner.id, visibility: 'private', tests: ['kappa', 'kappa'] });
+    const vector = (await new StubEmbeddingsProvider(64).embed([GOAL])).vectors[0]!;
+    await app.testGraph.cypher(
+      `MATCH (o:Learner {id: $owner}), (p:Puzzle {id: 'p-kappa'}), (c:Concept {id: $kappa})
+       CREATE (o)-[:OWNS]->(s:Source {id: 'src-kappa', title: 'Kappa notes', kind: 'text', createdAt: 1})
+       CREATE (s)-[:HAS_CHUNK]->(k:Chunk {id: 'chunk-kappa', position: 0, text: 'SECRET-PASSAGE about kappa.', embedding: vecf32($vector)})
+       CREATE (s)-[:YIELDED]->(p)
+       CREATE (k)-[:MENTIONS]->(c)`,
+      { owner: owner.id, kappa: cid('kappa'), vector },
+    );
+    await share(app, 'p-kappa', learner.id, true);
+  });
+  afterAll(async () => {
+    await app?.close();
+  });
+
+  it('the learner who may read the source gets passage evidence and sees the passage in the path', async () => {
+    const res = await recommend(app, learner, { goal: GOAL });
+    expect(res.status).toBe(201);
+    expect(res.body.puzzle).toEqual({ id: 'p-kappa', name: 'Kappa deep dive' });
+    decisionId = res.body.decisionId;
+    const evidence = await app.testGraph.cypher<{ role: string; reason: string }>(
+      `MATCH (:Decision {id: $id})-[b:BECAUSE]->(:Chunk {id: 'chunk-kappa'}) RETURN b.role AS role, b.reason AS reason`,
+      { id: decisionId },
+    );
+    expect(evidence).toHaveLength(1);
+    expect(evidence[0]!.role).toBe('passage');
+    expect(evidence[0]!.reason).toMatch(/^matched the goal \(similarity \d\.\d\d\)$/);
+
+    const path = (await app.http.get(`/decisions/${decisionId}/path`).set(learner.auth)).body as PathBody;
+    expect(path.nodes.find((n) => n.label === 'Chunk')).toMatchObject({ id: 'chunk-kappa', title: 'Passage from Kappa notes' });
+    expect(path.edges.some((e) => e.role === 'passage')).toBe(true);
+    expect(path.steps.some((s) => s.startsWith('Passage from Kappa notes — matched the goal'))).toBe(true);
+    expect(JSON.stringify(path)).toContain('SECRET-PASSAGE');
+  });
+
+  it('after the source is no longer shared, the learner and an admin get the path without any passage', async () => {
+    const withPassage = (await app.http.get(`/decisions/${decisionId}/path`).set(learner.auth)).body as PathBody;
+    await share(app, 'p-kappa', learner.id, false); // play-only now
+    for (const viewer of [learner, admin]) {
+      const res = await app.http.get(`/decisions/${decisionId}/path`).set(viewer.auth);
+      expect(res.status).toBe(200);
+      const body = res.body as PathBody;
+      expect(body.nodes.some((n) => n.label === 'Chunk')).toBe(false);
+      expect(body.edges.some((e) => e.role === 'passage')).toBe(false);
+      expect(body.steps.some((s) => s.startsWith('Passage from'))).toBe(false);
+      expect(JSON.stringify(body)).not.toContain('SECRET-PASSAGE');
+      // everything else is unchanged
+      expect(body.steps).toEqual(withPassage.steps.filter((s) => !s.startsWith('Passage from')));
+      expect(body.nodes.map((n) => n.id).sort()).toEqual(withPassage.nodes.map((n) => n.id).filter((id) => id !== 'chunk-kappa').sort());
+    }
+  });
+
+  it('a chunk of a play-only share is never searched: a new request gets no passage evidence', async () => {
+    app.clock.advance(11 * MINUTE);
+    const res = await recommend(app, learner, { goal: GOAL });
+    expect(res.status).toBe(201);
+    expect(res.body.decisionId).not.toBe(decisionId);
+    const chunks = await app.testGraph.cypher<{ c: number }>(
+      `MATCH (:Decision {id: $id})-[:BECAUSE]->(k:Chunk) RETURN count(k) AS c`,
+      { id: res.body.decisionId },
+    );
+    expect(chunks[0]!.c).toBe(0);
+  });
+
+  it('a published puzzle of origin prompt is recommended like any other and its decision has no passage evidence', async () => {
+    const promptLearner = await app.createUser({ role: 'learner' });
+    await addMastery(app, promptLearner.id, [{ slug: 'lambda', score: 0.1, attempts: 3, daysAgo: 4 }]);
+    await addPuzzle(app, { id: 'p-prompt', name: 'Made from a prompt', ownerId: admin.id, visibility: 'public', tests: ['lambda', 'lambda'] });
+    await app.testGraph.cypher(`MATCH (p:Puzzle {id: 'p-prompt'}) SET p.origin = 'prompt'`);
+    const res = await recommend(app, promptLearner);
+    expect(res.status).toBe(201);
+    expect(res.body.puzzle).toEqual({ id: 'p-prompt', name: 'Made from a prompt' });
+    const chunks = await app.testGraph.cypher<{ c: number }>(
+      `MATCH (:Decision {id: $id})-[:BECAUSE {role: 'passage'}]->() RETURN count(*) AS c`,
+      { id: res.body.decisionId },
+    );
+    expect(chunks[0]!.c).toBe(0);
+    const path = (await app.http.get(`/decisions/${res.body.decisionId}/path`).set(promptLearner.auth)).body as PathBody;
+    expect(path.nodes.some((n) => n.label === 'Chunk')).toBe(false);
   });
 });

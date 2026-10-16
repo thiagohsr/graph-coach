@@ -7,7 +7,8 @@ export const SettingsSchema = z.object({
   /** 0 < x <= 1 */
   masteryAlpha: z.number().gt(0).max(1),
   decayDays: int(1, 365),
-  traversalDepth: int(1, 6),
+  // FalkorDB cannot bind a variable-length bound, so the Coach queries use a fixed `*1..8` and filter `length(p) <= $depth`.
+  traversalDepth: int(1, 8),
   riskThreshold: z.number().min(0).max(2),
   minQuestions: int(1, 50),
   monthlySourceAllowance: int(0, 1000),

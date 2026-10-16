@@ -18,8 +18,9 @@ export class StartupResumeService implements OnApplicationBootstrap {
       if (started > 0) this.logger.log(`Resumed ${started} open task${started === 1 ? '' : 's'}`);
     } catch (error) {
       // A graph that is down at start-up must not stop the application; the tasks stay open for the next start.
+      // Class name only: a message could carry source text or model output (Principle VII).
       this.logger.error(
-        `Start-up resume skipped: ${error instanceof Error ? error.message : String(error)}`,
+        `tag=resume_skipped error=${error instanceof Error ? error.constructor.name : typeof error}`,
       );
     }
   }

@@ -15,6 +15,6 @@ export class CoachController {
     @CurrentUser() user: AuthUser,
     @Body(new ZodValidationPipe(RecommendationRequest)) body: RecommendationRequest,
   ): Promise<RecommendationDto> {
-    return this.coach.recommend(user.id, body.goal);
+    return this.coach.recommend(user, body.goal);
   }
 }

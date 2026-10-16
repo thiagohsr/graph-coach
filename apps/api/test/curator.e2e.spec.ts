@@ -6,6 +6,7 @@ import {
   ingestTaskId,
   testing as fixtures,
 } from '@coach/agents/curator';
+import { ZERO_USAGE, stubTokens, sumUsage, type Usage } from '@coach/agents/llm';
 import { AllowanceService } from '../src/apps/allowance/allowance.service';
 import { CuratorGraph } from '../src/apps/curator/curator.graph-port';
 import { RunOrchestrator } from '../src/apps/curator/run-orchestrator.service';
@@ -908,3 +909,110 @@ describeRoleMatrix(
     { method: 'GET', path: '/tasks/nothing', allowed: ['learner', 'reviewer', 'admin'] },
   ],
 );
+
+// ─── Usage (FR-U38) ──────────────────────────────────────────────────────────
+
+describe('usage of a run (FR-U38)', () => {
+  let owner: TestUser;
+  let text: string;
+  let taskId: string;
+  let stream: Awaited<ReturnType<typeof readStream>>;
+  let task: any;
+
+  beforeAll(async () => {
+    owner = await newUser();
+    text = uniqueText();
+    const res = await post(owner, text);
+    expect(res.status).toBe(202);
+    taskId = res.body.taskId;
+    stream = await readStream(owner, taskId);
+    await idle(taskId);
+    task = (await app.http.get(`/tasks/${taskId}`).set(owner.auth)).body;
+  });
+
+  const numbers = (u: Usage) => ({
+    modelCalls: u.modelCalls,
+    inputTokens: u.inputTokens,
+    outputTokens: u.outputTokens,
+    embeddingTokens: u.embeddingTokens,
+  });
+
+  it('GET /tasks/:id and the completing step events carry the same numbers', () => {
+    const completes = stream.frames.filter((f) => f.event.node !== 'task' && f.event.status === 'complete');
+    expect(completes).toHaveLength(STEP_NODES.length);
+    for (const frame of completes) {
+      const step = task.steps.find((s: any) => s.stepId === frame.event.payload!.stepId);
+      expect(step, frame.event.node).toBeDefined();
+      expect(frame.event.payload!.usage).toEqual(step.usage);
+    }
+    expect(task.usage).toEqual(sumUsage(task.steps.map((s: any) => s.usage)));
+  });
+
+  it('every step equals what its calls returned: stub token rule, zeros for chunk and validate, embed in embedding tokens only', async () => {
+    const calls = app.tracer.calls.filter((c) => c.runId === taskId);
+    const byNode = (node: string) => sumUsage(calls.filter((c) => c.node === node).map((c) => c.call.usage));
+    for (const step of task.steps) expect(numbers(step.usage)).toEqual(numbers(byNode(step.node)));
+    expect(numbers(byNode('chunk'))).toEqual(numbers(ZERO_USAGE));
+    expect(numbers(byNode('validate'))).toEqual(numbers(ZERO_USAGE));
+
+    const chunks = await app.testGraph.cypher<{ t: string }>(
+      `MATCH (:Source {id: $id})-[:HAS_CHUNK]->(c:Chunk) RETURN c.text AS t`,
+      { id: task.sourceId },
+    );
+    const embed = task.steps.find((s: any) => s.node === 'embed').usage;
+    expect(embed).toMatchObject({ inputTokens: 0, outputTokens: 0 });
+    expect(embed.embeddingTokens).toBe(chunks.reduce((n, c) => n + stubTokens(c.t), 0));
+    expect(task.usage).toEqual(app.tracer.totalUsage(taskId));
+  });
+
+  it('the tracer got one run with kind and user id, a step pair per executed step, and a call per model call under its step', () => {
+    const runs = app.tracer.runs.filter((r) => r.id === taskId);
+    expect(runs).toEqual([{ id: taskId, kind: 'ingest', userId: owner.id, ended: true, ok: true }]);
+    const steps = app.tracer.steps.filter((s) => s.runId === taskId);
+    expect(steps.map((s) => s.node)).toEqual(STEP_NODES);
+    expect(steps.every((s) => s.ended && s.ok === true)).toBe(true);
+    const calls = app.tracer.calls.filter((c) => c.runId === taskId);
+    expect(calls).toHaveLength(task.usage.modelCalls);
+    expect(calls.every((c) => STEP_NODES.includes(c.node))).toBe(true);
+  });
+
+  it('nothing the tracer received holds source text, a prompt, a concept name, or an address', async () => {
+    const seen = JSON.stringify({
+      runs: app.tracer.runs.filter((r) => r.id === taskId),
+      steps: app.tracer.steps.filter((s) => s.runId === taskId),
+      calls: app.tracer.calls.filter((c) => c.runId === taskId),
+    });
+    expect(seen).not.toContain('@');
+    expect(seen).not.toContain(owner.email);
+    expect(seen).not.toContain('___');
+    for (let i = 0; i + 30 <= text.length; i += 11) expect(seen).not.toContain(text.slice(i, i + 30));
+    const concepts = await app.testGraph.cypher<{ n: string }>(
+      `MATCH (:Task {id: $id})-[:PRODUCED]->(c:Concept) RETURN c.name AS n`,
+      { id: taskId },
+    );
+    expect(concepts.length).toBeGreaterThan(0);
+    for (const { n } of concepts) expect(seen).not.toContain(n);
+  });
+
+  it('a failed run keeps the usage of its failed attempt, and the retry adds its own', async () => {
+    const user = await newUser();
+    app.chat.enqueue('curator.extractConcepts', new Error('provider down'));
+    const first = await ingest(user);
+    const failed = (await app.http.get(`/tasks/${first.taskId}`).set(user.auth)).body;
+    expect(failed.status).toBe('failed');
+    const failedStep = failed.steps.find((s: any) => s.status === 'error');
+    expect(failedStep.node).toBe('extractConcepts');
+    expect(failedStep.usage.modelCalls).toBeGreaterThanOrEqual(1);
+    expect(failed.usage).toEqual(sumUsage(failed.steps.map((s: any) => s.usage)));
+
+    expect((await app.http.post(`/tasks/${first.taskId}/retry`).set(user.auth)).status).toBe(202);
+    await idle(first.taskId);
+    const retried = (await app.http.get(`/tasks/${first.taskId}`).set(user.auth)).body;
+    expect(retried.status).toBe('awaiting_review');
+    const attempts = retried.steps.filter((s: any) => s.node === 'extractConcepts');
+    expect(attempts.map((s: any) => s.status)).toEqual(['error', 'complete']);
+    expect(attempts[0].usage).toEqual(failedStep.usage);
+    expect(retried.usage).toEqual(sumUsage(retried.steps.map((s: any) => s.usage)));
+    expect(retried.usage.modelCalls).toBeGreaterThan(failed.usage.modelCalls);
+  });
+});

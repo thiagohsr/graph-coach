@@ -163,7 +163,7 @@ export async function createCliHarness(): Promise<CliHarness> {
 
     async http() {
       const env = envFor({});
-      const moduleRef = await Test.createTestingModule({ imports: [AppModule] })
+      const moduleRef = await Test.createTestingModule({ imports: [AppModule.forRoot(env.auth.mode)] })
         .overrideProvider(ENV)
         .useValue(env)
         .overrideProvider(SQL_CLIENT)

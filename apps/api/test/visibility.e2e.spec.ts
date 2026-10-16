@@ -1,4 +1,3 @@
-/* eslint-disable @typescript-eslint/no-explicit-any -- response bodies are untyped JSON in these tests */
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { publishDirectly, seedRun } from './support/review-fixture';
 import { describeRoleMatrix } from './support/role-matrix';

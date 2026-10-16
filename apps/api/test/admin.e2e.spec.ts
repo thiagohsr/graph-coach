@@ -611,6 +611,13 @@ describe('PATCH', () => {
       expect(await settings().get('minQuestions')).toBe(4);
     });
 
+    it('traversalDepth takes 8 and refuses 9 (the Coach queries use a fixed *1..8)', async () => {
+      expect((await patch('/admin/admin-setting/traversalDepth', { values: { value: 8 } })).status).toBe(200);
+      expect(await settings().get('traversalDepth')).toBe(8);
+      expect(issuesOf(await patch('/admin/admin-setting/traversalDepth', { values: { value: 9 } }))[0]!.code).toBe('rejected');
+      expect(await settings().get('traversalDepth')).toBe(8);
+    });
+
     it('turns creation off and back on, effective straight away', async () => {
       expect(await settings().get('creationEnabled')).toBe(true);
       expect((await patch('/admin/admin-setting/creationEnabled', { values: { value: false } })).status).toBe(200);

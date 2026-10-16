@@ -34,8 +34,15 @@ function quietly<T>(fn: () => T): T | undefined {
   }
 }
 
+/** Principle VII: a log line never carries an error message (it may hold source text or model output). */
+function errorClass(error: unknown): string {
+  return error instanceof Error ? error.constructor.name : typeof error;
+}
+
 const OPEN_STATUSES = ['queued', 'in_progress'] as const;
 const RUN_KINDS = ['ingest', 'generate'] as const;
+/** A `cover` task runs the prompt graph on a brief source made by the cover pickup (spec 005 US7). */
+const isPromptKind = (kind: string): boolean => kind === 'generate' || kind === 'cover';
 
 /**
  * Runs the pipeline for a task, in this process (decision D14). The Task and Step nodes are the run's only state, so a
@@ -68,7 +75,7 @@ export class RunOrchestrator {
     const run = this.run(taskId)
       .catch((error: unknown) => {
         this.logger.error(
-          `Run of task ${taskId} ended with an unexpected error: ${error instanceof Error ? error.message : String(error)}`,
+          `task=${taskId} step=unknown tag=run_unexpected_error error=${errorClass(error)}`,
         );
       })
       .finally(() => {
@@ -99,12 +106,16 @@ export class RunOrchestrator {
    * to `in_progress` with its error cleared, in one conditional write: a second caller finds no row and gets 409.
    */
   async retry(user: AuthUser, task: { id: string; kind: TaskRow['kind'] }): Promise<void> {
-    const check = await this.allowance.check(user, task.kind === 'generate' ? 'prompt' : 'upload');
+    const check = await this.allowance.check(user, isPromptKind(task.kind) ? 'prompt' : 'upload');
     if (!check.allowed && check.reason === 'paused') {
       throw new UnavailableError('CREATION_PAUSED', 'Puzzle creation is paused');
     }
+    // A cover task that was refused at the allowance never began: it has no source yet. It goes back to `queued` and
+    // through the cover pickup, which asks the allowance again (spec 005 US7).
+    const stored = task.kind === 'cover' ? await this.graph.loadTask(task.id) : null;
+    const requeue = task.kind === 'cover' && stored !== null && stored.sourceId === null && this.coverHook !== null;
     const moved = await this.recorder.setTaskStatus(task.id, ['failed'], {
-      status: 'in_progress',
+      status: requeue ? 'queued' : 'in_progress',
       error: null,
     });
     if (!moved) {
@@ -114,7 +125,15 @@ export class RunOrchestrator {
         details: { status: current?.status ?? 'unknown' } as unknown as ConflictDetails,
       });
     }
-    this.start(task.id);
+    if (requeue) this.coverHook?.(task.id);
+    else this.start(task.id);
+  }
+
+  private coverHook: ((taskId: string) => void) | null = null;
+
+  /** The cover pickup registers itself here so that a retry of a refused cover task goes through it. */
+  onCoverRetry(hook: (taskId: string) => void): void {
+    this.coverHook = hook;
   }
 
   /**
@@ -142,7 +161,7 @@ export class RunOrchestrator {
         started += 1;
       } catch (error) {
         this.logger.error(
-          `Resume of task ${task.id} skipped: ${error instanceof Error ? error.message : String(error)}`,
+          `task=${task.id} step=${task.lastCompletedStep ?? 'none'} tag=resume_skipped error=${errorClass(error)}`,
         );
       }
     }
@@ -171,7 +190,7 @@ export class RunOrchestrator {
   }): Promise<StepName> {
     const last = task.lastCompletedStep as StepName | null;
     const entry =
-      task.kind === 'generate'
+      isPromptKind(task.kind)
         ? resolvePromptEntry(last, await this.hasOutline(task.sourceId))
         : resolveEntry(last);
     return entry === 'none' || entry === 'finalise' ? 'validate' : entry;
@@ -204,13 +223,13 @@ export class RunOrchestrator {
     const task = await this.graph.loadTask(taskId);
     if (
       !task ||
-      (task.kind !== 'ingest' && task.kind !== 'generate') ||
+      (task.kind !== 'ingest' && !isPromptKind(task.kind)) ||
       !OPEN_STATUSES.includes(task.status as (typeof OPEN_STATUSES)[number])
     )
       return;
 
     const entry =
-      task.kind === 'generate'
+      isPromptKind(task.kind)
         ? resolvePromptEntry(task.lastCompletedStep, await this.hasOutline(task.sourceId))
         : resolveEntry(task.lastCompletedStep);
     if (entry === 'none') return;
@@ -225,14 +244,14 @@ export class RunOrchestrator {
       return;
 
     const runHandle: RunHandle | undefined = quietly(() =>
-      this.tracer.startRun({ id: taskId, kind: task.kind as 'ingest' | 'generate', userId: requesterId }),
+      this.tracer.startRun({ id: taskId, kind: task.kind as 'ingest' | 'generate' | 'cover', userId: requesterId }),
     );
     let ok = false;
     try {
       let outcome: 'awaiting_review' | 'nothing_usable';
       if (entry === 'finalise') {
         outcome = task.questions > 0 ? 'awaiting_review' : 'nothing_usable';
-      } else if (task.kind === 'generate') {
+      } else if (isPromptKind(task.kind)) {
         const result = await runPromptCreation(await this.deps(), {
           taskId,
           sourceId,
@@ -286,7 +305,7 @@ export class RunOrchestrator {
         { cause: error },
       );
       this.logger.error(
-        `Task ${taskId}: ${error instanceof Error ? error.message : String(error)}`,
+        `task=${taskId} step=${stepError.node} tag=run_unexpected_error error=${errorClass(error)}`,
       );
     }
     await this.fail(taskId, stepError.node, stepError.code, stepError.message);
@@ -300,7 +319,7 @@ export class RunOrchestrator {
       // The graph could not store the failure. The task stays in_progress, so start-up resume picks it up; the stream
       // still gets a best-effort terminal event and closes.
       this.logger.error(
-        `Task ${taskId}: could not store the failure (${writeError instanceof Error ? writeError.message : String(writeError)})`,
+        `task=${taskId} step=${node} tag=failure_not_stored error=${errorClass(writeError)}`,
       );
       this.bus.publish(
         taskId,

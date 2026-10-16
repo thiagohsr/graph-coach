@@ -1,5 +1,5 @@
 import { Inject, Injectable } from '@nestjs/common';
-import { ZERO_USAGE } from '@coach/agents/llm';
+import { runPublish } from '@coach/agents/curator';
 import type { ReviewOutcome } from '@coach/types';
 import { SettingsService } from '../../common/settings/settings.service';
 import { KeyedLock } from '../curator/keyed-lock';
@@ -48,17 +48,10 @@ export class PublishService {
     const taskId = draft.taskId;
     puzzle = await this.requirePuzzle(draft.puzzleId, minQuestions);
     const published = puzzle.status === 'published';
-    const handle = await this.recorder.begin(taskId, 'publish');
-    const log = published
-      ? `Published with ${puzzle.approved} approved question${puzzle.approved === 1 ? '' : 's'} (${remaining.rejected} rejected).`
-      : `Not published: ${puzzle.approved} approved of ${minQuestions} needed (${remaining.rejected} rejected).`;
-    await this.recorder.complete(handle, log, ZERO_USAGE, {
-      approved: puzzle.approved,
-      rejected: remaining.rejected,
-      minQuestions,
-    });
-
-    const result = published ? 'ok' : 'below_minimum';
+    const { result } = await runPublish(
+      { graph: this.graph, recorder: this.recorder },
+      { taskId, puzzleId: draft.puzzleId, minQuestions, rejected: remaining.rejected },
+    );
     const closed = await this.recorder.setTaskStatus(taskId, ['awaiting_review'], {
       status: 'done',
       result,

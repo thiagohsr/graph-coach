@@ -155,7 +155,7 @@ export async function createTestApp(options: TestAppOptions = {}): Promise<TestA
   const providers = createTestProviders(env.embeddings.dimension);
 
   let builder = overrideProviders(
-    Test.createTestingModule({ imports: [AppModule, testControllersModule(options.controllers)] }),
+    Test.createTestingModule({ imports: [AppModule.forRoot(env.auth.mode), testControllersModule(options.controllers)] }),
     providers,
   )
     .overrideProvider(ENV)

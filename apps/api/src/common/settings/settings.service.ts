@@ -2,7 +2,7 @@ import { Inject, Injectable, Logger, type OnModuleInit } from '@nestjs/common';
 import { sql } from 'drizzle-orm';
 import type { z } from 'zod';
 import { CLOCK, type Clock } from '../clock';
-import { DB, type Db } from '../db/db.module';
+import type { Db } from '../db/db.module';
 import { adminSettings } from './admin-setting.model';
 import {
   DEFAULT_ROW_KEYS,

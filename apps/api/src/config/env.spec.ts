@@ -238,6 +238,20 @@ describe('provider groups', () => {
     expect(list).toContain('ENV LLM_BASE_URL: required when LLM_PROVIDER=ollama');
   });
 
+  it('accepts a file:// LLM_BASE_URL only with LLM_PROVIDER=stub', () => {
+    const ok = parseEnv({ ...base, LLM_PROVIDER: 'stub', LLM_BASE_URL: 'file:///srv/recordings' });
+    expect(ok.llm.baseUrl).toBe('file:///srv/recordings');
+    const bad = problems({
+      ...base,
+      LLM_PROVIDER: 'ollama',
+      LLM_MODEL: 'm',
+      LLM_BASE_URL: 'file:///srv/recordings',
+    });
+    expect(bad).toContain('ENV LLM_BASE_URL: a file:// URL is only allowed when LLM_PROVIDER=stub');
+    const emb = problems({ ...base, EMBEDDING_PROVIDER: 'stub', EMBEDDING_BASE_URL: 'file:///x' });
+    expect(emb.join('\n')).toContain('ENV EMBEDDING_BASE_URL');
+  });
+
   it('requires model, key, and dimension for non-stub embeddings', () => {
     const list = problems({ ...base, EMBEDDING_PROVIDER: 'openai' });
     expect(list).toContain('ENV EMBEDDING_MODEL: required when EMBEDDING_PROVIDER=openai');

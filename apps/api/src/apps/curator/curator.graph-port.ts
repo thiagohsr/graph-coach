@@ -10,7 +10,9 @@ import {
   type ConceptWrite,
   type CuratorGraphPort,
   type KnownConcept,
+  type PuzzleState,
   type QuestionWrite,
+  type RemainingCounts,
   type SourceRead,
   type StepName,
   type StepRow,
@@ -25,12 +27,16 @@ import {
   AddStepRow,
   ChunkEmbeddingRow,
   ConceptRefRow,
+  CoverConceptRow,
+  CoverTaskRow,
   CycleRow,
   LinkedRow,
   LoadTaskRow,
   NeighbourhoodRow,
   OpenTaskRow,
+  PublishedRow,
   PuzzleCreatedRow,
+  RemainingRow,
   SourceByFingerprintRow,
   SourceChunkRow,
   SourceIdRow,
@@ -82,13 +88,41 @@ export class CuratorGraph implements CuratorGraphPort {
 
   async createTask(input: {
     id: string;
-    kind: 'ingest' | 'generate';
+    kind: 'ingest' | 'generate' | 'cover';
     requesterId: string;
     sourceId: string;
     now: number;
   }): Promise<boolean> {
     const rows = await this.rows('create_task', input, TaskCreatedRow);
     return rows.length > 0;
+  }
+
+  /**
+   * Cover pickup only: links an existing cover task (created by 004) to the prompt source it will run on. `create_task`
+   * is a MERGE on the task id, so it changes nothing but the `CONCERNS` edge to the source.
+   */
+  async linkCoverTaskToSource(input: {
+    taskId: string;
+    requesterId: string;
+    sourceId: string;
+    now: number;
+  }): Promise<boolean> {
+    return this.createTask({
+      id: input.taskId,
+      kind: 'cover',
+      requesterId: input.requesterId,
+      sourceId: input.sourceId,
+      now: input.now,
+    });
+  }
+
+  /** Pipeline use only (cover pickup): the open cover tasks with the concepts each concerns, oldest first. */
+  async openCoverTasks(statuses: string[]): Promise<CoverTaskRow[]> {
+    return this.rows('open_tasks', { statuses, kinds: ['cover'] }, CoverTaskRow);
+  }
+
+  async coverConcepts(ids: string[]): Promise<CoverConceptRow[]> {
+    return this.rows('cover_concepts', { ids }, CoverConceptRow);
   }
 
   /** Pipeline use only (start-up resume): the open tasks of the given kinds, oldest first. */
@@ -269,6 +303,16 @@ export class CuratorGraph implements CuratorGraphPort {
       WrittenRow,
     );
     return row?.written ?? 0;
+  }
+
+  async remainingDrafts(taskId: string): Promise<RemainingCounts> {
+    const [row] = await this.rows('remaining_drafts', { taskId }, RemainingRow);
+    return row ?? { remaining: 0, approved: 0, rejected: 0 };
+  }
+
+  async publishPuzzle(puzzleId: string, minQuestions: number | null): Promise<PuzzleState | null> {
+    const [row] = await this.rows('publish_puzzle', { puzzleId, minQuestions }, PublishedRow);
+    return row ?? null;
   }
 
   // ─── Intake and listing (request-facing services) ─────────────────────────
