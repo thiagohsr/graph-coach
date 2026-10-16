@@ -88,6 +88,7 @@ const CANONICAL_COLUMNS: Record<string, string[]> = {
     'limits_lifted_until',
     'created_at',
     'last_seen_at',
+    'onboarded_at',
   ],
   access_codes: [
     'id',
@@ -193,6 +194,7 @@ describe('registrations', () => {
       'bonusSourceRuns',
       'bonusPromptRuns',
       'limitsLiftedUntil',
+      'onboardedAt',
       'uploadsThisMonth',
       'promptsThisMonth',
       'creationsLastHour',

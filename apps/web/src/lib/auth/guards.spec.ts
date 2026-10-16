@@ -15,6 +15,7 @@ const user: MeDto = {
   email: 'ada@example.com',
   role: 'learner',
   status: 'active',
+  onboardedAt: '2026-10-01T00:00:00.000Z',
 };
 
 function thrown(fn: () => unknown): unknown {

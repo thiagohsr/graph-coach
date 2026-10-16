@@ -7,6 +7,7 @@ import {
   ErrorCode,
   HealthDto,
   MeDto,
+  OnboardingRequest,
   RateLimitDetails,
   UserRef,
   ValidationDetails,
@@ -21,19 +22,27 @@ describe('MeDto', () => {
     email: 'ada@example.test',
     role: 'learner',
     status: 'active',
+    onboardedAt: null,
   };
 
   it('accepts a complete record', () => {
     expect(MeDto.parse(valid)).toEqual(valid);
   });
 
-  it.each(['id', 'name', 'email', 'role', 'status'])('requires %s', (key) => {
+  it.each(['id', 'name', 'email', 'role', 'status', 'onboardedAt'])('requires %s', (key) => {
     const { [key]: _omitted, ...rest } = valid as Record<string, unknown>;
     expect(MeDto.safeParse(rest).success).toBe(false);
   });
 
   it('rejects an unknown status', () => {
     expect(MeDto.safeParse({ ...valid, status: 'suspended' }).success).toBe(false);
+  });
+
+  it('accepts an ISO onboardedAt and rejects other strings', () => {
+    expect(MeDto.safeParse({ ...valid, onboardedAt: '2026-10-16T10:00:00.000Z' }).success).toBe(
+      true,
+    );
+    expect(MeDto.safeParse({ ...valid, onboardedAt: 'yesterday' }).success).toBe(false);
   });
 });
 
@@ -179,5 +188,17 @@ describe('AgentEvent', () => {
 
   it('rejects status awaiting_review', () => {
     expect(AgentEvent.safeParse({ node: 'task', status: 'awaiting_review' }).success).toBe(false);
+  });
+});
+
+describe('OnboardingRequest', () => {
+  it.each(['completed', 'skipped'])('accepts %s', (outcome) => {
+    expect(OnboardingRequest.parse({ outcome })).toEqual({ outcome });
+  });
+
+  it('rejects a missing, unknown, or extra field', () => {
+    expect(OnboardingRequest.safeParse({}).success).toBe(false);
+    expect(OnboardingRequest.safeParse({ outcome: 'later' }).success).toBe(false);
+    expect(OnboardingRequest.safeParse({ outcome: 'skipped', at: 'x' }).success).toBe(false);
   });
 });

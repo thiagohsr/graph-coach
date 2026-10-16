@@ -659,6 +659,7 @@ describe('GET /auth/me in development mode', () => {
       email: user.email,
       role: 'admin',
       status: 'active',
+      onboardedAt: null,
     });
   });
 
@@ -667,6 +668,73 @@ describe('GET /auth/me in development mode', () => {
     await d.db.delete(users).where(eqId(user.id));
     d.clock.advance(6_000);
     await d.http.get('/auth/me').set(user.auth).expect(401);
+  });
+});
+
+describe('onboarding outcome (spec 009)', () => {
+  it('GET /auth/me reports onboardedAt null for a new account, then the time of the outcome', async () => {
+    const user = await d.createUser();
+    const before = await d.http.get('/auth/me').set(user.auth);
+    expect(before.body.onboardedAt).toBeNull();
+    await d.http.post('/me/onboarding').set(user.auth).send({ outcome: 'completed' }).expect(204);
+    const after = await d.http.get('/auth/me').set(user.auth);
+    expect(after.body.onboardedAt).toBe(d.clock.now().toISOString());
+    const [row] = await d.db.select().from(users).where(eqId(user.id));
+    expect(row?.onboardingOutcome).toBe('completed');
+  });
+
+  it('is idempotent: the first outcome and time are kept', async () => {
+    const user = await d.createUser();
+    await d.http.post('/me/onboarding').set(user.auth).send({ outcome: 'skipped' }).expect(204);
+    const first = (await d.http.get('/auth/me').set(user.auth)).body.onboardedAt;
+    d.clock.advance(60_000);
+    await d.http.post('/me/onboarding').set(user.auth).send({ outcome: 'completed' }).expect(204);
+    await d.http.post('/me/onboarding').set(user.auth).send({ outcome: 'skipped' }).expect(204);
+    expect((await d.http.get('/auth/me').set(user.auth)).body.onboardedAt).toBe(first);
+    const [row] = await d.db.select().from(users).where(eqId(user.id));
+    expect(row?.onboardingOutcome).toBe('skipped');
+  });
+
+  it('changes only the caller own row', async () => {
+    const [a, b] = [await d.createUser(), await d.createUser()];
+    await d.http.post('/me/onboarding').set(a.auth).send({ outcome: 'completed' }).expect(204);
+    expect((await d.http.get('/auth/me').set(b.auth)).body.onboardedAt).toBeNull();
+  });
+
+  it.each(['reviewer', 'admin'] as const)('is open to the %s role', async (role) => {
+    const user = await d.createUser({ role });
+    await d.http.post('/me/onboarding').set(user.auth).send({ outcome: 'completed' }).expect(204);
+  });
+
+  it('422 VALIDATION_FAILED for a missing, unknown, or extra field', async () => {
+    const user = await d.createUser();
+    for (const body of [{}, { outcome: 'later' }, { outcome: 'skipped', extra: 1 }, undefined]) {
+      const res = await d.http.post('/me/onboarding').set(user.auth).send(body);
+      expect(res.status).toBe(422);
+      expect(res.body.error.code).toBe('VALIDATION_FAILED');
+    }
+    expect((await d.http.get('/auth/me').set(user.auth)).body.onboardedAt).toBeNull();
+  });
+
+  it('401 signed out and 403 ACCOUNT_BLOCKED for a blocked account, writing nothing', async () => {
+    await d.http.post('/me/onboarding').send({ outcome: 'completed' }).expect(401);
+    const user = await d.createUser();
+    await d.setStatus(user.id, 'blocked');
+    const res = await d.http.post('/me/onboarding').set(user.auth).send({ outcome: 'completed' });
+    expect(res.status).toBe(403);
+    expect(res.body.error.code).toBe('ACCOUNT_BLOCKED');
+    const [row] = await d.db.select().from(users).where(eqId(user.id));
+    expect(row?.onboardedAt).toBeNull();
+  });
+
+  it('429 RATE_LIMITED on the 21st call within an hour', async () => {
+    const user = await d.createUser();
+    for (let i = 0; i < 20; i += 1) {
+      await d.http.post('/me/onboarding').set(user.auth).send({ outcome: 'skipped' }).expect(204);
+    }
+    const res = await d.http.post('/me/onboarding').set(user.auth).send({ outcome: 'skipped' });
+    expect(res.status).toBe(429);
+    expect(res.body.error.code).toBe('RATE_LIMITED');
   });
 });
 

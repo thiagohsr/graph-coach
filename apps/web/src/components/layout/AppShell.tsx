@@ -3,6 +3,7 @@ import { Link } from '@tanstack/react-router';
 import { MenuIcon } from 'lucide-react';
 import { useState, type ReactNode } from 'react';
 import { Button } from '~/components/ui/button';
+import { useGuide } from '~/features/onboarding/OnboardingHost';
 import {
   Sheet,
   SheetContent,
@@ -81,6 +82,7 @@ export function BrandMark() {
 function UserMenu({ user }: { user: MeDto }) {
   const [open, setOpen] = useState(false);
   const signOut = useSignOut();
+  const { openGuide } = useGuide();
   return (
     <Sheet open={open} onOpenChange={setOpen}>
       <SheetTrigger asChild>
@@ -112,6 +114,16 @@ function UserMenu({ user }: { user: MeDto }) {
           >
             Account
           </Link>
+          <button
+            type="button"
+            onClick={() => {
+              setOpen(false);
+              openGuide();
+            }}
+            className="inline-flex min-h-10 items-center rounded-md px-3 text-left text-sm hover:bg-accent focus-visible:outline-solid focus-visible:outline-3 focus-visible:outline-offset-2 focus-visible:outline-ring max-sm:min-h-11"
+          >
+            How it works
+          </button>
           <Button type="button" variant="outline" onClick={() => void signOut()}>
             Sign out
           </Button>

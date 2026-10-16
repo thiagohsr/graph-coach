@@ -1,4 +1,5 @@
 import { Outlet, createFileRoute } from '@tanstack/react-router';
+import { OnboardingHost } from '~/features/onboarding/OnboardingHost';
 import { AppShell } from '~/components/layout/AppShell';
 import { requireSession, type SessionState } from '~/lib/auth/guards';
 
@@ -27,8 +28,10 @@ export const Route = createFileRoute('/_authed')({
 function AuthedLayout() {
   const { user } = Route.useRouteContext();
   return (
-    <AppShell user={user}>
-      <Outlet />
-    </AppShell>
+    <OnboardingHost user={user}>
+      <AppShell user={user}>
+        <Outlet />
+      </AppShell>
+    </OnboardingHost>
   );
 }

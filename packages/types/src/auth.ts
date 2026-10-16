@@ -1,5 +1,5 @@
 import { z } from 'zod';
-import { Id } from './common';
+import { Id, IsoDateTime } from './common';
 
 export const Role = z.enum(['learner', 'reviewer', 'admin']);
 export type Role = z.infer<typeof Role>;
@@ -14,8 +14,17 @@ export const MeDto = z.object({
   email: z.string().email(),
   role: Role,
   status: UserStatus,
+  /** When the user completed or skipped the first-run carousel (009); null until then. */
+  onboardedAt: IsoDateTime.nullable(),
 });
 export type MeDto = z.infer<typeof MeDto>;
+
+export const OnboardingOutcome = z.enum(['completed', 'skipped']);
+export type OnboardingOutcome = z.infer<typeof OnboardingOutcome>;
+
+/** POST /me/onboarding (009). */
+export const OnboardingRequest = z.object({ outcome: OnboardingOutcome }).strict();
+export type OnboardingRequest = z.infer<typeof OnboardingRequest>;
 
 /** How other people are named in any response: id and display name, never an address. */
 export const UserRef = z.object({ id: Id, name: z.string() });

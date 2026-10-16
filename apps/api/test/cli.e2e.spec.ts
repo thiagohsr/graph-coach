@@ -112,6 +112,31 @@ describe('seed', () => {
     }
   });
 
+  it('marks the demo accounts onboarded except Demo Learner, and a second seed never resets the flag', async () => {
+    const flags = async () =>
+      new Map((await cli.db.select().from(users)).map((row) => [row.id, row.onboardedAt] as const));
+    const first = await flags();
+    expect(first.get(seedIds.user('learner'))).toBeNull();
+    for (const key of DEMO.filter((k) => k !== 'learner')) {
+      expect(first.get(seedIds.user(key))).toBeInstanceOf(Date);
+    }
+    // The demo learner is fresh; once they onboard, re-seeding keeps it. Another account that was reset stays reset only if it is the learner.
+    await cli.db
+      .update(users)
+      .set({ onboardedAt: new Date('2026-01-01T00:00:00Z'), onboardingOutcome: 'skipped' })
+      .where(eq(users.id, seedIds.user('learner')));
+    await cli.run(['seed']);
+    const second = await flags();
+    expect(second.get(seedIds.user('learner'))?.toISOString()).toBe('2026-01-01T00:00:00.000Z');
+    expect(second.get(seedIds.user('admin'))?.getTime()).toBe(
+      first.get(seedIds.user('admin'))?.getTime(),
+    );
+    await cli.db
+      .update(users)
+      .set({ onboardedAt: null, onboardingOutcome: null })
+      .where(eq(users.id, seedIds.user('learner')));
+  });
+
   it('lets each demo user sign in through POST /auth/dev-login', async () => {
     const http = await cli.http();
     try {

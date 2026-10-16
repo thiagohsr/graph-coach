@@ -56,6 +56,12 @@ export const userAdmin = registerAdmin({
       column: 'limits_lifted_until',
       readonly: true,
     },
+    onboardedAt: {
+      type: 'datetime',
+      label: 'Onboarded at',
+      column: 'onboarded_at',
+      readonly: true,
+    },
     uploadsThisMonth: { type: 'integer', label: 'Uploads this month', computed: true },
     promptsThisMonth: { type: 'integer', label: 'Prompt puzzles this month', computed: true },
     creationsLastHour: { type: 'integer', label: 'Creations in the last hour', computed: true },

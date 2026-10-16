@@ -15,6 +15,13 @@
       "when": 1792023992072,
       "tag": "0001_fast_warhawk",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1792172566948,
+      "tag": "0002_onboarding",
+      "breakpoints": true
     }
   ]
 }

@@ -1,7 +1,7 @@
 import { Inject, Injectable, Logger } from '@nestjs/common';
-import { and, count, eq, ne, sql } from 'drizzle-orm';
+import { and, count, eq, isNull, ne, sql } from 'drizzle-orm';
 import { GraphKit, createLearner, deleteLearner, newId, toEpochMs } from '@coach/graph-kit';
-import type { MeDto, Role, UserStatus, ValidationDetails } from '@coach/types';
+import type { MeDto, OnboardingOutcome, Role, UserStatus, ValidationDetails } from '@coach/types';
 import { ENV } from '../../config/config.module';
 import type { Env } from '../../config/env';
 import type { AuthUser } from '../../common/auth/auth-user';
@@ -19,6 +19,7 @@ import {
   UnauthenticatedError,
   ValidationFailedError,
 } from '../../common/errors/app-error';
+import { RateLimiter, type RateLimitRule } from '../../common/rate-limit/rate-limiter';
 import { userIdentities, users, type NewUserRow, type UserRow } from './user.model';
 
 export interface Account {
@@ -27,6 +28,13 @@ export interface Account {
   status: UserStatus;
   displayName: string;
 }
+
+/** The throttle of `recordOnboarding`: every call counts (spec 009). */
+export const ONBOARDING_RULE: RateLimitRule = {
+  name: 'me.onboarding',
+  windows: [{ name: 'hour', limit: 20, windowMs: 3_600_000 }],
+  code: 'RATE_LIMITED',
+};
 
 /** Entries of the account cache live this long on the injected clock (contracts §5.2). */
 export const ACCOUNT_CACHE_MS = 5_000;
@@ -97,6 +105,7 @@ export class AccountsService {
     @Inject(TOKEN_VERIFIER) private readonly verifier: TokenVerifier,
     @Inject(ENV) private readonly env: Env,
     @Inject(CLOCK) private readonly clock: Clock,
+    @Inject(RateLimiter) private readonly limiter: RateLimiter,
   ) {}
 
   // ─── Resolution (used by AuthGuard) ────────────────────────────────────────
@@ -280,7 +289,17 @@ export class AccountsService {
       email: row.email,
       role: row.role,
       status: row.status,
+      onboardedAt: row.onboardedAt ? row.onboardedAt.toISOString() : null,
     };
+  }
+
+  /** Records the first-run carousel outcome once (spec 009). Later calls change nothing. */
+  async recordOnboarding(userId: string, outcome: OnboardingOutcome): Promise<void> {
+    await this.limiter.enforce(ONBOARDING_RULE, userId);
+    await this.db
+      .update(users)
+      .set({ onboardedAt: this.clock.now(), onboardingOutcome: outcome })
+      .where(and(eq(users.id, userId), isNull(users.onboardedAt)));
   }
 
   /** True when the user exists and is not blocked. Same 5-second cache as the guard. */

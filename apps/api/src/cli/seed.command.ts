@@ -1,5 +1,5 @@
 import { Inject } from '@nestjs/common';
-import { eq, inArray } from 'drizzle-orm';
+import { eq, inArray, sql } from 'drizzle-orm';
 import {
   GraphKit,
   SeedReadError,
@@ -19,6 +19,9 @@ import { ENV } from '../config/config.module';
 import type { Env } from '../config/env';
 import { CLI_OUTPUT, CliError, type CliOutput } from './cli-support';
 import { printSetupReport } from './setup-graph.command';
+
+/** The seeded account that stays un-onboarded (seed/users.json key). */
+const FRESH_DEMO_USER_KEY = 'learner';
 
 @Command({
   name: 'seed',
@@ -89,6 +92,9 @@ export class SeedCommand extends CommandRunner {
       .where(inArray(users.email, emails));
     for (const user of data.users) {
       const email = user.email.trim().toLowerCase();
+      // Spec 009 (reconciliation O4): demo accounts start onboarded, except Demo Learner, who stays fresh so the demo
+      // can show the carousel. An existing account's flag is only ever filled in, never reset.
+      const onboarded = user.key !== FRESH_DEMO_USER_KEY;
       await this.db
         .insert(users)
         .values({
@@ -98,8 +104,20 @@ export class SeedCommand extends CommandRunner {
           role: user.role,
           status: 'active',
           createdAt: now,
+          ...(onboarded ? { onboardedAt: now, onboardingOutcome: 'completed' as const } : {}),
         })
-        .onConflictDoUpdate({ target: users.email, set: { displayName: user.displayName } });
+        .onConflictDoUpdate({
+          target: users.email,
+          set: {
+            displayName: user.displayName,
+            ...(onboarded
+              ? {
+                  onboardedAt: sql`coalesce(${users.onboardedAt}, ${now.toISOString()}::timestamptz)`,
+                  onboardingOutcome: sql`coalesce(${users.onboardingOutcome}, 'completed')`,
+                }
+              : {}),
+          },
+        });
       const [row] = await this.db
         .select({ id: users.id })
         .from(users)
