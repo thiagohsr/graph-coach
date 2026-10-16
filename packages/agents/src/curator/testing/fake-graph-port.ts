@@ -304,10 +304,15 @@ export class FakeCuratorGraph implements CuratorGraphPort, StepRecorder {
 
   // ─── Recorder side ─────────────────────────────────────────────────────────
 
-  async begin(taskId: string, node: StepName): Promise<StepRecord> {
+  async begin(taskId: string, node: StepName, round = 0): Promise<StepRecord> {
     const current = this.stepsOf(taskId);
-    const attempt = current.filter((s) => s.node === node && s.status === 'error').length + 1;
-    const id = stepId(taskId, node, attempt);
+    let attempt = 1;
+    while (
+      current.some((s) => s.stepId === stepId(taskId, node, attempt, round) && s.status === 'error')
+    ) {
+      attempt += 1;
+    }
+    const id = stepId(taskId, node, attempt, round);
     const existing = current.find((s) => s.stepId === id);
     const order = existing?.order ?? current.length + 1;
     const startedAt = existing?.startedAt ?? this.now;
@@ -325,7 +330,7 @@ export class FakeCuratorGraph implements CuratorGraphPort, StepRecorder {
     const step = this.steps.get(id)!;
     step.attempt = attempt;
     this.events.push({ kind: 'begin', node });
-    return { taskId, stepId: id, node, order, attempt, startedAt };
+    return { taskId, stepId: id, node, order, attempt, round, startedAt };
   }
 
   progress(handle: StepRecord, log: string): void {

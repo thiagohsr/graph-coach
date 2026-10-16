@@ -249,3 +249,87 @@ describe('pipelineReducer', () => {
     expect(state).toEqual(initialPipelineState);
   });
 });
+
+describe('a run with a top-up round (reconciliation N)', () => {
+  const firstPass = [
+    stepEvent(step('outline', 'a1', 1, 'complete', '5 concepts')),
+    stepEvent(step('draftQuestions', 'a2', 2, 'complete', '7 drafts')),
+    stepEvent(step('critique', 'a3', 3, 'complete', '7 reviewed')),
+    stepEvent(step('refine', 'a4', 4, 'complete', 'Nothing to rewrite')),
+    stepEvent(step('validate', 'a5', 5, 'complete', '3 drafts kept, 4 discarded (no_blank 4)')),
+  ];
+  const statusOf = (state: PipelineState, node: string) =>
+    diagramSteps('generate', state).find((i) => i.node === node)?.status;
+
+  it('shows no "Top up" item in a run that did not use one', () => {
+    const state = run(firstPass);
+    expect(diagramSteps('generate', state).map((i) => i.label)).not.toContain('Top up');
+  });
+
+  it('adds "Top up" between Validate and Publish once a round starts, active while the round runs', () => {
+    const state = run([
+      ...firstPass,
+      stepEvent(step('topUp', 'b1', 6, 'active', 'Round 1: asking for 2 (2 new)')),
+    ]);
+    expect(diagramSteps('generate', state).map((i) => i.label)).toEqual([
+      'Plan',
+      'Write',
+      'Critique',
+      'Rewrite',
+      'Validate',
+      'Top up',
+      'Publish',
+    ]);
+    expect(statusOf(state, 'topUp')).toBe('active');
+  });
+
+  it('does not turn a completed first-pass step back to active when the round re-runs critique and validate', () => {
+    const state = run([
+      ...firstPass,
+      stepEvent(step('topUp', 'b1', 6, 'complete', 'Round 1: asking for 2 (2 new), 2 drafted')),
+      stepEvent(step('critique', 'b2', 7, 'active', 'Top-up round 1: reviewing')),
+      stepEvent(step('validate', 'b4', 9, 'active')),
+    ]);
+    expect(state.steps.a3?.status).toBe('complete');
+    expect(state.steps.a5?.status).toBe('complete');
+    expect(statusOf(state, 'critique')).toBe('complete');
+    expect(statusOf(state, 'validate')).toBe('complete');
+    expect(statusOf(state, 'topUp')).toBe('active');
+  });
+
+  it('completes "Top up" when the round validate completes and keeps both rounds in the log', () => {
+    const state = run([
+      ...firstPass,
+      stepEvent(step('topUp', 'b1', 6, 'complete', 'Round 1: asking for 2 (2 new), 2 drafted')),
+      stepEvent(step('critique', 'b2', 7, 'complete', 'Top-up round 1: 2 reviewed: 2 passed')),
+      stepEvent(step('refine', 'b3', 8, 'complete', 'Top-up round 1: Nothing to rewrite')),
+      stepEvent(step('validate', 'b4', 9, 'complete', 'Top-up round 1: asked for 2, kept 2')),
+    ]);
+    expect(statusOf(state, 'topUp')).toBe('complete');
+    const texts = logLines('generate', state).map((l) => l.text);
+    expect(texts).toContain('Validate: Top-up round 1: asked for 2, kept 2');
+    expect(texts).toContain('Top up: Round 1: asking for 2 (2 new), 2 drafted');
+    // Not shown as attempt 2: a repeated node is only a new attempt after an error.
+    expect(texts.every((t) => !t.includes('attempt'))).toBe(true);
+  });
+
+  it('shows "Top up" as error when a round step fails', () => {
+    const state = run([
+      ...firstPass,
+      stepEvent(step('topUp', 'b1', 6, 'error', 'INVALID_MODEL_OUTPUT: bad')),
+    ]);
+    expect(statusOf(state, 'topUp')).toBe('error');
+    expect(statusOf(state, 'validate')).toBe('complete');
+  });
+
+  it('does not count a top-up round as a second attempt when it arrives in a snapshot', () => {
+    const dto: StepDto[] = [
+      { stepId: 'a3', order: 3, node: 'critique', status: 'complete', startedAt: T0 },
+      { stepId: 'b1', order: 4, node: 'topUp', status: 'complete', startedAt: T0 },
+      { stepId: 'b2', order: 5, node: 'critique', status: 'complete', log: 'x', startedAt: T0 },
+    ];
+    const state = run([{ type: 'SNAPSHOT', steps: dto }]);
+    expect(state.steps.b2?.attempt).toBe(1);
+    expect(logLines('generate', state).map((l) => l.text)).toContain('Critique: x');
+  });
+});

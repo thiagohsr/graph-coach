@@ -49,6 +49,7 @@ function makeRecorder() {
     node: 'chunk',
     order: 1,
     attempt: 1,
+    round: 0,
     startedAt: 1,
   };
   const recorder: StepRecorder = {
@@ -98,7 +99,7 @@ describe('withStep', () => {
     expect(value).toBe(42);
     expect(order).toEqual(['fn after begin']);
     expect(calls.map((c) => c.name)).toEqual(['begin', 'complete']);
-    expect(calls[0]!.args).toEqual(['t1', 'chunk']);
+    expect(calls[0]!.args).toEqual(['t1', 'chunk', 0]);
     const [, log, usage, counts] = calls[1]!.args;
     expect(log).toBe('3 chunks');
     expect(usage).toEqual(ZERO_USAGE);

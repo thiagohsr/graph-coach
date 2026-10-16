@@ -36,6 +36,7 @@ export const StepName = z.enum([
   'critique',
   'refine',
   'validate',
+  'topUp',
   'publish',
 ]);
 export type StepName = z.infer<typeof StepName>;

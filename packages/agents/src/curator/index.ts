@@ -25,6 +25,7 @@ export * from './ports';
 export { runPublish, type PublishDeps, type PublishInput, type PublishResult } from './publish';
 export {
   PROMPT_STEP_ORDER,
+  TOP_UP_STEP,
   STEP_ORDER,
   resolveEntry,
   resolvePromptEntry,

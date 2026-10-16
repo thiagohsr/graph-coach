@@ -68,5 +68,5 @@ export const draftQuestionsNode: PromptNodeFactory = (deps) => async (state) => 
       };
     },
   );
-  return { drafts };
+  return { drafts, tried: drafts.map((d) => d.index) };
 };

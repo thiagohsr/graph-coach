@@ -43,11 +43,19 @@ export class TaskRecorder implements StepRecorder {
    * `active` or `complete` (left by a crash or a re-run) is reused and set back to `active`; otherwise a new step is
    * added at position (existing steps + 1).
    */
-  async begin(taskId: string, node: StepName): Promise<StepRecord> {
+  async begin(taskId: string, node: StepName, round = 0): Promise<StepRecord> {
     const task = await this.graph.loadTask(taskId);
     if (!task) throw new Error(`Task ${taskId} does not exist`);
-    const attempt = task.steps.filter((s) => s.node === node && s.status === 'error').length + 1;
-    const id = makeStepId(taskId, node, attempt);
+    // Errors are counted per step id family (node and round), so a top-up round starts again at attempt 1.
+    let attempt = 1;
+    while (
+      task.steps.some(
+        (s) => s.stepId === makeStepId(taskId, node, attempt, round) && s.status === 'error',
+      )
+    ) {
+      attempt += 1;
+    }
+    const id = makeStepId(taskId, node, attempt, round);
     const existing = task.steps.find((s) => s.stepId === id);
     const order = existing?.order ?? task.steps.length + 1;
     const startedAt = existing?.startedAt ?? this.now();
@@ -64,7 +72,7 @@ export class TaskRecorder implements StepRecorder {
       usage: { modelCalls: 0, inputTokens: 0, outputTokens: 0, embeddingTokens: 0 },
     });
     this.progressCount.delete(id);
-    const handle: StepRecord = { taskId, stepId: id, node, order, attempt, startedAt };
+    const handle: StepRecord = { taskId, stepId: id, node, order, attempt, round, startedAt };
     this.bus.publish(taskId, {
       id: `${order}:a`,
       node,

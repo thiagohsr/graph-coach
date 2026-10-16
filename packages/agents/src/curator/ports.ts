@@ -244,12 +244,14 @@ export interface StepRecord {
   node: StepName;
   order: number;
   attempt: number;
+  /** 0 = first pass; n = nth top-up round (reconciliation N). */
+  round: number;
   startedAt: number;
 }
 
 export interface StepRecorder {
   /** Step 'active' stored, then the event. */
-  begin(taskId: string, node: StepName): Promise<StepRecord>;
+  begin(taskId: string, node: StepName, round?: number): Promise<StepRecord>;
   /** Live event only. */
   progress(handle: StepRecord, log: string): void;
   /** Step 'complete' with its usage, task totals recomputed, Task.lastCompletedStep set. */

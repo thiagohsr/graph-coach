@@ -29,7 +29,11 @@ export const PROMPT_STEP_ORDER = [
   'publish',
 ] as const;
 
-export type StepName = (typeof STEP_ORDER)[number] | (typeof PROMPT_STEP_ORDER)[number];
+/** A step that exists only in a prompt run that needed a top-up round (reconciliation N). Never an entry point. */
+export const TOP_UP_STEP = 'topUp' as const;
+
+export type StepName =
+  (typeof STEP_ORDER)[number] | (typeof PROMPT_STEP_ORDER)[number] | typeof TOP_UP_STEP;
 export type CuratorNode = Exclude<(typeof STEP_ORDER)[number], 'publish'>;
 export type PromptNode = Exclude<(typeof PROMPT_STEP_ORDER)[number], 'publish'>;
 export type Entry = CuratorNode | 'finalise' | 'none';
@@ -71,6 +75,7 @@ export function resolvePromptEntry(
     case 'draftQuestions':
     case 'critique':
     case 'refine':
+    case 'topUp':
       return hasOutline ? 'draftQuestions' : 'outline';
     case 'validate':
       return 'finalise';
@@ -126,12 +131,14 @@ export async function withStep<T>(
   run: RunContext,
   node: StepName,
   fn: (ctx: StepContext) => Promise<StepOutput<T>>,
+  /** 0 = the first pass; n = the nth top-up round of a prompt run. */
+  round = 0,
 ): Promise<T> {
   if (!(await deps.isActive(run.requesterId))) {
     throw new CuratorStepError(node, 'ACCOUNT_BLOCKED', 'account blocked');
   }
 
-  const record: StepRecord = await deps.recorder.begin(run.taskId, node);
+  const record: StepRecord = await deps.recorder.begin(run.taskId, node, round);
   const meter = new UsageMeter();
   const runHandle = { runId: run.taskId };
   const trace = quietly(() => deps.tracer.startStep(runHandle, node)) ?? {

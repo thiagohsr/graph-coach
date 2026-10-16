@@ -75,6 +75,7 @@ const GENERATE_LABELS: Record<string, string> = {
   critique: 'Critique',
   refine: 'Rewrite',
   validate: 'Validate',
+  topUp: 'Top up',
   publish: 'Publish',
 };
 
@@ -109,10 +110,12 @@ function nextStatus(
 function snapshotSteps(state: PipelineState, steps: readonly StepDto[]): Record<string, StepView> {
   const next = { ...state.steps };
   const sorted = [...steps].sort((a, b) => a.order - b.order);
-  const seenByNode = new Map<string, number>();
+  // The attempt is one plus the earlier steps of the node that ended in `error` (a retry), not the earlier steps: a
+  // top-up round runs critique and validate again, and those are not second attempts.
+  const failedByNode = new Map<string, number>();
   for (const step of sorted) {
-    const attempt = (seenByNode.get(step.node) ?? 0) + 1;
-    seenByNode.set(step.node, attempt);
+    const attempt = (failedByNode.get(step.node) ?? 0) + 1;
+    if (step.status === 'error') failedByNode.set(step.node, attempt);
     const previous = next[step.stepId];
     const lines = (step.log ?? '').split('\n').map((l) => l.trim());
     next[step.stepId] = {
@@ -207,10 +210,51 @@ export interface DiagramItem {
   stepId?: string;
 }
 
-/** The latest view of a node: the one with the highest `order`. */
+/** The steps a top-up round repeats (reconciliation N); `topUp` itself starts a round. */
+const ROUND_NODES: readonly string[] = ['topUp', 'critique', 'refine', 'validate'];
+
+/** `order` of the first `topUp` step, or null when the run did not top up. */
+function topUpStart(state: PipelineState): number | null {
+  let start: number | null = null;
+  for (const step of Object.values(state.steps)) {
+    if (step.node === 'topUp' && (start === null || step.order < start)) start = step.order;
+  }
+  return start;
+}
+
+/** Steps of a top-up round: a repeatable node at or after the first `topUp` step. */
+function roundSteps(state: PipelineState): StepView[] {
+  const start = topUpStart(state);
+  if (start === null) return [];
+  return Object.values(state.steps).filter(
+    (step) => step.order >= start && ROUND_NODES.includes(step.node),
+  );
+}
+
+/** The status of the "Top up" item: error if any round step failed, complete once the latest round's validate is, else active. */
+function topUpStatus(state: PipelineState): StepViewStatus {
+  const steps = roundSteps(state);
+  const latestOf = new Map<string, StepView>();
+  for (const step of steps) {
+    const current = latestOf.get(step.node);
+    if (!current || step.order > current.order) latestOf.set(step.node, step);
+  }
+  const latest = [...latestOf.values()];
+  if (latest.some((step) => step.status === 'error')) return 'error';
+  const lastTopUp = latestOf.get('topUp');
+  const validate = latestOf.get('validate');
+  if (lastTopUp && validate && validate.order > lastTopUp.order && validate.status === 'complete') {
+    return 'complete';
+  }
+  return 'active';
+}
+
+/** The latest view of a node in the first pass: the one with the highest `order`, leaving a top-up round's steps out. */
 function latestByNode(state: PipelineState): Map<string, StepView> {
   const latest = new Map<string, StepView>();
+  const start = topUpStart(state);
   for (const step of Object.values(state.steps)) {
+    if (start !== null && step.order >= start && ROUND_NODES.includes(step.node)) continue;
     const current = latest.get(step.node);
     if (!current || step.order > current.order) latest.set(step.node, step);
   }
@@ -240,6 +284,19 @@ export function diagramSteps(kind: TaskKind, state: PipelineState): DiagramItem[
       stepId: view.stepId,
       order: view.order,
     }));
+  // A run that topped up gets a "Top up" item after Validate; a run that did not never shows it.
+  const start = topUpStart(state);
+  if (kind !== 'ingest' && start !== null) {
+    const at = items.findIndex((item) => item.node === 'validate');
+    const last = roundSteps(state).sort((a, b) => b.order - a.order)[0]!;
+    items.splice(at < 0 ? items.length : at + 1, 0, {
+      node: 'topUp',
+      label: stepLabel(kind, 'topUp'),
+      status: topUpStatus(state),
+      stepId: last.stepId,
+      order: start,
+    });
+  }
   if (extras.length === 0) return items.map(({ order: _order, ...item }) => item);
   // Canonical items keep their sequence; an extra goes after the last canonical item that has a lower `order`.
   const result: (DiagramItem & { order: number })[] = [...items];

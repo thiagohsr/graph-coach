@@ -66,6 +66,38 @@ describe('TaskProgress', () => {
     expect(items.filter((li) => li.getAttribute('aria-current') === 'step')).toEqual([items[1]]);
   });
 
+  it('shows a Top up item and the round lines in the log for a generate run that topped up', () => {
+    const state = stateWith(
+      { node: 'validate', stepId: 'a5', order: 5, status: 'complete', log: '3 drafts kept' },
+      {
+        node: 'topUp',
+        stepId: 'b1',
+        order: 6,
+        status: 'complete',
+        log: 'Round 1: asking for 2 (2 new), 2 drafted',
+      },
+      {
+        node: 'critique',
+        stepId: 'b2',
+        order: 7,
+        status: 'active',
+        log: 'Top-up round 1: reviewing',
+      },
+    );
+    renderWithQuery(<TaskProgress task={taskDto({ kind: 'generate' })} state={state} />);
+    const items = within(screen.getByRole('list', { name: 'Pipeline steps' })).getAllByRole(
+      'listitem',
+    );
+    const text = items.map((li) => li.textContent?.replace(/\s+/g, ' '));
+    expect(text).toContain('Validate: complete');
+    expect(text).toContain('Top up: active');
+    expect(text.indexOf('Top up: active')).toBe(text.indexOf('Validate: complete') + 1);
+    const log = screen.getByRole('log', { name: 'Run log' });
+    expect(
+      within(log).getByText('Top up: Round 1: asking for 2 (2 new), 2 drafted'),
+    ).toBeInTheDocument();
+  });
+
   it('shows the six generate steps with their labels and the prompt notice', () => {
     renderWithQuery(
       <TaskProgress task={taskDto({ kind: 'generate' })} state={initialPipelineState} />,

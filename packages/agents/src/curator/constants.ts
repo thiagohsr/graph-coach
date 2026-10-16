@@ -19,6 +19,10 @@ export const PROMPT_EXTRA_SENTENCES = 2;
 export const PROMPT_MIN_LINK_CONFIDENCE = 0.7;
 /** FR-U33 */
 export const PROMPT_MAX_REWRITE_PASSES = 1;
+/** Reconciliation N5: extra writer rounds when validate keeps fewer drafts than the learner asked for. */
+export const MAX_TOPUP_ROUNDS = 2;
+/** Token overlap (Jaccard) from which two sentences count as the same one. */
+export const NEAR_DUPLICATE_SIMILARITY = 0.8;
 /** PUT /puzzles/:id/shares, per owner, every attempt counted. */
 export const SHARE_ATTEMPTS_PER_HOUR = 20;
 /** Stretch. */

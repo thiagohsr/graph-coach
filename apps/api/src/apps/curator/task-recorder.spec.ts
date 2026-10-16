@@ -259,4 +259,18 @@ describe('TaskRecorder', () => {
       expect(s.events).toHaveLength(0);
     });
   });
+
+  it('records a top-up round as separate steps: a new id, a new order, attempt 1, and the first pass is left alone', async () => {
+    const s = setup();
+    const first = await s.recorder.begin('t1', 'validate');
+    await s.recorder.complete(first, 'done', ZERO);
+    const again = await s.recorder.begin('t1', 'validate', 1);
+    expect(again.stepId).toBe(stepId('t1', 'validate', 1, 1));
+    expect(again.stepId).not.toBe(first.stepId);
+    expect(again).toMatchObject({ order: 2, attempt: 1, round: 1 });
+    expect(s.graph.steps.get(first.stepId)!.status).toBe('complete');
+    await s.recorder.fail(again, new CuratorStepError('validate', 'STEP_TIMEOUT', 'slow'), ZERO);
+    const retry = await s.recorder.begin('t1', 'validate', 1);
+    expect(retry).toMatchObject({ attempt: 2, round: 1 });
+  });
 });

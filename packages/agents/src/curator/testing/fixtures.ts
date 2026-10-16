@@ -1,6 +1,6 @@
 // Synthetic test data for the Curator: two sample texts and scripted stub responses for the three structured-output
 // labels. The text is invented (a made-up tour of library cataloguing); nothing here comes from a real source.
-import type { StubCall, StubChatProvider } from '../../llm/stub';
+import type { StubCall, StubChatProvider, StubResponse } from '../../llm/stub';
 
 export interface Topic {
   keyword: string;
@@ -234,6 +234,7 @@ export const PROMPT_LABELS = {
   critique: 'curator.prompt.critique',
   rewrite: 'curator.prompt.rewrite',
   recritique: 'curator.prompt.recritique',
+  topup: 'curator.prompt.topup',
 } as const;
 
 export type PromptVerdict = 'pass' | 'rewrite' | 'reject';
@@ -317,6 +318,30 @@ export function promptDraftsFor(call: StubCall) {
   };
 }
 
+/**
+ * A well-formed draft for each slot of a top-up prompt. A slot with a planned fact states it; a NEW slot gets a fact from a
+ * third or fourth topic (never one of the planned facts), so it cannot repeat a planned sentence.
+ */
+export function topUpDraftsFor(call: StubCall) {
+  const spare = TOPICS.slice(2).flatMap((topic) =>
+    topic.sentences.filter((s) => answerOf(s) !== ''),
+  );
+  return {
+    drafts: plannedFactsOf(call).map(({ index, slug, fact }) => {
+      const text = fact === 'NEW' ? spare[index % spare.length]! : fact;
+      const answer = answerOf(text);
+      const at = text.indexOf(answer);
+      return {
+        index,
+        sentence: `${text.slice(0, at)}___${text.slice(at + answer.length)}`,
+        answers: [answer],
+        distractors: ['catalogue card', 'shelf trolley'],
+        conceptSlug: slug,
+      };
+    }),
+  };
+}
+
 /** One review per draft sent. `verdicts` maps a draft index to its verdict; everything else passes. */
 export function critiquesFor(call: StubCall, verdicts: Record<number, PromptVerdict> = {}) {
   return {
@@ -341,13 +366,18 @@ export function scriptPrompt(
   options: {
     firstVerdicts?: Record<number, PromptVerdict>;
     secondVerdicts?: Record<number, PromptVerdict>;
+    /** The top-up writer; by default the label is not scripted, so a run that tops up without meaning to fails loudly. */
+    topUp?: StubResponse;
+    /** Replaces the first-pass writer. */
+    write?: StubResponse;
   } = {},
 ): StubChatProvider {
   chat.on(PROMPT_LABELS.outline, (call) => outlineFor(call));
-  chat.on(PROMPT_LABELS.write, (call) => promptDraftsFor(call));
+  chat.on(PROMPT_LABELS.write, options.write ?? ((call) => promptDraftsFor(call)));
   chat.on(PROMPT_LABELS.critique, (call) => critiquesFor(call, options.firstVerdicts));
   chat.on(PROMPT_LABELS.rewrite, (call) => promptDraftsFor(call));
   chat.on(PROMPT_LABELS.recritique, (call) => critiquesFor(call, options.secondVerdicts));
+  if (options.topUp) chat.on(PROMPT_LABELS.topup, options.topUp);
   return chat;
 }
 

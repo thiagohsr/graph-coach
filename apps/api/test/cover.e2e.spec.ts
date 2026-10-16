@@ -266,7 +266,12 @@ describe('S7.3 too few drafts survive', () => {
     const learner = await app.createUser({ role: 'learner' });
     const reject = Object.fromEntries(Array.from({ length: 12 }, (_, i) => [i, 'reject' as const]));
     app.chat.reset();
-    scriptPrompt(app.chat, { firstVerdicts: reject, secondVerdicts: reject });
+    // Short of the requested count, the run tops up once; the writer has nothing more, which ends the loop.
+    scriptPrompt(app.chat, {
+      firstVerdicts: reject,
+      secondVerdicts: reject,
+      topUp: () => ({ drafts: [] }),
+    });
     const taskId = await requestCover(learner);
     await pickUp(taskId);
 

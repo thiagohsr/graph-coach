@@ -1,7 +1,8 @@
 // The prompt run: START -> route(state.entry) -> outline -> draftQuestions -> critique -> refine -> validate -> END.
-// Same discipline as the upload graph: the only conditional edge leaves START, every node runs inside `withStep`, writes
+// Same discipline as the upload graph: the conditional edges (leaving START, and the shortfall check after validate) are plain code, every node runs inside `withStep`, writes
 // are MERGEs on deterministic ids. It never touches the embeddings provider, chunks, or the vector index.
 import { END, START, StateGraph } from '@langchain/langgraph';
+import { MAX_TOPUP_ROUNDS } from '../constants';
 import { CuratorStepError, type CuratorDeps } from '../ports';
 import { EMPTY_COUNTS } from '../state';
 import type { CuratorRunResult } from '../graph';
@@ -10,8 +11,9 @@ import { critiqueNode } from './nodes/critique';
 import { draftQuestionsNode } from './nodes/draft-questions';
 import { outlineNode } from './nodes/outline';
 import { refineNode } from './nodes/refine';
+import { topUpNode } from './nodes/top-up';
 import { validateNode } from './nodes/validate';
-import { EMPTY_PROMPT_COUNTS, PromptState, type PromptStateType } from './state';
+import { EMPTY_PROMPT_COUNTS, PromptState, needsTopUp, type PromptStateType } from './state';
 
 const ENTRY_NODES: PromptNode[] = ['outline', 'draftQuestions', 'critique', 'refine', 'validate'];
 
@@ -22,12 +24,18 @@ export function buildPromptGraph(deps: CuratorDeps) {
     .addNode('critique', critiqueNode(deps))
     .addNode('refine', refineNode(deps))
     .addNode('validate', validateNode(deps))
+    .addNode('topUp', topUpNode(deps))
     .addConditionalEdges(START, (state: PromptStateType) => state.entry, ENTRY_NODES)
     .addEdge('outline', 'draftQuestions')
     .addEdge('draftQuestions', 'critique')
     .addEdge('critique', 'refine')
     .addEdge('refine', 'validate')
-    .addEdge('validate', END)
+    .addConditionalEdges(
+      'validate',
+      (state: PromptStateType) => (needsTopUp(state, MAX_TOPUP_ROUNDS) ? 'topUp' : END),
+      ['topUp', END],
+    )
+    .addEdge('topUp', 'critique')
     .compile();
 }
 

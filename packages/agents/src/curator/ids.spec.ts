@@ -83,3 +83,12 @@ describe('id functions', () => {
     );
   });
 });
+
+describe('stepId with a round (reconciliation N)', () => {
+  it('keeps the first-pass id and gives each top-up round its own', () => {
+    expect(stepId('t', 'critique', 1, 0)).toBe(stepId('t', 'critique', 1));
+    expect(stepId('t', 'critique', 1, 1)).not.toBe(stepId('t', 'critique', 1));
+    expect(stepId('t', 'critique', 1, 1)).not.toBe(stepId('t', 'critique', 1, 2));
+    expect(stepId('t', 'critique', 1, 1)).toBe(stepId('t', 'critique', 1, 1));
+  });
+});

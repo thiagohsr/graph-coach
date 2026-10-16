@@ -71,6 +71,9 @@ export function generatedQuestionId(
 }
 
 /** `attempt` starts at 1 and grows only when the previous step for that node ended in `error`. */
-export function stepId(taskId: string, node: StepName, attempt: number): string {
-  return deterministicId('step', taskId, node, String(attempt));
+export function stepId(taskId: string, node: StepName, attempt: number, round = 0): string {
+  // Round 0 keeps the original id; a top-up round (reconciliation N) is a separate step.
+  return round > 0
+    ? deterministicId('step', taskId, node, String(attempt), `r${round}`)
+    : deterministicId('step', taskId, node, String(attempt));
 }

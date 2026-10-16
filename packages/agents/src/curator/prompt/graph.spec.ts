@@ -1,10 +1,22 @@
 import { describe, expect, it } from 'vitest';
 import { RecordingUsageTracer } from '../../llm/recording-usage-tracer';
-import { StubChatProvider, StubEmbeddingsProvider } from '../../llm/stub';
+import {
+  StubChatProvider,
+  StubEmbeddingsProvider,
+  type StubCall,
+  type StubResponse,
+} from '../../llm/stub';
 import { generatedQuestionId } from '../ids';
 import { resolvePromptEntry, type PromptNode } from '../steps';
 import { FakeCuratorGraph, makeDeps } from '../testing/fake-graph-port';
-import { PROMPT_LABELS, scriptPrompt, type PromptVerdict } from '../testing/fixtures';
+import {
+  PROMPT_LABELS,
+  promptDraftsFor,
+  scriptPrompt,
+  topUpDraftsFor,
+  type PromptVerdict,
+} from '../testing/fixtures';
+import { MAX_TOPUP_ROUNDS } from '../constants';
 import { runPromptCreation } from './graph';
 
 const OWNER = 'owner-1';
@@ -19,6 +31,16 @@ const BRIEF = {
 
 const NODES = ['outline', 'draftQuestions', 'critique', 'refine', 'validate'];
 
+/** A first-pass writer whose drafts for `indexes` lose their blank, so `validate` discards them (no_blank). */
+const breakingWriter = (indexes: number[]) => (call: StubCall) => {
+  const broken = new Set(indexes);
+  return {
+    drafts: promptDraftsFor(call).drafts.map((d) =>
+      broken.has(d.index) ? { ...d, sentence: d.sentence.replace('___', 'something') } : d,
+    ),
+  };
+};
+
 function setup(
   options: {
     firstVerdicts?: Record<number, PromptVerdict>;
@@ -26,6 +48,9 @@ function setup(
     sentences?: number;
     minQuestions?: number;
     isActive?: (id: string) => Promise<boolean>;
+    topUp?: StubResponse;
+    /** Indexes whose first-pass draft loses its blank, so `validate` discards it (no_blank). */
+    breakFirst?: number[];
   } = {},
 ) {
   const tracer = new RecordingUsageTracer();
@@ -41,6 +66,8 @@ function setup(
   scriptPrompt(chat, {
     ...(options.firstVerdicts ? { firstVerdicts: options.firstVerdicts } : {}),
     ...(options.secondVerdicts ? { secondVerdicts: options.secondVerdicts } : {}),
+    ...(options.topUp ? { topUp: options.topUp } : {}),
+    ...(options.breakFirst ? { write: breakingWriter(options.breakFirst) } : {}),
   });
   const deps = makeDeps({
     graph,
@@ -175,12 +202,20 @@ describe('runPromptCreation', () => {
   it('ends nothing_usable, with no puzzle and no question, when fewer drafts survive than minQuestions', async () => {
     const s = setup({
       firstVerdicts: { 0: 'reject', 1: 'reject', 2: 'reject', 3: 'reject', 4: 'reject' },
+      topUp: () => ({ drafts: [] }),
     });
     const result = await s.run();
     expect(result.outcome).toBe('nothing_usable');
     expect(s.graph.count('Puzzle')).toBe(0);
     expect(s.graph.count('Question')).toBe(0);
-    expect(s.graph.stepsOf(TASK).map((x) => x.node)).toEqual(NODES);
+    // Short of the requested four, so one top-up round ran; its writer returned nothing, which ends the loop.
+    expect(s.graph.stepsOf(TASK).map((x) => x.node)).toEqual([
+      ...NODES,
+      'topUp',
+      'critique',
+      'refine',
+      'validate',
+    ]);
     expect(s.graph.countWrites('createGeneratedQuestions')).toBe(0);
   });
 
@@ -277,5 +312,120 @@ describe('runPromptCreation', () => {
     await expect(s.run()).rejects.toMatchObject({ code: 'INVALID_MODEL_OUTPUT', node: 'critique' });
     expect(s.graph.count('Puzzle')).toBe(0);
     expect(s.graph.stepsOf(TASK).at(-1)).toMatchObject({ node: 'critique', status: 'error' });
+  });
+});
+
+describe('top-up loop (reconciliation N)', () => {
+  const ROUND_NODES = ['topUp', 'critique', 'refine', 'validate'];
+  const nodesOf = (s: ReturnType<typeof setup>) => s.graph.stepsOf(TASK).map((x) => x.node);
+  const sentencesOf = (s: ReturnType<typeof setup>) =>
+    [...s.graph.questions.values()].map((q) => q.sentence);
+
+  it('(a) does not top up when the requested count is reached the first time', async () => {
+    const s = setup();
+    const result = await s.run();
+    expect(result.outcome).toBe('awaiting_review');
+    expect(nodesOf(s)).toEqual(NODES);
+    expect(s.chat.callCount(PROMPT_LABELS.topup)).toBe(0);
+  });
+
+  it('(b) tops up the shortfall in one round and adds the new questions to the same puzzle', async () => {
+    // Four requested, six planned; three first-pass drafts lose their blank, so three are kept: one short.
+    const s = setup({ breakFirst: [0, 1, 2], topUp: (call) => topUpDraftsFor(call) });
+    const result = await s.run();
+
+    expect(result.outcome).toBe('awaiting_review');
+    expect(result.counts.kept).toBe(4);
+    expect(nodesOf(s)).toEqual([...NODES, ...ROUND_NODES]);
+    expect(s.graph.stepsOf(TASK).every((x) => x.status === 'complete')).toBe(true);
+    // The round's steps are separate Step nodes, not the first pass re-used.
+    expect(new Set(s.graph.stepsOf(TASK).map((x) => x.stepId)).size).toBe(
+      NODES.length + ROUND_NODES.length,
+    );
+    expect(s.graph.tasks.get(TASK)!.lastCompletedStep).toBe('validate');
+
+    // The shortfall was one sentence; every planned fact had been tried, so it asked for a new fact.
+    const call = s.chat.calls.find((c) => c.label === PROMPT_LABELS.topup)!;
+    expect(call.messages[1]!.content).toContain('| NEW');
+    for (const kept of ['Number']) expect(call.messages[1]!.content).not.toContain(kept);
+    const validates = s.graph.stepsOf(TASK).filter((x) => x.node === 'validate');
+    expect(validates[1]!.log).toBe('Top-up round 1: asked for 1, kept 1');
+    expect(s.graph.stepsOf(TASK).find((x) => x.node === 'topUp')!.log).toContain(
+      'Round 1: asking for 1 (1 new)',
+    );
+
+    expect(s.graph.count('Puzzle')).toBe(1);
+    expect(s.graph.countWrites('createDraftPuzzle')).toBe(1);
+    const orders = [...s.graph.questions.values()].map((q) => q.order).sort();
+    expect(orders).toEqual([1, 2, 3, 4]);
+    // Only the new draft went to the critic in round 1.
+    expect(s.chat.callCount(PROMPT_LABELS.critique)).toBe(2);
+  });
+
+  it('(c) stops when a round adds nothing, ends awaiting_review short, and says why', async () => {
+    const s = setup({ breakFirst: [0, 1, 2], topUp: () => ({ drafts: [] }) });
+    const result = await s.run();
+    expect(result.outcome).toBe('awaiting_review');
+    expect(result.counts.kept).toBe(3);
+    expect(s.chat.callCount(PROMPT_LABELS.topup)).toBe(1);
+    const last = s.graph
+      .stepsOf(TASK)
+      .filter((x) => x.node === 'validate')
+      .at(-1)!;
+    expect(last.log).toContain('Short of requested: kept 3 of 4 after 1 top-up round');
+    expect(s.graph.count('Question')).toBe(3);
+  });
+
+  it('(d) stops after MAX_TOPUP_ROUNDS even when every round still adds a draft', async () => {
+    // Six requested, eight planned; the first five lose their blank, three are kept. Each round returns one good draft.
+    const s = setup({
+      sentences: 6,
+      breakFirst: [0, 1, 2, 3, 4],
+      topUp: (call) => ({ drafts: topUpDraftsFor(call).drafts.slice(0, 1) }),
+    });
+    const result = await s.run();
+    expect(s.chat.callCount(PROMPT_LABELS.topup)).toBe(MAX_TOPUP_ROUNDS);
+    expect(nodesOf(s)).toEqual([...NODES, ...ROUND_NODES, ...ROUND_NODES]);
+    expect(result.counts.kept).toBe(5);
+    const last = s.graph
+      .stepsOf(TASK)
+      .filter((x) => x.node === 'validate')
+      .at(-1)!;
+    expect(last.log).toContain('Short of requested: kept 5 of 6 after 2 top-up rounds');
+  });
+
+  it('(e) never stores a repeated sentence: a top-up draft equal to a kept one is discarded as a duplicate', async () => {
+    const s = setup({
+      breakFirst: [0, 1, 2],
+      topUp: (call) => {
+        const kept = [...s.graph.questions.values()][0]!;
+        const [first] = topUpDraftsFor(call).drafts;
+        // The writer repeats a sentence that was already kept, with a different index.
+        return { drafts: [{ ...first!, sentence: kept.sentence, answers: kept.answers }] };
+      },
+    });
+    await s.run();
+    const sentences = sentencesOf(s);
+    expect(new Set(sentences).size).toBe(sentences.length);
+    expect(sentences).toHaveLength(3);
+    const last = s.graph
+      .stepsOf(TASK)
+      .filter((x) => x.node === 'validate')
+      .at(-1)!;
+    expect(last.log).toContain('duplicate 1');
+  });
+
+  it('(f) accumulates usage: each round step records its own calls and the task totals are the sums', async () => {
+    const s = setup({ breakFirst: [0, 1, 2], topUp: (call) => topUpDraftsFor(call) });
+    await s.run();
+    const task = (await s.graph.loadTask(TASK))!;
+    const byNode = (node: string) => task.steps.filter((x) => x.node === node);
+    expect(byNode('topUp')[0]!.usage.modelCalls).toBe(1);
+    expect(byNode('critique').map((x) => x.usage.modelCalls)).toEqual([1, 1]);
+    expect(task.usage.modelCalls).toBe(5);
+    expect(task.usage.modelCalls).toBe(task.steps.reduce((n, x) => n + x.usage.modelCalls, 0));
+    expect(task.usage).toEqual(s.tracer.totalUsage(TASK));
+    // One provider for the whole run.
+    expect(s.embeddings.calls).toHaveLength(0);
   });
 });
