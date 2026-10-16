@@ -17,7 +17,12 @@ import { MIGRATOR, MigrateCommand, drizzleMigrator } from './migrate.command';
 import { ResetCommand } from './reset.command';
 import { SeedCommand } from './seed.command';
 import { SetupGraphCommand } from './setup-graph.command';
-import { BlockUserCommand, GrantRoleCommand, UnblockUserCommand } from './users.command';
+import {
+  BlockUserCommand,
+  GrantRoleCommand,
+  ResetOnboardingCommand,
+  UnblockUserCommand,
+} from './users.command';
 
 /**
  * The CLI application: configuration, the two stores, accounts, and the commands. No HTTP server, no providers, and no
@@ -44,6 +49,7 @@ import { BlockUserCommand, GrantRoleCommand, UnblockUserCommand } from './users.
     GrantRoleCommand,
     BlockUserCommand,
     UnblockUserCommand,
+    ResetOnboardingCommand,
     CreateCodeCommand,
     ListCodesCommand,
     DisableCodeCommand,

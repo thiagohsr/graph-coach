@@ -239,6 +239,24 @@ describe('user commands', () => {
     expect(row?.status).toBe('active');
   });
 
+  it('reset-onboarding clears the flag and names the user id, not the address', async () => {
+    const id = seedIds.user('learner');
+    await cli.db
+      .update(users)
+      .set({ onboardedAt: new Date(), onboardingOutcome: 'completed' })
+      .where(eq(users.id, id));
+    const result = await cli.run(['reset-onboarding', learnerEmail]);
+    expect(result.exitCode).toBe(0);
+    const output = result.lines.join('\n');
+    expect(output).toContain(id);
+    expect(output).not.toContain(learnerEmail);
+    const [row] = await cli.db.select().from(users).where(eq(users.id, id));
+    expect(row?.onboardedAt).toBeNull();
+    expect(row?.onboardingOutcome).toBeNull();
+    const unknown = await cli.run(['reset-onboarding', 'nobody@example.test']);
+    expect(unknown.exitCode).toBe(1);
+  });
+
   it('block-user on the only active admin exits 1', async () => {
     const result = await cli.run(['block-user', seedIds.email('admin')]);
     expect(result.exitCode).toBe(1);

@@ -302,6 +302,14 @@ export class AccountsService {
       .where(and(eq(users.id, userId), isNull(users.onboardedAt)));
   }
 
+  /** Operator reset (CLI): the account sees the carousel again on its next page load. Not rate-limited. */
+  async resetOnboarding(userId: string): Promise<void> {
+    await this.db
+      .update(users)
+      .set({ onboardedAt: null, onboardingOutcome: null })
+      .where(eq(users.id, userId));
+  }
+
   /** True when the user exists and is not blocked. Same 5-second cache as the guard. */
   async isActive(userId: string): Promise<boolean> {
     const account = await this.getById(userId);

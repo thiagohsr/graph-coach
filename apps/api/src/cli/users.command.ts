@@ -63,6 +63,27 @@ export class BlockUserCommand extends CommandRunner {
 }
 
 @Command({
+  name: 'reset-onboarding',
+  arguments: '<email>',
+  description: 'Clear the onboarding flag so the account sees the first-run carousel again',
+})
+export class ResetOnboardingCommand extends CommandRunner {
+  constructor(
+    @Inject(AccountsService) private readonly accounts: AccountsService,
+    @Inject(UserDirectory) private readonly directory: UserDirectory,
+    @Inject(CLI_OUTPUT) private readonly out: CliOutput,
+  ) {
+    super();
+  }
+
+  async run(params: string[]): Promise<void> {
+    const id = await requireUserId(this.directory, params[0]);
+    await this.accounts.resetOnboarding(id);
+    this.out.line(`user ${id}: onboarding reset`);
+  }
+}
+
+@Command({
   name: 'unblock-user',
   arguments: '<email>',
   description: 'Unblock the account with that e-mail address',

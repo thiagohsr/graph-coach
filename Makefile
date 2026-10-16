@@ -7,7 +7,7 @@ DOTENV := pnpm exec dotenv -e .env --
 
 .DEFAULT_GOAL := help
 .PHONY: help doctor setup up down logs clean graph-shell graph-ui graph-stop graph-start \
-	lint format format-check typecheck build migrate seed reset dev \
+	lint format format-check typecheck build migrate seed reset reset-onboarding dev \
 	test-unit test-agent test test-graph test-api test-e2e test-all \
 	docs-check check-graph-removed
 
@@ -84,6 +84,9 @@ seed: .env ## Load the synthetic seed content
 reset: .env ## Empty the graph and accounts (the CLI asks first)
 	$(DOTENV) pnpm --filter @coach/api cli reset
 	@echo "Graph and accounts emptied: run make migrate seed"
+
+reset-onboarding: .env ## Show the onboarding carousel again (EMAIL=…, default Demo Learner)
+	$(DOTENV) pnpm --filter @coach/api cli reset-onboarding $(or $(EMAIL),learner@example.test)
 
 dev: .env ## Build packages, then run the API and web in watch mode
 	pnpm --filter "./packages/*" run build
