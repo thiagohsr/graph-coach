@@ -551,6 +551,19 @@ describe('record_decision, get_decision, recent_decision', () => {
     expect(await tg.countEdges('TOWARD')).toBe(1);
   });
 
+  it('outside the goal stretch (empty $goalId) creates no Goal node and no TOWARD edge (decision 20)', async () => {
+    const { learnerId } = await loadWorkedExample(tg);
+    const rows = await q<{ decisionId: string }>('record_decision', recordParams(learnerId, { goalId: '' }));
+    expect(rows).toHaveLength(1);
+    expect(await tg.count('Goal')).toBe(0);
+    expect(await tg.countEdges('TOWARD')).toBe(0);
+    // an id that matches no Goal behaves the same: the query never creates a Goal
+    await q('record_decision', recordParams(learnerId, { decisionId: 'decision-2', goalId: 'no-such-goal' }));
+    expect(await tg.count('Decision')).toBe(2);
+    expect(await tg.count('Goal')).toBe(0);
+    expect(await tg.countEdges('TOWARD')).toBe(0);
+  });
+
   it('get_decision returns target, alternatives ordered by weight, owner, and puzzle', async () => {
     const { learnerId } = await loadTwoWeakGroups(tg);
     await q('record_decision', recordParams(learnerId));
@@ -833,5 +846,346 @@ describe('ownership (canPlay) in the Coach queries', () => {
       expect(params).toContain('userId');
       expect(params.filter((p) => /role|seeAll|admin|staff/i.test(p))).toEqual([]);
     }
+  });
+});
+
+// ---- Goal stretch (T055): resolve_goal_concepts, upsert_goal, create_cover_task ----
+
+const DIM = 64;
+/** A unit-length vector of the stub dimension from its first components. */
+const vec = (...head: number[]): number[] => {
+  const v = new Array<number>(DIM).fill(0);
+  head.forEach((x, i) => {
+    v[i] = x;
+  });
+  return v;
+};
+
+interface GoalRow {
+  conceptId: string;
+  slug: string;
+  name: string;
+  score: number;
+  bestChunkId: string | null;
+  via: 'passage' | 'name';
+}
+
+const resolveParams = (over: Record<string, unknown> = {}): QueryParams =>
+  ({
+    userId: L1,
+    embedding: vec(1),
+    k: 20,
+    minSimilarity: 0.5,
+    goalText: 'nothing relevant',
+    goalSlugText: 'nothing-relevant',
+    limit: 20,
+    ...over,
+  }) as QueryParams;
+
+async function addChunk(
+  sourceId: string,
+  chunkId: string,
+  embedding: number[],
+  mentions: string[],
+  text = `Text of ${chunkId}.`,
+): Promise<void> {
+  await tg.cypher(
+    `MATCH (s:Source {id: $sourceId})
+     CREATE (s)-[:HAS_CHUNK]->(k:Chunk {id: $chunkId, position: 0, text: $text, embedding: vecf32($embedding)})
+     WITH k
+     UNWIND $mentions AS slug
+     MATCH (c:Concept {id: slug})
+     CREATE (k)-[:MENTIONS]->(c)`,
+    { sourceId, chunkId, text, embedding, mentions: mentions.map(cid) },
+  );
+}
+
+async function addSource(sourceId: string, ownerId: string, puzzleId?: string): Promise<void> {
+  await tg.cypher(`MATCH (o:Learner {id: $ownerId}) CREATE (o)-[:OWNS]->(:Source {id: $sourceId, title: $sourceId, kind: 'text', createdAt: 1})`, {
+    ownerId,
+    sourceId,
+  });
+  if (puzzleId) {
+    await tg.cypher(`MATCH (s:Source {id: $sourceId}), (p:Puzzle {id: $puzzleId}) CREATE (s)-[:YIELDED]->(p)`, { sourceId, puzzleId });
+  }
+}
+
+describe('resolve_goal_concepts', () => {
+  beforeEach(async () => {
+    await addLearner(tg, L1, 'Main');
+    await addLearner(tg, L2, 'Other');
+    await addAgents(tg);
+    await addConcepts(tg, [
+      { slug: 'quokka' },
+      { slug: 'wombat' },
+      { slug: 'numbat' },
+      { slug: 'dingo' },
+      { slug: 'koala' },
+      { slug: 'echidna' },
+      { slug: 'zeta-widget' },
+    ]);
+    await addPuzzle(tg, { id: 'pz-public', name: 'Public', ownerId: L2, visibility: 'public', questions: [{ id: 'qz-public', tests: ['numbat'] }] });
+    await addPuzzle(tg, { id: 'pz-play', name: 'Play only', ownerId: L2, visibility: 'private', questions: [{ id: 'qz-play', tests: ['dingo'] }] });
+    await addPuzzle(tg, { id: 'pz-src', name: 'With source', ownerId: L2, visibility: 'private', questions: [{ id: 'qz-src', tests: ['koala'] }] });
+    // own source: the nearest chunk (similarity 1) and a farther one (similarity 0.6)
+    await addSource('src-own', L1);
+    await addChunk('src-own', 'own-near', vec(1), ['quokka']);
+    await addChunk('src-own', 'own-mid', vec(0.6, 0.8), ['quokka', 'wombat']);
+    await addChunk('src-own', 'own-far', vec(0, 0, 1), ['echidna']);
+    // sources of another learner: public puzzle, play-only share, share with the source
+    await addSource('src-public', L2, 'pz-public');
+    await addChunk('src-public', 'public-chunk', vec(1), ['numbat']);
+    await addSource('src-play', L2, 'pz-play');
+    await addChunk('src-play', 'play-chunk', vec(1), ['dingo']);
+    await share(tg, 'pz-play', L1, false);
+    await addSource('src-shared', L2, 'pz-src');
+    await addChunk('src-shared', 'shared-chunk', vec(1), ['koala']);
+    await share(tg, 'pz-src', L1, true);
+  });
+
+  const resolve = (over: Record<string, unknown> = {}) => q<GoalRow>('resolve_goal_concepts', resolveParams(over));
+  const slugs = (rows: GoalRow[], via?: string) => rows.filter((r) => !via || r.via === via).map((r) => r.slug);
+
+  it('passage branch: only chunks the learner may read, above the similarity threshold, nearest concept first', async () => {
+    const rows = await resolve();
+    expect(rows.every((r) => r.via === 'passage')).toBe(true);
+    // own chunks and the chunk of a source shared with withSource true; not the public puzzle's or the play-only share's source
+    expect(slugs(rows).sort()).toEqual(['koala', 'quokka', 'wombat']);
+    expect(slugs(rows)).not.toContain('numbat');
+    expect(slugs(rows)).not.toContain('dingo');
+    // below the threshold (similarity 0) is not returned
+    expect(slugs(rows)).not.toContain('echidna');
+    // score is a similarity (1 - cosine distance), so the nearest chunk ranks first
+    const quokka = rows.find((r) => r.slug === 'quokka')!;
+    const wombat = rows.find((r) => r.slug === 'wombat')!;
+    expect(quokka.score).toBeCloseTo(1, 4);
+    expect(wombat.score).toBeCloseTo(0.6, 3);
+    expect(rows.findIndex((r) => r.slug === 'quokka')).toBeLessThan(rows.findIndex((r) => r.slug === 'wombat'));
+    expect(rows.map((r) => r.score)).toEqual([...rows.map((r) => r.score)].sort((a, b) => b - a));
+  });
+
+  it('one row per concept with its best chunk', async () => {
+    const rows = await resolve();
+    expect(slugs(rows).filter((s) => s === 'quokka')).toHaveLength(1);
+    expect(rows.find((r) => r.slug === 'quokka')!.bestChunkId).toBe('own-near');
+    expect(rows.find((r) => r.slug === 'wombat')!.bestChunkId).toBe('own-mid');
+    expect(rows.find((r) => r.slug === 'koala')!.bestChunkId).toBe('shared-chunk');
+  });
+
+  it('the threshold is a similarity: raising it drops the farther concept', async () => {
+    expect(slugs(await resolve({ minSimilarity: 0.9 })).sort()).toEqual(['koala', 'quokka']);
+    expect(slugs(await resolve({ minSimilarity: 0.0 }))).toContain('echidna');
+  });
+
+  it('a revoked share or a play-only share removes the chunk; another learner sees only their own', async () => {
+    await share(tg, 'pz-src', L1, false);
+    expect(slugs(await resolve())).not.toContain('koala');
+    await share(tg, 'pz-src', L1, true);
+    await revokeShare(tg, 'pz-src', L1);
+    expect(slugs(await resolve())).not.toContain('koala');
+    // L2 owns the other sources, not src-own
+    const forL2 = slugs(await resolve({ userId: L2 }));
+    expect(forL2.sort()).toEqual(['dingo', 'koala', 'numbat']);
+  });
+
+  it('name branch: a concept whose name or slug occurs in the goal is returned with via name even without a chunk', async () => {
+    const rows = await resolve({
+      embedding: vec(0, 0, 0, 1),
+      goalText: 'i want to learn about the zeta-widget design',
+      goalSlugText: 'i-want-to-learn-about-the-zeta-widget-design',
+    });
+    expect(rows).toHaveLength(1);
+    expect(rows[0]).toMatchObject({ slug: 'zeta-widget', via: 'name', bestChunkId: null, score: 1 });
+    const byName = await resolve({
+      embedding: vec(0, 0, 0, 1),
+      goalText: 'practise echidna facts',
+      goalSlugText: 'practise-echidna-facts',
+    });
+    expect(slugs(byName, 'name')).toEqual(['echidna']);
+  });
+
+  it('declares owner 004, mode read, and the access-free parameters', () => {
+    const info = tg.graph.listQueries().find((i) => i.name === 'resolve_goal_concepts')!;
+    expect(info.owner).toBe('004');
+    expect(info.mode).toBe('read');
+    expect(info.params).toContain('userId');
+  });
+});
+
+describe('upsert_goal', () => {
+  const upsert = (over: Record<string, unknown> = {}) =>
+    q<{ goalId: string; targetIds: string[]; prerequisiteIds: string[] }>('upsert_goal', {
+      goalId: 'goal-1',
+      learnerId: L1,
+      text: 'learn the top',
+      now: NOW,
+      targets: [{ conceptId: cid('top'), score: 0.8 }],
+      depth: 4,
+      ...over,
+    } as QueryParams);
+
+  beforeEach(async () => {
+    await loadDiamond(tg);
+  });
+
+  it('writes the goal, HAS_GOAL, TARGETS with the score, and returns the scope with upstream prerequisites', async () => {
+    const [row] = await upsert();
+    expect(row!.goalId).toBe('goal-1');
+    expect(row!.targetIds).toEqual([cid('top')]);
+    expect([...row!.prerequisiteIds].sort()).toEqual([cid('base'), cid('left'), cid('right')].sort());
+    expect(await tg.count('Goal')).toBe(1);
+    expect(await tg.countEdges('HAS_GOAL')).toBe(1);
+    const targets = await tg.cypher<{ id: string; score: number }>(
+      `MATCH (:Goal {id: 'goal-1'})-[r:TARGETS]->(c:Concept) RETURN c.id AS id, r.score AS score`,
+    );
+    expect(targets).toEqual([{ id: cid('top'), score: 0.8 }]);
+    const goal = await tg.cypher<{ text: string; active: boolean; createdAt: number }>(
+      `MATCH (g:Goal {id: 'goal-1'}) RETURN g.text AS text, g.active AS active, g.createdAt AS createdAt`,
+    );
+    expect(goal).toEqual([{ text: 'learn the top', active: true, createdAt: NOW }]);
+  });
+
+  it('applies the depth as a filter', async () => {
+    const [row] = await upsert({ depth: 1 });
+    expect([...row!.prerequisiteIds].sort()).toEqual([cid('left'), cid('right')].sort());
+  });
+
+  it('is idempotent on the same id', async () => {
+    await upsert();
+    await upsert({ now: NOW + 1000 });
+    expect(await tg.count('Goal')).toBe(1);
+    expect(await tg.countEdges('HAS_GOAL')).toBe(1);
+    expect(await tg.countEdges('TARGETS')).toBe(1);
+    const goal = await tg.cypher<{ createdAt: number }>(`MATCH (g:Goal {id: 'goal-1'}) RETURN g.createdAt AS createdAt`);
+    expect(goal[0]!.createdAt).toBe(NOW);
+  });
+
+  it('a new goal makes the previous one inactive', async () => {
+    await upsert();
+    await upsert({ goalId: 'goal-2', text: 'learn the base', targets: [{ conceptId: cid('base'), score: 1 }] });
+    const rows = await tg.cypher<{ id: string; active: boolean }>(`MATCH (g:Goal) RETURN g.id AS id, g.active AS active ORDER BY id`);
+    expect(rows).toEqual([
+      { id: 'goal-1', active: false },
+      { id: 'goal-2', active: true },
+    ]);
+    // returning to the first goal reactivates it and deactivates the second
+    await upsert();
+    const again = await tg.cypher<{ id: string; active: boolean }>(`MATCH (g:Goal) RETURN g.id AS id, g.active AS active ORDER BY id`);
+    expect(again).toEqual([
+      { id: 'goal-1', active: true },
+      { id: 'goal-2', active: false },
+    ]);
+  });
+
+  it('empty targets still write the goal but return no row', async () => {
+    expect(await upsert({ targets: [] })).toEqual([]);
+    expect(await tg.count('Goal')).toBe(1);
+    expect(await tg.countEdges('HAS_GOAL')).toBe(1);
+    expect(await tg.countEdges('TARGETS')).toBe(0);
+  });
+
+  it('a target without prerequisites returns an empty prerequisite list', async () => {
+    const [row] = await upsert({ targets: [{ conceptId: cid('base'), score: 1 }] });
+    expect(row!.prerequisiteIds).toEqual([]);
+  });
+});
+
+describe('create_cover_task', () => {
+  beforeEach(async () => {
+    await loadDiamond(tg);
+    await q('record_decision', {
+      decisionId: 'dec-cover', learnerId: L1, kind: 'coverage_request', summary: 's', flags: ['coverage_gap'], now: NOW,
+      modelCalls: 0, inputTokens: 0, outputTokens: 0, embeddingTokens: 0, puzzleId: '', goalId: '',
+      evidence: [{ label: 'Concept', nodeId: cid('top'), role: 'target', reason: 'target', weight: 0.5 }],
+    });
+  });
+
+  const create = (over: Record<string, unknown> = {}) =>
+    q<{ taskId: string; status: string; concerns: number }>('create_cover_task', {
+      taskId: 'task-cover-1',
+      learnerId: L1,
+      decisionId: 'dec-cover',
+      conceptIds: [cid('top'), cid('left')],
+      now: NOW,
+      ...over,
+    } as QueryParams);
+
+  it('creates a queued cover task with both REQUESTED edges, ASSIGNED_TO the Curator, and CONCERNS per concept', async () => {
+    expect(await create()).toEqual([{ taskId: 'task-cover-1', status: 'queued', concerns: 2 }]);
+    const task = await tg.cypher<{ kind: string; status: string; createdAt: number }>(
+      `MATCH (t:Task {id: 'task-cover-1'}) RETURN t.kind AS kind, t.status AS status, t.createdAt AS createdAt`,
+    );
+    expect(task).toEqual([{ kind: 'cover', status: 'queued', createdAt: NOW }]);
+    expect(await tg.countEdges('REQUESTED')).toBe(2);
+    const requesters = await tg.cypher<{ label: string }>(`MATCH (r)-[:REQUESTED]->(:Task {id: 'task-cover-1'}) RETURN labels(r)[0] AS label ORDER BY label`);
+    expect(requesters).toEqual([{ label: 'Decision' }, { label: 'Learner' }]);
+    const assigned = await tg.cypher<{ name: string }>(`MATCH (:Task {id: 'task-cover-1'})-[:ASSIGNED_TO]->(a:Agent) RETURN a.name AS name`);
+    expect(assigned).toEqual([{ name: 'Curator' }]);
+    const concerns = await tg.cypher<{ id: string }>(`MATCH (:Task {id: 'task-cover-1'})-[:CONCERNS]->(c:Concept) RETURN c.id AS id ORDER BY id`);
+    expect(concerns.map((c) => c.id)).toEqual([cid('top'), cid('left')].sort());
+    // get_decision reads the task back
+    const [decision] = await q<{ coverageTaskId: string | null }>('get_decision', { decisionId: 'dec-cover' });
+    expect(decision!.coverageTaskId).toBe('task-cover-1');
+  });
+
+  it('a second call creates nothing new and returns the task unchanged', async () => {
+    await create();
+    await tg.cypher(`MATCH (t:Task {id: 'task-cover-1'}) SET t.status = 'running'`);
+    const second = await create({ now: NOW + 5000 });
+    expect(second).toEqual([{ taskId: 'task-cover-1', status: 'running', concerns: 2 }]);
+    expect(await tg.count('Task')).toBe(1);
+    expect(await tg.countEdges('REQUESTED')).toBe(2);
+    expect(await tg.countEdges('ASSIGNED_TO')).toBe(1);
+    expect(await tg.countEdges('CONCERNS')).toBe(2);
+    expect(await tg.count('Agent')).toBe(2);
+  });
+
+  it('creates nothing for a decision that is not for this learner', async () => {
+    await addLearner(tg, L2, 'Other');
+    expect(await create({ learnerId: L2 })).toEqual([]);
+    expect(await tg.count('Task')).toBe(0);
+  });
+});
+
+describe('goal and task parts of decision_path and get_decision (T061)', () => {
+  const baseDecision = (over: Record<string, unknown>) =>
+    ({
+      learnerId: L1, summary: 's', now: NOW, modelCalls: 0, inputTokens: 0, outputTokens: 0, embeddingTokens: 0, puzzleId: '',
+      evidence: [{ label: 'Concept', nodeId: cid('top'), role: 'target', reason: 'target', weight: 0.5 }],
+      ...over,
+    }) as QueryParams;
+
+  it('TOWARD, TARGETS, REQUESTED, and CONCERNS rows; get_decision lists the task and goal concepts', async () => {
+    await loadDiamond(tg);
+    await q('upsert_goal', {
+      goalId: 'goal-x', learnerId: L1, text: 'learn the top', now: NOW,
+      targets: [{ conceptId: cid('top'), score: 1 }], depth: 4,
+    } as QueryParams);
+    await q('record_decision', baseDecision({ decisionId: 'dec-goal', kind: 'coverage_request', flags: ['coverage_gap', 'coverage_requested'], goalId: 'goal-x' }));
+    await q('create_cover_task', {
+      taskId: 'task-x', learnerId: L1, decisionId: 'dec-goal', conceptIds: [cid('top')], now: NOW,
+    } as QueryParams);
+
+    const rows = await q<PathRowT>('decision_path', { decisionId: 'dec-goal', learnerId: L1, userId: L1, depth: 4 });
+    const part = (p: string) => rows.filter((r) => r.part === p);
+    expect(part('toward')).toHaveLength(1);
+    expect(part('toward')[0]).toMatchObject({ type: 'TOWARD', toLabel: 'Goal', toId: 'goal-x', toData: { text: 'learn the top' } });
+    expect(part('targets')[0]).toMatchObject({ fromLabel: 'Goal', toLabel: 'Concept', toId: cid('top') });
+    expect(part('requested')[0]).toMatchObject({ type: 'REQUESTED', toLabel: 'Task', toId: 'task-x', toData: { kind: 'cover', status: 'queued' } });
+    expect(part('concerns')[0]).toMatchObject({ fromLabel: 'Task', toLabel: 'Concept', toId: cid('top') });
+
+    const [decision] = await q<{ coverageTaskId: string; coverageConcepts: unknown[]; goalConcepts: unknown[] }>('get_decision', { decisionId: 'dec-goal' });
+    expect(decision!.coverageTaskId).toBe('task-x');
+    expect(decision!.coverageConcepts).toEqual([{ conceptId: cid('top'), name: 'TOP' }]);
+    expect(decision!.goalConcepts).toEqual([{ conceptId: cid('top'), name: 'TOP' }]);
+  });
+
+  it('a decision without goal or task has empty lists and no goal or task rows', async () => {
+    await loadDiamond(tg);
+    await q('record_decision', baseDecision({ decisionId: 'dec-plain', kind: 'recommendation', flags: [], goalId: '' }));
+    const [plain] = await q<{ coverageTaskId: string | null; coverageConcepts: unknown[]; goalConcepts: unknown[] }>('get_decision', { decisionId: 'dec-plain' });
+    expect(plain).toMatchObject({ coverageTaskId: null, coverageConcepts: [], goalConcepts: [] });
+    const rows = await q<PathRowT>('decision_path', { decisionId: 'dec-plain', learnerId: L1, userId: L1, depth: 4 });
+    expect(rows.filter((r) => ['toward', 'targets', 'requested', 'concerns'].includes(r.part))).toEqual([]);
   });
 });

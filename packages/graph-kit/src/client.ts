@@ -141,7 +141,16 @@ function isConnectionError(error: unknown): boolean {
   );
 }
 
-const sleep = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
+const EMPTY_KEY_MESSAGE = 'Invalid graph operation on empty key';
+
+/** True only when the whole message is FalkorDB's "empty key" error (an optional `ERR ` prefix and trailing dot aside). */
+function isEmptyKeyError(error: unknown): boolean {
+  if (!(error instanceof Error)) return false;
+  const message = error.message.trim().replace(/^ERR\s+/, '').replace(/\.$/, '');
+  return message === EMPTY_KEY_MESSAGE;
+}
+
+const sleep =(ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
 
 export class GraphKit {
   readonly graphName: string;
@@ -441,11 +450,8 @@ export class GraphKit {
       return { rows: (reply.data ?? []).map(mapRow), stats: parseStats(reply.metadata) };
     } catch (error) {
       // A read-only query on a graph that has not been created yet (before `setup-graph`) finds no data.
-      if (
-        options.readOnly &&
-        error instanceof Error &&
-        /Invalid graph operation on empty key/i.test(error.message)
-      ) {
+      // Only that exact server error, only for read-only queries: a write never hits it, and any other error surfaces.
+      if (options.readOnly === true && isEmptyKeyError(error)) {
         return { rows: [], stats: emptyStats() };
       }
       const translated = this.translate(error, options.queryName);

@@ -58,6 +58,28 @@ RETURN 'tests' AS part, 'Question' AS fromLabel, q.id AS fromId, {} AS fromData,
        'TESTS' AS type, 'Concept' AS toLabel, c.id AS toId, {} AS toData,
        null AS role, 'tests' AS reason, null AS weight
 UNION ALL
+MATCH (g:Goal)<-[:TOWARD]-(d:Decision {id: $decisionId})-[:FOR]->(:Learner {id: $learnerId})
+RETURN 'toward' AS part, 'Decision' AS fromLabel, d.id AS fromId, {} AS fromData,
+       'TOWARD' AS type, 'Goal' AS toLabel, g.id AS toId, {text: g.text} AS toData,
+       null AS role, 'practising toward this goal' AS reason, null AS weight
+UNION ALL
+MATCH (g:Goal)<-[:TOWARD]-(d:Decision {id: $decisionId})-[:FOR]->(:Learner {id: $learnerId})
+MATCH (g)-[:TARGETS]->(c:Concept)
+RETURN 'targets' AS part, 'Goal' AS fromLabel, g.id AS fromId, {text: g.text} AS fromData,
+       'TARGETS' AS type, 'Concept' AS toLabel, c.id AS toId, {name: c.name, slug: c.slug} AS toData,
+       null AS role, 'the goal covers this concept' AS reason, null AS weight
+UNION ALL
+MATCH (t:Task)<-[:REQUESTED]-(d:Decision {id: $decisionId})-[:FOR]->(:Learner {id: $learnerId})
+RETURN 'requested' AS part, 'Decision' AS fromLabel, d.id AS fromId, {} AS fromData,
+       'REQUESTED' AS type, 'Task' AS toLabel, t.id AS toId, {kind: t.kind, status: t.status} AS toData,
+       null AS role, 'requested new puzzles for the Curator' AS reason, null AS weight
+UNION ALL
+MATCH (t:Task)<-[:REQUESTED]-(d:Decision {id: $decisionId})-[:FOR]->(:Learner {id: $learnerId})
+MATCH (t)-[:CONCERNS]->(c:Concept)
+RETURN 'concerns' AS part, 'Task' AS fromLabel, t.id AS fromId, {kind: t.kind, status: t.status} AS fromData,
+       'CONCERNS' AS type, 'Concept' AS toLabel, c.id AS toId, {name: c.name, slug: c.slug} AS toData,
+       null AS role, 'needs more puzzles on this concept' AS reason, null AS weight
+UNION ALL
 MATCH (k:Chunk)<-[b:BECAUSE]-(d:Decision {id: $decisionId})-[:FOR]->(:Learner {id: $learnerId})
 WHERE b.role = 'passage'
 MATCH (s:Source)-[:HAS_CHUNK]->(k)

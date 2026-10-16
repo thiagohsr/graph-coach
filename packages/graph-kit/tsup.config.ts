@@ -2,7 +2,9 @@ import { defineConfig } from 'tsup';
 
 export default defineConfig({
   entry: { index: 'src/index.ts', 'testing/index': 'src/testing/index.ts' },
-  format: ['cjs', 'esm'],
+  // ESM only: one module instance per package (the CJS build duplicated classes across entries).
+  // The CommonJS API loads these with require(esm), supported by Node 22.12+ (.nvmrc is 24).
+  format: ['esm'],
   dts: true,
   clean: true,
   sourcemap: true,

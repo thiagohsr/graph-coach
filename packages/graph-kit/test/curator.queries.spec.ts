@@ -847,6 +847,20 @@ describe('concept_neighbourhood', () => {
     expect(await near(vec(0, 0, 0, 1))).toEqual([]);
   });
 
+  it('with known stub embeddings the nearest concept comes first and a smaller maxDistance keeps only closer ones', async () => {
+    // Query vec(1, 0, 0) equals ch-1's vector (index); every other chunk is farther. Lower distance = closer.
+    const rows = await near(vec(1, 0, 0), { maxDistance: 2 });
+    expect(rows[0]!.slug).toBe('index');
+    const distances = rows.map((r) => r.bestDistance as number);
+    expect(distances[0]!).toBeLessThan(distances[distances.length - 1]!);
+    expect([...distances].sort((a, b) => a - b)).toEqual(distances);
+    // A threshold between the nearest and the farthest keeps the nearest and drops the farthest.
+    const cut = (distances[0]! + distances[distances.length - 1]!) / 2;
+    const kept = (await near(vec(1, 0, 0), { maxDistance: cut })).map((r) => r.slug);
+    expect(kept).toContain('index');
+    expect(kept.length).toBeLessThan(rows.length);
+  });
+
   it('counts hits and returns the best distance, nearest first', async () => {
     const rows = await near(vec(1, 0, 0), { maxDistance: 2 });
     expect(rows[0]).toMatchObject({ slug: 'index', hits: 1 });
