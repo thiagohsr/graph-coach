@@ -263,24 +263,58 @@
 /* Landing hero graph: the teal path lights up node by node (features/landing/HeroGraph.tsx).
    The resting state (no data-animate) is the fully lit picture; animation only runs when allowed. */
 @media (prefers-reduced-motion: no-preference) {
+  /* --d: when the element draws in; --x: when it rewinds out (forwards only, so it never shows early). */
   [data-animate='true'] .hg-edge {
     stroke-dasharray: 1;
-    animation: hg-draw 520ms var(--ease-enter) both;
-    animation-delay: var(--d, 0ms);
+    animation:
+      hg-draw 520ms var(--ease-enter) var(--d, 0ms) both,
+      hg-undraw 300ms var(--ease-standard) var(--x, 600s) forwards;
   }
   [data-animate='true'] .hg-lit {
     transform-box: fill-box;
     transform-origin: center;
-    animation: hg-light 360ms var(--ease-enter) both;
-    animation-delay: var(--d, 0ms);
+    animation:
+      hg-light 360ms var(--ease-enter) var(--d, 0ms) both,
+      hg-unlight 280ms var(--ease-standard) var(--x, 600s) forwards;
   }
   [data-animate='true'] .hg-halo {
     transform-box: fill-box;
     transform-origin: center;
-    animation: hg-pulse 2400ms var(--ease-standard) infinite;
-    animation-delay: var(--d, 0ms);
+    animation:
+      hg-in 300ms var(--ease-enter) var(--d, 0ms) both,
+      hg-pulse 2400ms var(--ease-standard) calc(var(--d, 0ms) + 300ms) infinite,
+      hg-out 300ms var(--ease-standard) var(--x, 600s) forwards;
   }
 }
+@keyframes hg-undraw {
+  from {
+    stroke-dashoffset: 0;
+  }
+  to {
+    stroke-dashoffset: 1;
+  }
+}
+@keyframes hg-unlight {
+  from {
+    opacity: 1;
+    transform: scale(1);
+  }
+  to {
+    opacity: 0;
+    transform: scale(0.4);
+  }
+}
+@keyframes hg-in {
+  from {
+    opacity: 0;
+  }
+}
+@keyframes hg-out {
+  to {
+    opacity: 0;
+  }
+}
+
 @keyframes hg-draw {
   from {
     stroke-dashoffset: 1;
