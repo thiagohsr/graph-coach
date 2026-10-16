@@ -2,8 +2,11 @@
 // (GraphKit.query rejects missing and unused ones), empty lists and '' instead of null, rows parsed with rows.ts.
 import {
   AnswerEvidenceRow,
+  CoverTaskRow,
   DecayedRow,
   DecisionRow,
+  GoalConceptRow,
+  UpsertGoalRow,
   IntroPuzzleRow,
   PathRow,
   PuzzleRow,
@@ -79,6 +82,36 @@ export interface CoachQueries {
   getDecision(p: { decisionId: string }): Promise<DecisionRow | null>;
   /** `userId` is the viewer. */
   decisionPath(p: { decisionId: string; learnerId: string; userId: string; depth: number }): Promise<PathRow[]>;
+  /**
+   * Goal stretch. `userId` is the learner; `minSimilarity` is a similarity (the query turns FalkorDB's cosine distance
+   * into `1 - distance` before comparing). `goalText` is normalised, `goalSlugText` has hyphens for spaces.
+   */
+  resolveGoalConcepts(p: {
+    userId: string;
+    embedding: number[];
+    k: number;
+    minSimilarity: number;
+    goalText: string;
+    goalSlugText: string;
+    limit: number;
+  }): Promise<GoalConceptRow[]>;
+  /** Null when `targets` is empty (the goal is still written). */
+  upsertGoal(p: {
+    goalId: string;
+    learnerId: string;
+    text: string;
+    now: number;
+    targets: Array<{ conceptId: string; score: number }>;
+    depth: number;
+  }): Promise<UpsertGoalRow | null>;
+  /** Null when the decision does not belong to the learner. */
+  createCoverTask(p: {
+    taskId: string;
+    learnerId: string;
+    decisionId: string;
+    conceptIds: string[];
+    now: number;
+  }): Promise<CoverTaskRow | null>;
 }
 
 function parseRows<T>(schema: { parse(value: unknown): T }, rows: unknown[]): T[] {
@@ -174,6 +207,41 @@ export function createCoachQueries(query: QueryFn): CoachQueries {
         depth: p.depth,
       });
       return parseRows(PathRow, rows);
+    },
+    async resolveGoalConcepts(p) {
+      const rows = await query('resolve_goal_concepts', {
+        userId: p.userId,
+        embedding: p.embedding,
+        k: p.k,
+        minSimilarity: p.minSimilarity,
+        goalText: p.goalText,
+        goalSlugText: p.goalSlugText,
+        limit: p.limit,
+      });
+      return parseRows(GoalConceptRow, rows);
+    },
+    async upsertGoal(p) {
+      const rows = await query('upsert_goal', {
+        goalId: p.goalId,
+        learnerId: p.learnerId,
+        text: p.text,
+        now: p.now,
+        targets: p.targets.map((t) => ({ conceptId: t.conceptId, score: t.score })),
+        depth: p.depth,
+      });
+      const [row] = parseRows(UpsertGoalRow, rows);
+      return row ?? null;
+    },
+    async createCoverTask(p) {
+      const rows = await query('create_cover_task', {
+        taskId: p.taskId,
+        learnerId: p.learnerId,
+        decisionId: p.decisionId,
+        conceptIds: p.conceptIds,
+        now: p.now,
+      });
+      const [row] = parseRows(CoverTaskRow, rows);
+      return row ?? null;
     },
   };
 }

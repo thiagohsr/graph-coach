@@ -22,7 +22,10 @@ export const ANSWER_ROWS_LIMIT = 100;
 export const PHRASE_WITH_MODEL = false;
 export const PHRASE_TIMEOUT_MS = 5000;
 export const GOAL_TOP_K = 20;
+/** A cosine SIMILARITY (1 - FalkorDB's cosine distance), not a distance: higher is closer. */
 export const GOAL_MIN_SIMILARITY = 0.5;
+/** Passage evidence items per decision (the best chunks, one per chunk). */
+export const MAX_PASSAGE_EVIDENCE = 3;
 
 export const DAY_MS = 86_400_000;
 export const MINUTE_MS = 60_000;

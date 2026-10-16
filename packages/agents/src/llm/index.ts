@@ -12,6 +12,7 @@ export {
   StubChatProvider,
   StubEmbeddingsProvider,
   stubTokens,
+  promptHash,
   type StubCall,
   type StubResponse,
 } from './stub';

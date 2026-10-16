@@ -5,44 +5,20 @@
   "type": "module",
   "exports": {
     "./llm": {
-      "import": {
-        "types": "./dist/llm/index.d.ts",
-        "default": "./dist/llm/index.js"
-      },
-      "require": {
-        "types": "./dist/llm/index.d.cts",
-        "default": "./dist/llm/index.cjs"
-      }
+      "types": "./dist/llm/index.d.ts",
+      "default": "./dist/llm/index.js"
     },
     "./testing": {
-      "import": {
-        "types": "./dist/testing/index.d.ts",
-        "default": "./dist/testing/index.js"
-      },
-      "require": {
-        "types": "./dist/testing/index.d.cts",
-        "default": "./dist/testing/index.cjs"
-      }
+      "types": "./dist/testing/index.d.ts",
+      "default": "./dist/testing/index.js"
     },
     "./coach": {
-      "import": {
-        "types": "./dist/coach/index.d.ts",
-        "default": "./dist/coach/index.js"
-      },
-      "require": {
-        "types": "./dist/coach/index.d.cts",
-        "default": "./dist/coach/index.cjs"
-      }
+      "types": "./dist/coach/index.d.ts",
+      "default": "./dist/coach/index.js"
     },
     "./curator": {
-      "import": {
-        "types": "./dist/curator/index.d.ts",
-        "default": "./dist/curator/index.js"
-      },
-      "require": {
-        "types": "./dist/curator/index.d.cts",
-        "default": "./dist/curator/index.cjs"
-      }
+      "types": "./dist/curator/index.d.ts",
+      "default": "./dist/curator/index.js"
     }
   },
   "files": [

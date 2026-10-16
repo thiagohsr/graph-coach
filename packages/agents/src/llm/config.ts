@@ -24,10 +24,13 @@ const blank = (v: string | undefined) => (v && v.trim() !== '' ? v.trim() : unde
 
 /** Problems that apply to a parsed config regardless of where it came from. `prefix` names the env variables. */
 export function configProblems(
-  config: { provider: string; model: string; apiKey?: string | undefined },
+  config: { provider: string; model: string; apiKey?: string | undefined; baseUrl?: string | undefined },
   prefix: 'LLM' | 'EMBEDDING',
 ): string[] {
   const problems: string[] = [];
+  if (config.baseUrl?.startsWith('file:') && !(prefix === 'LLM' && config.provider === 'stub')) {
+    problems.push(`${prefix}_BASE_URL with file:// is only allowed when LLM_PROVIDER is "stub"`);
+  }
   if (config.provider !== 'stub' && !config.model.trim()) {
     problems.push(`${prefix}_MODEL is required when ${prefix}_PROVIDER is "${config.provider}"`);
   }
@@ -38,7 +41,7 @@ export function configProblems(
 }
 
 export function assertValidConfig(
-  config: { provider: string; model: string; apiKey?: string | undefined },
+  config: { provider: string; model: string; apiKey?: string | undefined; baseUrl?: string | undefined },
   prefix: 'LLM' | 'EMBEDDING',
 ): void {
   const problems = configProblems(config, prefix);

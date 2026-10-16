@@ -104,6 +104,9 @@ export const DecisionRow = z.object({
   targetName: nullableString,
   alternatives: z.array(ConceptNameRef),
   coverageTaskId: nullableString,
+  /** Goal stretch: the concepts of the linked cover task, and of the goal the decision is toward. */
+  coverageConcepts: z.array(ConceptNameRef).default([]),
+  goalConcepts: z.array(ConceptNameRef).default([]),
 });
 export type DecisionRow = z.infer<typeof DecisionRow>;
 
@@ -121,6 +124,30 @@ export const PathRow = z.object({
   weight: nullableNumber,
 });
 export type PathRow = z.infer<typeof PathRow>;
+
+export const GoalConceptRow = z.object({
+  conceptId: z.string(),
+  slug: z.string(),
+  name: z.string(),
+  score: z.number(),
+  bestChunkId: nullableString,
+  via: z.enum(['passage', 'name']),
+});
+export type GoalConceptRow = z.infer<typeof GoalConceptRow>;
+
+export const UpsertGoalRow = z.object({
+  goalId: z.string(),
+  targetIds: z.array(z.string()),
+  prerequisiteIds: z.array(z.string()),
+});
+export type UpsertGoalRow = z.infer<typeof UpsertGoalRow>;
+
+export const CoverTaskRow = z.object({
+  taskId: z.string(),
+  status: z.string(),
+  concerns: z.number(),
+});
+export type CoverTaskRow = z.infer<typeof CoverTaskRow>;
 
 export const RecordDecisionRow = z.object({
   decisionId: z.string(),

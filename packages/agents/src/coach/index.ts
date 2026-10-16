@@ -1,6 +1,6 @@
 // Public surface of the Coach agent (contracts/coach-internal.md section 1).
 export * from './constants';
-export { COACH_FLAGS, type CoachFlag } from './flags';
+export type { CoachFlag } from './flags';
 export { CoachSettingsSchema, DEFAULT_COACH_SETTINGS, type CoachSettings } from './settings';
 export { computeRisk, daysSince, round4 } from './risk';
 export * from './rows';
@@ -26,10 +26,14 @@ export {
 } from './state';
 export { selectTarget } from './select';
 export { buildEvidence, type BuildEvidenceInput } from './evidence';
-export { renderSummary, type SummaryInput } from './summary';
+export { renderSummary, type AllowanceReason, type SummaryInput } from './summary';
 export { buildDecisionPath, type DecisionPath, type PathEdge, type PathNode } from './path';
 export { DecisionNotRecordedError, EvidenceMissingError, LearnerNotFoundError } from './errors';
 export { normaliseGoal } from './nodes/check-recent';
+export { phraseSummary, type PhraseResult } from './phrase';
+export { goalSelection } from './goal';
+export { coverTaskId, goalId, deterministicId } from './ids';
+export type { GoalConcept, ResolvedGoal } from './state';
 export {
   buildCoachGraph,
   routeAfterCheckRecent,

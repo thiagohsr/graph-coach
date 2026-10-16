@@ -22,6 +22,7 @@ export { chunkText, type ChunkDraft } from './chunker';
 export { isProbableDuplicate, slugify } from './slug';
 export { reconcileConcepts, type ReconcileResult, type ReconciledConcept } from './concepts';
 export * from './ports';
+export { runPublish, type PublishDeps, type PublishInput, type PublishResult } from './publish';
 export {
   PROMPT_STEP_ORDER,
   STEP_ORDER,
@@ -75,3 +76,4 @@ export {
   buildLinkPrerequisitesPrompt,
   type Prompt,
 } from './prompts';
+export { briefForConcepts } from './cover/brief';

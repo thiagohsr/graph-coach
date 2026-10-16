@@ -14,7 +14,9 @@ import {
   type CuratorGraphPort,
   type GeneratedQuestionWrite,
   type KnownConcept,
+  type PuzzleState,
   type QuestionWrite,
+  type RemainingCounts,
   type SourceKindName,
   type SourceRead,
   type StepRecord,
@@ -585,6 +587,40 @@ export class FakeCuratorGraph implements CuratorGraphPort, StepRecorder {
       written += 1;
     }
     return written;
+  }
+
+  async remainingDrafts(taskId: string): Promise<RemainingCounts> {
+    this.guard('remainingDrafts');
+    const counts = { remaining: 0, approved: 0, rejected: 0 };
+    for (const key of this.produced) {
+      const [id, kind, questionId] = key.split('|');
+      if (id !== taskId || kind !== 'question') continue;
+      const status = this.questions.get(questionId!)?.status;
+      if (status === 'draft') counts.remaining += 1;
+      else if (status === 'approved') counts.approved += 1;
+      else if (status === 'rejected') counts.rejected += 1;
+    }
+    return counts;
+  }
+
+  async publishPuzzle(puzzleId: string, minQuestions: number | null): Promise<PuzzleState | null> {
+    this.guard('publishPuzzle');
+    const puzzle = this.puzzles.get(puzzleId);
+    if (!puzzle) return null;
+    const approved = [...this.questions.values()].filter(
+      (q) => q.puzzleId === puzzleId && q.status === 'approved',
+    ).length;
+    if (minQuestions !== null && puzzle.status === 'draft' && approved >= minQuestions) {
+      this.writeLog.push('publishPuzzle');
+      puzzle.status = 'published';
+    }
+    return {
+      id: puzzle.id,
+      status: puzzle.status,
+      visibility: puzzle.visibility,
+      origin: puzzle.origin as 'upload' | 'prompt',
+      approved,
+    };
   }
 }
 

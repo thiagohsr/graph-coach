@@ -139,6 +139,58 @@ describe('buildDecisionPath', () => {
     expect(withPassage.steps.filter((s) => !s.startsWith('Passage from'))).toEqual(path.steps);
   });
 
+  it('goal and task rows add Goal and Task nodes, their edges, and goal and task steps after the sessions', () => {
+    const goalRows = [
+      row({
+        part: 'toward', fromLabel: 'Decision', fromId: 'd1', type: 'TOWARD', toLabel: 'Goal', toId: 'g1',
+        toData: { text: 'learn the storage engine' }, reason: 'practising toward this goal',
+      }),
+      row({
+        part: 'targets', fromLabel: 'Goal', fromId: 'g1', fromData: { text: 'learn the storage engine' }, type: 'TARGETS',
+        toLabel: 'Concept', toId: 'c-bt', toData: { name: 'B-trees', slug: 'b-trees' }, reason: 'the goal covers this concept',
+      }),
+      row({
+        part: 'requested', fromLabel: 'Decision', fromId: 'd1', type: 'REQUESTED', toLabel: 'Task', toId: 't1',
+        toData: { kind: 'cover', status: 'queued' }, reason: 'requested new puzzles for the Curator',
+      }),
+      row({
+        part: 'concerns', fromLabel: 'Task', fromId: 't1', fromData: { kind: 'cover', status: 'queued' }, type: 'CONCERNS',
+        toLabel: 'Concept', toId: 'c-ix', toData: { name: 'Indexes', slug: 'indexes' }, reason: 'needs more puzzles on this concept',
+      }),
+    ];
+    const withGoal = buildDecisionPath([...workedRows(), ...goalRows]);
+    expect(withGoal.nodes.find((n) => n.id === 'g1')).toMatchObject({ label: 'Goal', title: 'learn the storage engine', props: { text: 'learn the storage engine' } });
+    expect(withGoal.nodes.find((n) => n.id === 't1')).toMatchObject({ label: 'Task', title: 'Coverage request', props: { kind: 'cover', status: 'queued' } });
+    expect(withGoal.edges.filter((e) => ['TOWARD', 'TARGETS', 'REQUESTED', 'CONCERNS'].includes(e.type))).toHaveLength(4);
+    expect(withGoal.edges.every((e) => (e.type === 'BECAUSE') === (e.role !== undefined))).toBe(true);
+    expect(withGoal.steps).toEqual([
+      ...path.steps,
+      'The Coach was working toward your goal "learn the storage engine".',
+      'The Coach asked the Curator for new puzzles on: Indexes.',
+    ]);
+    expect(withGoal.nodes.filter((n) => n.label !== 'Goal' && n.label !== 'Task')).toEqual(path.nodes);
+    // goal lines come before the passage line, which comes before the task line
+    const passage = row({
+      part: 'passage', fromLabel: 'Decision', fromId: 'd1', type: 'BECAUSE', toLabel: 'Chunk', toId: 'k1',
+      toData: { excerpt: 'x', sourceTitle: 'My notes' }, role: 'passage', reason: 'matched the goal (similarity 0.82)', weight: 0.41,
+    });
+    const all = buildDecisionPath([...workedRows(), ...goalRows, passage]);
+    expect(all.steps.slice(path.steps.length)).toEqual([
+      'The Coach was working toward your goal "learn the storage engine".',
+      'Passage from My notes — matched the goal (similarity 0.82).',
+      'The Coach asked the Curator for new puzzles on: Indexes.',
+    ]);
+  });
+
+  it('a long goal text is cut to 80 characters in its title only', () => {
+    const text = 'x'.repeat(120);
+    const result = buildDecisionPath([
+      ...workedRows(),
+      row({ part: 'toward', fromLabel: 'Decision', fromId: 'd1', type: 'TOWARD', toLabel: 'Goal', toId: 'g1', toData: { text } }),
+    ]);
+    expect(result.nodes.find((n) => n.id === 'g1')!.title).toHaveLength(80);
+  });
+
   it('drops properties outside the whitelist', () => {
     const rows = [
       ...workedRows(),

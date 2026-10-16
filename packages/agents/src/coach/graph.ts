@@ -1,5 +1,6 @@
-// The Coach state graph (plan "State graph"): checkRecent -> collectSignals -> selectTarget -> findPuzzles -> explain ->
-// recordDecision, with the reuse, cold-start and no-content shortcuts. No checkpointer: a run is one request.
+// The Coach state graph (plan "State graph"): checkRecent -> [resolveGoal] -> collectSignals -> selectTarget -> findPuzzles
+// -> explain -> recordDecision -> [requestCoverage], with the reuse, cold-start and no-content shortcuts. No
+// checkpointer: a run is one request.
 import { END, START, StateGraph } from '@langchain/langgraph';
 import type { RunHandle, StepHandle } from '../llm/usage-tracer';
 import type { CoachDeps, CoachInput, CoachNode, CoachResult } from './deps';
@@ -7,12 +8,17 @@ import { createCheckRecentNode } from './nodes/check-recent';
 import { createCollectSignalsNode } from './nodes/collect-signals';
 import { createExplainNode } from './nodes/explain';
 import { createFindPuzzlesNode } from './nodes/find-puzzles';
+import { normaliseGoal } from './nodes/check-recent';
 import { createRecordDecisionNode } from './nodes/record-decision';
+import { createRequestCoverageNode } from './nodes/request-coverage';
+import { createResolveGoalNode } from './nodes/resolve-goal';
 import { createSelectTargetNode } from './nodes/select-target';
 import { CoachState, type CoachStateType } from './state';
 
-export function routeAfterCheckRecent(s: CoachStateType): 'reuse' | 'collectSignals' {
-  return s.outcome === 'reused' ? 'reuse' : 'collectSignals';
+/** resolveGoal when a (non-blank) goal was given and no decision is reused. */
+export function routeAfterCheckRecent(s: CoachStateType): 'reuse' | 'resolveGoal' | 'collectSignals' {
+  if (s.outcome === 'reused') return 'reuse';
+  return normaliseGoal(s.goalText) !== '' ? 'resolveGoal' : 'collectSignals';
 }
 
 /** coldStart when the learner has no mastery edge at all. */
@@ -25,9 +31,9 @@ export function routeAfterFindPuzzles(s: CoachStateType): 'explain' | 'noContent
   return s.outcome === 'no_content' || (s.puzzle === null && s.selection === null) ? 'noContent' : 'explain';
 }
 
-// eslint-disable-next-line @typescript-eslint/no-unused-vars -- the goal stretch adds a requestCoverage branch here
-export function routeAfterRecordDecision(_s: CoachStateType): 'end' {
-  return 'end';
+/** requestCoverage only when `explain` saw the creation allowance pass (flag `coverage_requested`). */
+export function routeAfterRecordDecision(s: CoachStateType): 'requestCoverage' | 'end' {
+  return s.flags.includes('coverage_requested') && s.missingConceptIds.length > 0 ? 'requestCoverage' : 'end';
 }
 
 /** Tracer calls for one graph build. Every call is guarded: a faulty tracer never changes the outcome. */
@@ -105,18 +111,26 @@ export function buildCoachGraph(deps: CoachDeps): { invoke(input: CoachInput): P
 
   const graph = new StateGraph(CoachState)
     .addNode('checkRecent', checkRecentThenOpenRun)
+    .addNode('resolveGoal', traced('resolveGoal', createResolveGoalNode(deps)))
     .addNode('collectSignals', traced('collectSignals', createCollectSignalsNode(deps)))
     .addNode('selectTarget', traced('selectTarget', createSelectTargetNode(deps)))
     .addNode('findPuzzles', traced('findPuzzles', createFindPuzzlesNode(deps)))
     .addNode('explain', traced('explain', createExplainNode(deps)))
     .addNode('recordDecision', traced('recordDecision', createRecordDecisionNode(deps)))
+    .addNode('requestCoverage', traced('requestCoverage', createRequestCoverageNode(deps)))
     .addEdge(START, 'checkRecent')
-    .addConditionalEdges('checkRecent', routeAfterCheckRecent, { reuse: END, collectSignals: 'collectSignals' })
+    .addConditionalEdges('checkRecent', routeAfterCheckRecent, {
+      reuse: END,
+      resolveGoal: 'resolveGoal',
+      collectSignals: 'collectSignals',
+    })
+    .addEdge('resolveGoal', 'collectSignals')
     .addConditionalEdges('collectSignals', routeAfterCollectSignals, { coldStart: 'findPuzzles', select: 'selectTarget' })
     .addEdge('selectTarget', 'findPuzzles')
     .addConditionalEdges('findPuzzles', routeAfterFindPuzzles, { explain: 'explain', noContent: END })
     .addEdge('explain', 'recordDecision')
-    .addConditionalEdges('recordDecision', routeAfterRecordDecision, { end: END })
+    .addConditionalEdges('recordDecision', routeAfterRecordDecision, { requestCoverage: 'requestCoverage', end: END })
+    .addEdge('requestCoverage', END)
     .compile();
 
   return {

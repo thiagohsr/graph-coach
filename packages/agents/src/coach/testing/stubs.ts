@@ -146,6 +146,12 @@ export function createStubCoachQueries(overrides: Partial<CoachQueries> = {}): S
     }),
     getDecision: async () => null,
     decisionPath: async () => [],
+    resolveGoalConcepts: async () => [],
+    upsertGoal: async (p) =>
+      p.targets.length === 0
+        ? null
+        : { goalId: p.goalId, targetIds: p.targets.map((t) => t.conceptId), prerequisiteIds: [] },
+    createCoverTask: async (p) => ({ taskId: p.taskId, status: 'queued', concerns: p.conceptIds.length }),
   };
 
   const merged = { ...defaults, ...overrides } as CoachQueries;

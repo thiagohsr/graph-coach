@@ -18,6 +18,8 @@ export interface CoachDeps {
   logger?: CoachLogger;
   /** Optional. Only ever rephrases the summary (stretch, T067). */
   chatModel?: ChatProvider;
+  /** Overrides the constant `PHRASE_WITH_MODEL` (tests; a future setting). Has no effect without `chatModel`. */
+  phraseWithModel?: boolean;
   /** Stretch (goals). */
   embeddings?: EmbeddingsProvider;
   /** Stretch. Read-only: the Coach never consumes allowance. */

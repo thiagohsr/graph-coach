@@ -9,6 +9,8 @@ export function createCollectSignalsNode(deps: Pick<CoachDeps, 'queries' | 'sett
   return async (state) => {
     if ((state.recent?.masteryCount ?? 0) === 0) return { signals: null };
     const { queries, settings, logger } = deps;
+    // With a goal that resolved to concepts, candidates are limited to those concepts and their prerequisites.
+    const scopeIds = state.goal?.scopeIds ?? [];
 
     const weakRows = await queries.weakConceptsWithWeakPrereqs({
       learnerId: state.learnerId,
@@ -16,7 +18,7 @@ export function createCollectSignalsNode(deps: Pick<CoachDeps, 'queries' | 'sett
       decayDays: settings.decayDays,
       threshold: settings.riskThreshold,
       depth: settings.traversalDepth,
-      scopeIds: [],
+      scopeIds,
     });
     const weak = weakRows.filter((row) => {
       if (row.cyclic) logger?.warn('coach.prerequisite_cycle', { conceptId: row.conceptId });
@@ -31,7 +33,7 @@ export function createCollectSignalsNode(deps: Pick<CoachDeps, 'queries' | 'sett
         before,
         decayDays: settings.decayDays,
         depth: settings.traversalDepth,
-        scopeIds: [],
+        scopeIds,
         limit: QUERY_LIMIT,
       });
 

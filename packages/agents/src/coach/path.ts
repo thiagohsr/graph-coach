@@ -122,7 +122,20 @@ export function buildDecisionPath(rows: PathRow[]): DecisionPath {
   const nodeOf = (label: string, id: string): PathNode | undefined => nodes.find((n) => n.label === label && n.id === id);
 
   // Edges: one per row; BECAUSE edges carry role and weight, in role order.
-  const partOrder = ['made', 'for', 'recommended', 'because', 'passage', 'chain', 'answered', 'tests'];
+  const partOrder = [
+    'made',
+    'for',
+    'recommended',
+    'because',
+    'passage',
+    'chain',
+    'answered',
+    'tests',
+    'toward',
+    'targets',
+    'requested',
+    'concerns',
+  ];
   const ordered = [...rows].sort((a, b) => {
     const pa = partOrder.indexOf(a.part);
     const pb = partOrder.indexOf(b.part);
@@ -199,8 +212,21 @@ export function buildDecisionPath(rows: PathRow[]): DecisionPath {
   });
   for (const row of sessions) steps.push(line(row));
 
-  // (6) passage lines, only for a returned passage row (goal and task lines belong to the goal stretch)
+  // (6) goal, passage, and task lines. A passage line exists only for a returned passage row, so a viewer without
+  // source access gets the same steps minus those lines.
+  for (const row of rows.filter((r) => r.part === 'toward')) {
+    steps.push(`The Coach was working toward your goal "${titleById('Goal', row.toId)}".`);
+  }
   for (const row of rows.filter((r) => r.part === 'passage')) steps.push(line(row));
+  const requested = rows.filter((r) => r.part === 'requested');
+  if (requested.length > 0) {
+    const concerned = [...new Set(rows.filter((r) => r.part === 'concerns').map((r) => titleById('Concept', r.toId)))].sort();
+    steps.push(
+      concerned.length > 0
+        ? `The Coach asked the Curator for new puzzles on: ${concerned.join(', ')}.`
+        : 'The Coach asked the Curator for new puzzles.',
+    );
+  }
 
   // (7) the alternatives
   const alternatives = byRole('alternative').sort((a, b) => (b.weight ?? 0) - (a.weight ?? 0) || cmp(a.toId, b.toId));

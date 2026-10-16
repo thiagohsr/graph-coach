@@ -40,10 +40,11 @@ describe('coach query files', () => {
   const queriesSource = readFileSync(join(COACH_DIR, 'queries.ts'), 'utf8');
   const names = [...new Set([...queriesSource.matchAll(/query\(\s*'([a-z_]+)'/g)].map((m) => m[1] as string))];
 
-  it('finds the nine queries of CoachQueries', () => {
+  it('finds the twelve queries of CoachQueries (nine core, three goal stretch)', () => {
     expect(names.sort()).toEqual(
       [
         'concept_answer_evidence',
+        'create_cover_task',
         'decayed_or_unseen_concepts',
         'decision_path',
         'get_decision',
@@ -51,6 +52,8 @@ describe('coach query files', () => {
         'playable_puzzles_covering',
         'recent_decision',
         'record_decision',
+        'resolve_goal_concepts',
+        'upsert_goal',
         'weak_concepts_with_weak_prereqs',
       ].sort(),
     );

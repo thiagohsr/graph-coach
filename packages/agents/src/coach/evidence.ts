@@ -3,12 +3,13 @@ import {
   EVIDENCE_WEIGHTS,
   MAX_ALTERNATIVES,
   MAX_ANSWER_EVIDENCE,
+  MAX_PASSAGE_EVIDENCE,
   MAX_SESSION_EVIDENCE,
   UNSEEN_STRENGTH,
 } from './constants';
-import type { CoachFlag } from './flags';
+import type { CoachFlag } from '@coach/types';
 import { round2, round3 } from './risk';
-import type { AnswerEvidenceRow } from './rows';
+import type { AnswerEvidenceRow, GoalConceptRow } from './rows';
 import type { CoachSettings } from './settings';
 import type { EvidenceItem, EvidenceRole, SelectedConcept, Selection } from './state';
 
@@ -33,6 +34,8 @@ function targetItem(selection: Selection): EvidenceItem {
       return { ...base, reason: 'target: introductory concept with no prerequisites', weight: weight('target', UNSEEN_STRENGTH) };
     case 'unseen':
       return { ...base, reason: 'target: never practised', weight: weight('target', UNSEEN_STRENGTH) };
+    case 'goal':
+      return { ...base, reason: 'target: concept of your goal', weight: weight('target', UNSEEN_STRENGTH) };
     case 'all_mastered':
       return {
         ...base,
@@ -51,10 +54,12 @@ function targetItem(selection: Selection): EvidenceItem {
 export interface BuildEvidenceInput {
   selection: Selection;
   answers: AnswerEvidenceRow[];
+  /** Goal stretch: rows of the goal query. Only `via = 'passage'` rows with a chunk become `passage` evidence. */
+  passages?: GoalConceptRow[];
   flags: CoachFlag[];
 }
 
-// eslint-disable-next-line @typescript-eslint/no-unused-vars -- settings are in the contract signature; weights are constants
+// `_settings` is in the contract signature; weights are constants.
 export function buildEvidence(input: BuildEvidenceInput, _settings?: CoachSettings): EvidenceItem[] {
   const { selection, answers } = input;
   const items: EvidenceItem[] = [targetItem(selection)];
@@ -126,6 +131,24 @@ export function buildEvidence(input: BuildEvidenceInput, _settings?: CoachSettin
       role: 'session',
       reason: `${plural(wrong, 'wrong answer', 'wrong answers')} on these concepts`,
       weight: weight('session', Math.min(wrong, 3) / 3),
+    });
+  }
+
+  // Passages (goal stretch): the best matching chunk per goal concept, one item per chunk, best first. The rows were
+  // already limited to chunks the learner may read at decision time. A name match has no chunk and gives no item.
+  const bestPerChunk = new Map<string, number>();
+  for (const row of input.passages ?? []) {
+    if (row.via !== 'passage' || row.bestChunkId === null) continue;
+    bestPerChunk.set(row.bestChunkId, Math.max(bestPerChunk.get(row.bestChunkId) ?? 0, row.score));
+  }
+  const chunks = [...bestPerChunk.entries()].sort(([ia, a], [ib, b]) => b - a || cmp(ia, ib)).slice(0, MAX_PASSAGE_EVIDENCE);
+  for (const [chunkId, similarity] of chunks) {
+    items.push({
+      label: 'Chunk',
+      nodeId: chunkId,
+      role: 'passage',
+      reason: `matched the goal (similarity ${fmt2(similarity)})`,
+      weight: weight('passage', similarity),
     });
   }
 

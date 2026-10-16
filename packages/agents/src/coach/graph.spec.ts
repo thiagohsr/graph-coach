@@ -1,4 +1,5 @@
 import { describe, expect, it } from 'vitest';
+import { StubEmbeddingsProvider } from '../llm/stub';
 import { ZERO_USAGE } from '../llm/usage';
 import type { CoachDeps } from './deps';
 import { DecisionNotRecordedError, EvidenceMissingError, LearnerNotFoundError } from './errors';
@@ -29,7 +30,7 @@ class GraphUnavailableError extends Error {
 const input = { learnerId: WORKED_IDS.learner, goalText: null, now: T };
 
 function makeDeps(queries: StubCoachQueries, over: Partial<CoachDeps> = {}): CoachDeps {
-  return { queries, settings: DEFAULT_COACH_SETTINGS, newId: () => 'run-1', ...over };
+  return { queries, settings: DEFAULT_COACH_SETTINGS, newId: () => 'run-1', embeddings: new StubEmbeddingsProvider(), ...over };
 }
 
 const reusable = (over = {}) => ({
@@ -178,7 +179,7 @@ describe('runCoach, usage-only tracing', () => {
     await runCoach(makeDeps(queries, { tracer }), { ...input, goalText: 'learn about storage engines' });
     expect(tracer.callsTo('startRun')).toHaveLength(1);
     expect(tracer.callsTo('startRun')[0]!.args).toEqual([{ id: 'run-1', kind: 'coach', userId: WORKED_IDS.learner }]);
-    const nodes = ['collectSignals', 'selectTarget', 'findPuzzles', 'explain', 'recordDecision'];
+    const nodes = ['resolveGoal', 'collectSignals', 'selectTarget', 'findPuzzles', 'explain', 'recordDecision'];
     expect(tracer.callsTo('startStep').map((c) => c.args[1])).toEqual(nodes);
     expect(tracer.callsTo('endStep')).toHaveLength(nodes.length);
     expect(tracer.callsTo('endRun')).toHaveLength(1);
@@ -230,6 +231,17 @@ describe('routers', () => {
     expect(routeAfterCollectSignals(state({ recent: { masteryCount: 3 } }))).toBe('select');
     expect(routeAfterFindPuzzles(state({ puzzle: null, selection: null }))).toBe('noContent');
     expect(routeAfterFindPuzzles(state({ puzzle: null, selection: {} }))).toBe('explain');
+  });
+
+  it('drops a cyclic row and logs coach.prerequisite_cycle with the concept id only (T068)', async () => {
+    const rows = workedExampleRows();
+    const warnings: Array<[string, object | undefined]> = [];
+    const queries = createStubCoachQueries({
+      weakConceptsWithWeakPrereqs: async () => rows.weak.map((w) => (w.conceptId === WORKED_IDS.indexes ? { ...w, cyclic: true } : w)),
+    });
+    const result = await runCoach(makeDeps(queries, { logger: { warn: (e, d) => void warnings.push([e, d]) } }), input);
+    expect(result.outcome).toBe('recorded');
+    expect(warnings).toEqual([['coach.prerequisite_cycle', { conceptId: WORKED_IDS.indexes }]]);
   });
 
   it('builds a graph that can be invoked twice', async () => {

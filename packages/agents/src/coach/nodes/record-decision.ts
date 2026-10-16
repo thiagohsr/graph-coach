@@ -18,7 +18,7 @@ export function createRecordDecisionNode(deps: Pick<CoachDeps, 'queries'>): Coac
       outputTokens: state.usage.outputTokens,
       embeddingTokens: state.usage.embeddingTokens,
       puzzleId,
-      goalId: '',
+      goalId: state.goal?.goalId ?? '',
       evidence: state.evidence,
     });
     if (!result || result.becauseCount < 1 || (puzzleId !== '' && !result.linkedPuzzle)) {

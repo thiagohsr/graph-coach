@@ -1,5 +1,8 @@
+import { createHash } from 'node:crypto';
+import { lstatSync, readFileSync, readdirSync } from 'node:fs';
+import { join, resolve } from 'node:path';
 import type { z } from 'zod';
-import { ProviderError, ProviderUnavailableError, attachUsage } from './errors';
+import { ProviderConfigError, ProviderError,ProviderUnavailableError, attachUsage } from './errors';
 import {
   makeReporter,
   runComplete,
@@ -27,6 +30,58 @@ export function stubTokens(text: string): number {
   return Math.ceil(text.length / 4);
 }
 
+interface RecordedEntry {
+  promptHash: string;
+  response: StubValue;
+}
+
+/** sha-256 (hex) of the message contents joined with "\n" (roles are not hashed). */
+export function promptHash(messages: ChatMessage[]): string {
+  return createHash('sha256').update(messages.map((m) => m.content).join('\n')).digest('hex');
+}
+
+const LABEL_PATTERN = /^[A-Za-z0-9][A-Za-z0-9._-]*$/;
+const isSafeLabel = (label: string): boolean => LABEL_PATTERN.test(label) && !label.includes('..');
+
+function loadRecordings(dir: string): Map<string, RecordedEntry[]> {
+  const root = resolve(dir);
+  let names: string[];
+  try {
+    names = readdirSync(root);
+  } catch {
+    throw new ProviderConfigError(`Recordings directory is not readable: ${root}`, { provider: 'stub' });
+  }
+  const map = new Map<string, RecordedEntry[]>();
+  for (const name of names.sort()) {
+    if (!name.endsWith('.json')) continue;
+    const label = name.slice(0, -'.json'.length);
+    if (!isSafeLabel(label)) continue;
+    const file = join(root, name);
+    if (!lstatSync(file).isFile()) continue;
+    let parsed: unknown;
+    try {
+      parsed = JSON.parse(readFileSync(file, 'utf8'));
+    } catch {
+      throw new ProviderConfigError(`Recording file is not valid JSON: ${name}`, { provider: 'stub' });
+    }
+    const entries = (parsed as { responses?: unknown } | null)?.responses;
+    if (!Array.isArray(entries)) {
+      throw new ProviderConfigError(`Recording file ${name} needs a "responses" array`, { provider: 'stub' });
+    }
+    const list: RecordedEntry[] = [];
+    for (const e of entries as Array<Record<string, unknown>>) {
+      if (typeof e?.promptHash !== 'string' || e.response === undefined || e.response === null) {
+        throw new ProviderConfigError(`Recording file ${name} has an entry without promptHash/response`, {
+          provider: 'stub',
+        });
+      }
+      list.push({ promptHash: e.promptHash, response: e.response as StubValue });
+    }
+    map.set(label, list);
+  }
+  return map;
+}
+
 type Matcher = string | RegExp;
 const matches = (m: Matcher, label: string | undefined): boolean =>
   label !== undefined && (typeof m === 'string' ? m === label : new RegExp(m.source, m.flags.replace('g', '')).test(label));
@@ -41,9 +96,26 @@ export class StubChatProvider implements ChatProvider {
   private readonly tracer: UsageTracer | undefined;
   private readonly noResponseMessage: string | undefined;
 
+  private recordings: Map<string, RecordedEntry[]> | undefined;
+
   constructor(options: { tracer?: UsageTracer; noResponseMessage?: string } = {}) {
     this.tracer = options.tracer;
     this.noResponseMessage = options.noResponseMessage;
+  }
+
+  /**
+   * Recorded-response mode: answers by label and prompt hash from `<label>.json` files in `dir`
+   * (format: seed/recordings/README.md). The directory is resolved and read once, here; only
+   * regular `.json` files directly inside it are read. A call with no matching recording throws
+   * ProviderUnavailableError naming the label (never the prompt text).
+   */
+  static fromRecordings(
+    dir: string,
+    options: { tracer?: UsageTracer } = {},
+  ): StubChatProvider {
+    const provider = new StubChatProvider(options);
+    provider.recordings = loadRecordings(dir);
+    return provider;
   }
 
   /** The same response for every call whose label matches. */
@@ -103,7 +175,11 @@ export class StubChatProvider implements ChatProvider {
     for (const q of this.queued) {
       if (q.responses.length > 0 && matches(q.matcher, call.label)) return q.responses.shift();
     }
-    return this.fixed.find((f) => matches(f.matcher, call.label))?.response;
+    const fixed = this.fixed.find((f) => matches(f.matcher, call.label))?.response;
+    if (fixed !== undefined || !this.recordings) return fixed;
+    if (call.label === undefined || !isSafeLabel(call.label)) return undefined;
+    const hash = promptHash(call.messages);
+    return this.recordings.get(call.label)?.find((e) => e.promptHash === hash)?.response;
   }
 
   private async attempt(messages: ChatMessage[], options: ChatOptions, structured: boolean): Promise<RawChat> {
@@ -111,8 +187,11 @@ export class StubChatProvider implements ChatProvider {
     this.calls.push(call);
     const scripted = this.next(call);
     if (scripted === undefined) {
+      const hash = promptHash(messages);
       throw new ProviderUnavailableError(
-        this.noResponseMessage ?? `Stub chat provider has no response for label "${options.label ?? '(none)'}"`,
+        this.recordings
+          ? `No recorded response for label "${options.label ?? '(none)'}" (prompt hash ${hash})`
+          : this.noResponseMessage ?? `Stub chat provider has no response for label "${options.label ?? '(none)'}"`,
         { provider: 'stub', ...(options.label ? { label: options.label } : {}), usage: { ...ZERO_USAGE } },
       );
     }

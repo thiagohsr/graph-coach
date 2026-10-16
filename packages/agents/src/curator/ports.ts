@@ -210,6 +210,24 @@ export interface CuratorGraphPort {
     questions: GeneratedQuestionWrite[],
     now: number,
   ): Promise<number>;
+  /** Counts of a task's drafts. Used when a review decision may close the task. */
+  remainingDrafts(taskId: string): Promise<RemainingCounts>;
+  /** Publishes at `minQuestions` approved (never reverts); null only reads the state. Null when the puzzle is unknown. */
+  publishPuzzle(puzzleId: string, minQuestions: number | null): Promise<PuzzleState | null>;
+}
+
+export interface RemainingCounts {
+  remaining: number;
+  approved: number;
+  rejected: number;
+}
+
+export interface PuzzleState {
+  id: string;
+  status: 'draft' | 'published';
+  visibility: 'private' | 'public';
+  origin: 'upload' | 'prompt';
+  approved: number;
 }
 
 // ─── Step recording ──────────────────────────────────────────────────────────

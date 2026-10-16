@@ -1,7 +1,7 @@
 import { Annotation } from '@langchain/langgraph';
 import { ZERO_USAGE, addUsage, type Usage } from '../llm/usage';
-import type { CoachFlag } from './flags';
-import type { DecayedRow, RecentDecisionRow, WeakRow } from './rows';
+import type { CoachFlag } from '@coach/types';
+import type { DecayedRow, GoalConceptRow, RecentDecisionRow, WeakRow } from './rows';
 
 export interface Signals {
   tier: 1 | 2 | 3;
@@ -21,7 +21,27 @@ export interface SelectedConcept {
   risk: number | null;
 }
 
-export type SelectionKind = 'weak' | 'unseen' | 'decayed' | 'all_mastered' | 'cold_start';
+/** `goal`: nothing in the goal's scope had signals or content, so the goal's best concept is the target (stretch). */
+export type SelectionKind = 'weak' | 'unseen' | 'decayed' | 'all_mastered' | 'cold_start' | 'goal';
+
+/** A concept the goal resolved to; `score` is a similarity for a passage match, 1 for a name match. */
+export interface GoalConcept {
+  conceptId: string;
+  slug: string;
+  name: string;
+  score: number;
+}
+
+/** The stored goal and what it resolved to (stretch). An unmatched goal has empty `concepts`, `targetIds`, and `scopeIds`. */
+export interface ResolvedGoal {
+  goalId: string;
+  concepts: GoalConcept[];
+  targetIds: string[];
+  /** Targets plus their upstream prerequisites; limits the candidate queries. */
+  scopeIds: string[];
+  /** One row per concept matched through a passage (`via = 'passage'`); the only source of `passage` evidence. */
+  passages: GoalConceptRow[];
+}
 
 export interface Selection {
   kind: SelectionKind;
@@ -62,6 +82,7 @@ export const CoachState = Annotation.Root({
   runId: Annotation<string>(),
   // working channels (last value wins)
   recent: last<RecentDecisionRow | null>(() => null),
+  goal: last<ResolvedGoal | null>(() => null),
   signals: last<Signals | null>(() => null),
   selection: last<Selection | null>(() => null),
   puzzle: last<PuzzleChoice | null>(() => null),

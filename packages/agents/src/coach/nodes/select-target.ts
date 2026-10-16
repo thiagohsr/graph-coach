@@ -1,13 +1,13 @@
 import type { CoachNode } from '../deps';
-import type { CoachFlag } from '../flags';
+import type { CoachFlag } from '@coach/types';
 import type { CoachDeps } from '../deps';
+import { goalSelection } from '../goal';
 import { selectTarget } from '../select';
 
-/** Pure rule, no I/O: picks the target and sets the tier flags. */
+/** Pure rule, no I/O: picks the target and sets the tier flags. With a goal and no candidate in its scope: the goal's concept. */
 export function createSelectTargetNode(deps: Pick<CoachDeps, 'settings'>): CoachNode {
   return async (state) => {
-    if (!state.signals) return { selection: null };
-    const selection = selectTarget(state.signals, deps.settings);
+    const selection = (state.signals ? selectTarget(state.signals, deps.settings) : null) ?? goalSelection(state.goal);
     if (!selection) return { selection: null };
     const flags: CoachFlag[] = [];
     if (selection.kind === 'unseen') flags.push('unseen');

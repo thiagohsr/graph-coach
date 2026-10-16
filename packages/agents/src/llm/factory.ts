@@ -1,3 +1,4 @@
+import { fileURLToPath } from 'node:url';
 import { assertValidConfig, type EmbeddingsConfig, type LlmConfig } from './config';
 import { createOllamaChatProvider, createOllamaEmbeddingsProvider } from './ollama';
 import { createOpenAiChatProvider, createOpenAiEmbeddingsProvider } from './openai-compatible';
@@ -9,6 +10,9 @@ export function createChatProvider(config: LlmConfig, options: { tracer?: UsageT
   assertValidConfig(config, 'LLM');
   switch (config.provider) {
     case 'stub':
+      if (config.baseUrl?.startsWith('file:')) {
+        return StubChatProvider.fromRecordings(fileURLToPath(config.baseUrl), options);
+      }
       return new StubChatProvider({
         ...options,
         noResponseMessage: 'LLM provider is "stub"; set LLM_PROVIDER to use this feature',
