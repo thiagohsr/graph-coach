@@ -39,7 +39,11 @@ export function defaultSeedDir(): string {
     }
   }
   throw new SeedReadError([
-    { file: 'seed', path: '', message: 'cannot locate pnpm-workspace.yaml above this package; pass a directory' },
+    {
+      file: 'seed',
+      path: '',
+      message: 'cannot locate pnpm-workspace.yaml above this package; pass a directory',
+    },
   ]);
 }
 
@@ -48,7 +52,11 @@ export function countWords(text: string): number {
 }
 
 function zodIssues(file: string, error: z.ZodError): SeedIssue[] {
-  return error.issues.map((issue) => ({ file, path: issue.path.join('.'), message: issue.message }));
+  return error.issues.map((issue) => ({
+    file,
+    path: issue.path.join('.'),
+    message: issue.message,
+  }));
 }
 
 /** Reads and parses seed/ (default: <repo root>/seed). Throws SeedReadError with all issues if parsing fails. */
@@ -65,7 +73,11 @@ export async function readSeedDir(dir: string = defaultSeedDir()): Promise<SeedD
     try {
       raw = JSON.parse(readFileSync(path, 'utf8'));
     } catch (error) {
-      issues.push({ file: relative, path: '', message: `invalid JSON: ${(error as Error).message}` });
+      issues.push({
+        file: relative,
+        path: '',
+        message: `invalid JSON: ${(error as Error).message}`,
+      });
       return undefined;
     }
     const parsed = schema.safeParse(raw);

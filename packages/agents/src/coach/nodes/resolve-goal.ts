@@ -13,11 +13,19 @@ export function mergeGoalConcepts(rows: GoalConceptRow[]): GoalConcept[] {
   for (const row of rows) {
     const known = best.get(row.conceptId);
     if (!known || row.score > known.score) {
-      best.set(row.conceptId, { conceptId: row.conceptId, slug: row.slug, name: row.name, score: row.score });
+      best.set(row.conceptId, {
+        conceptId: row.conceptId,
+        slug: row.slug,
+        name: row.name,
+        score: row.score,
+      });
     }
   }
   return [...best.values()].sort(
-    (a, b) => b.score - a.score || (a.name < b.name ? -1 : a.name > b.name ? 1 : 0) || (a.slug < b.slug ? -1 : a.slug > b.slug ? 1 : 0),
+    (a, b) =>
+      b.score - a.score ||
+      (a.name < b.name ? -1 : a.name > b.name ? 1 : 0) ||
+      (a.slug < b.slug ? -1 : a.slug > b.slug ? 1 : 0),
   );
 }
 
@@ -37,11 +45,17 @@ export function createResolveGoalNode(
     if (normalised === '') return { goal: null };
     const { embeddings } = deps;
     if (!embeddings) {
-      throw new ProviderUnavailableError('No embeddings provider is configured', { provider: 'none', label: 'coach.resolveGoal' });
+      throw new ProviderUnavailableError('No embeddings provider is configured', {
+        provider: 'none',
+        label: 'coach.resolveGoal',
+      });
     }
 
     // A failed call throws a ProviderError that carries its own usage; the run ends there and nothing is stored.
-    const result = await embeddings.embed([text], { label: 'coach.resolveGoal', ...(step ? { trace: step } : {}) });
+    const result = await embeddings.embed([text], {
+      label: 'coach.resolveGoal',
+      ...(step ? { trace: step } : {}),
+    });
     const usage: Usage = result.usage;
     const embedding = result.vectors[0];
     if (!embedding) {
@@ -82,6 +96,10 @@ export function createResolveGoalNode(
     const targetIds = concepts.map((c) => c.conceptId);
     const scopeIds = [...new Set([...targetIds, ...[...(scope?.prerequisiteIds ?? [])].sort()])];
     const goal: ResolvedGoal = { goalId: id, concepts, targetIds, scopeIds, passages };
-    return { goal, usage, ...(concepts.length === 0 ? { flags: ['goal_unmatched' as const] } : {}) };
+    return {
+      goal,
+      usage,
+      ...(concepts.length === 0 ? { flags: ['goal_unmatched' as const] } : {}),
+    };
   };
 }

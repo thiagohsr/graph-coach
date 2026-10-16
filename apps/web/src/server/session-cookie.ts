@@ -41,7 +41,10 @@ function deriveKey(secret: string, purpose: string): Buffer {
 export function seal(payload: unknown, secret: string, purpose = 'session'): string {
   const iv = randomBytes(12);
   const cipher = createCipheriv('aes-256-gcm', deriveKey(secret, purpose), iv);
-  const ciphertext = Buffer.concat([cipher.update(JSON.stringify(payload), 'utf8'), cipher.final()]);
+  const ciphertext = Buffer.concat([
+    cipher.update(JSON.stringify(payload), 'utf8'),
+    cipher.final(),
+  ]);
   return Buffer.concat([iv, cipher.getAuthTag(), ciphertext]).toString('base64url');
 }
 
@@ -50,7 +53,11 @@ export function unseal<T = unknown>(value: string, secret: string, purpose = 'se
   try {
     const raw = Buffer.from(value, 'base64url');
     if (raw.length < 12 + 16 + 1) return null;
-    const decipher = createDecipheriv('aes-256-gcm', deriveKey(secret, purpose), raw.subarray(0, 12));
+    const decipher = createDecipheriv(
+      'aes-256-gcm',
+      deriveKey(secret, purpose),
+      raw.subarray(0, 12),
+    );
     decipher.setAuthTag(raw.subarray(12, 28));
     const plain = Buffer.concat([decipher.update(raw.subarray(28)), decipher.final()]);
     return JSON.parse(plain.toString('utf8')) as T;
@@ -155,22 +162,30 @@ function sessionMaxAge(session: Session, now: number): number {
  */
 export function writeSession(
   session: Session,
-  { secret, secure, existing = [], now = Date.now() }: CookieOptions & { existing?: string[]; now?: number },
+  {
+    secret,
+    secure,
+    existing = [],
+    now = Date.now(),
+  }: CookieOptions & { existing?: string[]; now?: number },
 ): string[] {
   const sealed = seal(session, secret);
   // Budget per chunk: name, '=', and for the first chunk the count prefix (up to two digits and a dot).
   const budget = (i: number) => CHUNK_LIMIT - chunkName(i).length - 1 - (i === 0 ? 3 : 0);
   const chunks: string[] = [];
-  for (let pos = 0; pos < sealed.length || chunks.length === 0; ) {
+  for (let pos = 0; pos < sealed.length || chunks.length === 0;) {
     const size = budget(chunks.length);
     chunks.push(sealed.slice(pos, pos + size));
     pos += size;
   }
   const attrs = { maxAge: sessionMaxAge(session, now), secure };
-  const headers = chunks.map((c, i) => serialize(chunkName(i), i === 0 ? `${chunks.length}.${c}` : c, attrs));
+  const headers = chunks.map((c, i) =>
+    serialize(chunkName(i), i === 0 ? `${chunks.length}.${c}` : c, attrs),
+  );
   for (const name of existing) {
     const m = CHUNK_NAME.exec(name);
-    if (m && Number(m[1]) >= chunks.length) headers.push(serialize(name, '', { maxAge: 0, secure }));
+    if (m && Number(m[1]) >= chunks.length)
+      headers.push(serialize(name, '', { maxAge: 0, secure }));
   }
   return headers;
 }
@@ -189,14 +204,18 @@ export function readSession(cookies: Record<string, string>, secret: string): Se
     sealed += chunk;
   }
   const payload = unseal<Partial<Session>>(sealed, secret);
-  if (!payload || typeof payload.accessToken !== 'string' || typeof payload.expiresAt !== 'number') return null;
+  if (!payload || typeof payload.accessToken !== 'string' || typeof payload.expiresAt !== 'number')
+    return null;
   const session: Session = { accessToken: payload.accessToken, expiresAt: payload.expiresAt };
   if (typeof payload.refreshToken === 'string') session.refreshToken = payload.refreshToken;
   return session;
 }
 
 /** Expires every chunk in `existing`, and always the first one. */
-export function clearSession({ secure, existing = [] }: CookieOptions & { existing?: string[] }): string[] {
+export function clearSession({
+  secure,
+  existing = [],
+}: CookieOptions & { existing?: string[] }): string[] {
   const names = new Set([chunkName(0), ...existing.filter((n) => CHUNK_NAME.test(n))]);
   return [...names].map((n) => serialize(n, '', { maxAge: 0, secure }));
 }
@@ -204,14 +223,26 @@ export function clearSession({ secure, existing = [] }: CookieOptions & { existi
 // --- Sign-in transaction ----------------------------------------------------------------------------------
 
 export function writeTransaction(tx: AuthTransaction, { secret, secure }: CookieOptions): string {
-  return serialize(TRANSACTION_COOKIE, seal(tx, secret, 'tx'), { maxAge: TRANSACTION_MAX_AGE, secure });
+  return serialize(TRANSACTION_COOKIE, seal(tx, secret, 'tx'), {
+    maxAge: TRANSACTION_MAX_AGE,
+    secure,
+  });
 }
 
-export function readTransaction(cookies: Record<string, string>, secret: string): AuthTransaction | null {
+export function readTransaction(
+  cookies: Record<string, string>,
+  secret: string,
+): AuthTransaction | null {
   const value = cookies[TRANSACTION_COOKIE];
   if (!value) return null;
   const tx = unseal<Partial<AuthTransaction>>(value, secret, 'tx');
-  if (!tx || typeof tx.state !== 'string' || typeof tx.codeVerifier !== 'string' || typeof tx.redirect !== 'string') return null;
+  if (
+    !tx ||
+    typeof tx.state !== 'string' ||
+    typeof tx.codeVerifier !== 'string' ||
+    typeof tx.redirect !== 'string'
+  )
+    return null;
   return { state: tx.state, codeVerifier: tx.codeVerifier, redirect: tx.redirect };
 }
 

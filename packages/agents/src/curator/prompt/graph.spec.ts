@@ -52,7 +52,13 @@ function setup(
   const run = (entry: PromptNode = 'outline', over: Partial<typeof deps> = {}) =>
     runPromptCreation(
       { ...deps, ...over },
-      { taskId: TASK, sourceId: SOURCE, ownerId: OWNER, entry, minQuestions: options.minQuestions ?? 3 },
+      {
+        taskId: TASK,
+        sourceId: SOURCE,
+        ownerId: OWNER,
+        entry,
+        minQuestions: options.minQuestions ?? 3,
+      },
     );
   return { graph, chat, embeddings, tracer, deps, run };
 }
@@ -123,7 +129,10 @@ describe('runPromptCreation', () => {
   });
 
   it('rewrites once: a draft judged rewrite then pass is stored as rewritten, rewrite then not-pass is absent', async () => {
-    const s = setup({ firstVerdicts: { 1: 'rewrite', 2: 'rewrite' }, secondVerdicts: { 2: 'reject' } });
+    const s = setup({
+      firstVerdicts: { 1: 'rewrite', 2: 'rewrite' },
+      secondVerdicts: { 2: 'reject' },
+    });
     const result = await s.run();
     expect(result.outcome).toBe('awaiting_review');
     const questions = [...s.graph.questions.values()];
@@ -135,9 +144,13 @@ describe('runPromptCreation', () => {
     // Draft index 2 was dropped: nothing stored has its fact.
     const planned = s.graph.sources.get(SOURCE)!.outline!.sentences;
     const droppedFact = planned[2]!.fact;
-    expect(questions.some((q) => q.sentence.replace('___', '') === droppedFact.replace(/\bcall number\b|\baccession register\b/i, ''))).toBe(
-      false,
-    );
+    expect(
+      questions.some(
+        (q) =>
+          q.sentence.replace('___', '') ===
+          droppedFact.replace(/\bcall number\b|\baccession register\b/i, ''),
+      ),
+    ).toBe(false);
   });
 
   it('keeps the usage as the stubs return it: refine is zero without a rewrite and two calls with one; totals are sums', async () => {
@@ -160,7 +173,9 @@ describe('runPromptCreation', () => {
   });
 
   it('ends nothing_usable, with no puzzle and no question, when fewer drafts survive than minQuestions', async () => {
-    const s = setup({ firstVerdicts: { 0: 'reject', 1: 'reject', 2: 'reject', 3: 'reject', 4: 'reject' } });
+    const s = setup({
+      firstVerdicts: { 0: 'reject', 1: 'reject', 2: 'reject', 3: 'reject', 4: 'reject' },
+    });
     const result = await s.run();
     expect(result.outcome).toBe('nothing_usable');
     expect(s.graph.count('Puzzle')).toBe(0);
@@ -238,11 +253,19 @@ describe('runPromptCreation', () => {
       if (handle.node === 'critique') alive = false;
     };
     const error = await s.run().catch((e: unknown) => e);
-    expect(error).toMatchObject({ name: 'CuratorStepError', code: 'ACCOUNT_BLOCKED', node: 'refine' });
+    expect(error).toMatchObject({
+      name: 'CuratorStepError',
+      code: 'ACCOUNT_BLOCKED',
+      node: 'refine',
+    });
     expect((error as { toTaskError(): string }).toTaskError()).toBe(
       'refine: ACCOUNT_BLOCKED: account blocked',
     );
-    expect(s.graph.stepsOf(TASK).map((x) => x.node)).toEqual(['outline', 'draftQuestions', 'critique']);
+    expect(s.graph.stepsOf(TASK).map((x) => x.node)).toEqual([
+      'outline',
+      'draftQuestions',
+      'critique',
+    ]);
     expect(s.chat.callCount(PROMPT_LABELS.rewrite)).toBe(0);
     expect(s.graph.count('Puzzle')).toBe(0);
   });

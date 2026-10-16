@@ -25,7 +25,10 @@ const NODES: CuratorNode[] = [
 ];
 
 function setup(
-  options: { embeddings?: StubEmbeddingsProvider; isActive?: (id: string) => Promise<boolean> } = {},
+  options: {
+    embeddings?: StubEmbeddingsProvider;
+    isActive?: (id: string) => Promise<boolean>;
+  } = {},
 ) {
   const tracer = new RecordingUsageTracer();
   const graph = new FakeCuratorGraph();
@@ -88,7 +91,10 @@ describe('a provider that fails', () => {
       code: 'PROVIDER_UNAVAILABLE',
       node: 'extractConcepts',
     });
-    expect(s.graph.stepsOf(TASK).at(-1)).toMatchObject({ node: 'extractConcepts', status: 'error' });
+    expect(s.graph.stepsOf(TASK).at(-1)).toMatchObject({
+      node: 'extractConcepts',
+      status: 'error',
+    });
     expect(s.graph.count('Concept')).toBe(0);
     expect(s.graph.countWrites('upsertConcepts')).toBe(0);
   });

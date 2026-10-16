@@ -4,16 +4,29 @@ import { forward, type ProxyDeps } from './proxy';
 import type { Session } from './session-cookie';
 import type { FreshSession } from './token-refresh';
 
-const session: Session = { accessToken: 'ACCESS', refreshToken: 'REFRESH', expiresAt: Date.now() + 3600_000 };
-const refreshedSession: Session = { accessToken: 'ACCESS2', refreshToken: 'REFRESH2', expiresAt: Date.now() + 3600_000 };
+const session: Session = {
+  accessToken: 'ACCESS',
+  refreshToken: 'REFRESH',
+  expiresAt: Date.now() + 3600_000,
+};
+const refreshedSession: Session = {
+  accessToken: 'ACCESS2',
+  refreshToken: 'REFRESH2',
+  expiresAt: Date.now() + 3600_000,
+};
 
 type FetchMock = ReturnType<typeof vi.fn>;
 
-function makeDeps(overrides: Partial<ProxyDeps> = {}): ProxyDeps & { fetch: FetchMock; ensureFresh: FetchMock } {
+function makeDeps(
+  overrides: Partial<ProxyDeps> = {},
+): ProxyDeps & { fetch: FetchMock; ensureFresh: FetchMock } {
   const base = {
     apiUrl: 'http://api:3001/api',
     session,
-    ensureFresh: vi.fn(async (s: Session): Promise<FreshSession | null> => ({ session: s, refreshed: false })),
+    ensureFresh: vi.fn(async (s: Session): Promise<FreshSession | null> => ({
+      session: s,
+      refreshed: false,
+    })),
     forwardedFor: '203.0.113.9',
     publicOrigin: 'http://localhost:3000',
     fetch: vi.fn(async () => Response.json({ ok: true })),
@@ -23,9 +36,13 @@ function makeDeps(overrides: Partial<ProxyDeps> = {}): ProxyDeps & { fetch: Fetc
   return { ...base, ...overrides } as ProxyDeps & { fetch: FetchMock; ensureFresh: FetchMock };
 }
 
-const req = (path: string, init: RequestInit = {}) => new Request(`http://localhost:3000${path}`, init);
+const req = (path: string, init: RequestInit = {}) =>
+  new Request(`http://localhost:3000${path}`, init);
 
-function upstreamCall(deps: { fetch: FetchMock }, n = 0): { url: string; init: RequestInit; headers: Headers } {
+function upstreamCall(
+  deps: { fetch: FetchMock },
+  n = 0,
+): { url: string; init: RequestInit; headers: Headers } {
   const [url, init] = deps.fetch.mock.calls[n]! as [string, RequestInit];
   return { url, init, headers: new Headers(init.headers) };
 }
@@ -33,7 +50,10 @@ function upstreamCall(deps: { fetch: FetchMock }, n = 0): { url: string; init: R
 describe('forward: building the upstream request', () => {
   it('forwards with the Bearer token from the session to {API_URL}/{splat}{search}', async () => {
     const deps = makeDeps();
-    const res = await forward(req('/api/puzzles?x=1&y=2', { headers: { accept: 'application/json' } }), deps);
+    const res = await forward(
+      req('/api/puzzles?x=1&y=2', { headers: { accept: 'application/json' } }),
+      deps,
+    );
     expect(res.status).toBe(200);
     const { url, init, headers } = upstreamCall(deps);
     expect(url).toBe('http://api:3001/api/puzzles?x=1&y=2');
@@ -71,7 +91,11 @@ describe('forward: building the upstream request', () => {
   it('forwards the method and body of writes with their Content-Type', async () => {
     const deps = makeDeps();
     await forward(
-      req('/api/puzzles/p1/shares', { method: 'PUT', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ email: 'a@b.c' }) }),
+      req('/api/puzzles/p1/shares', {
+        method: 'PUT',
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify({ email: 'a@b.c' }),
+      }),
       deps,
     );
     const { init, headers } = upstreamCall(deps);
@@ -112,18 +136,39 @@ describe('forward: refusals', () => {
   it('refuses a foreign Origin on POST, PUT, PATCH, and DELETE but not on GET', async () => {
     for (const method of ['POST', 'PUT', 'PATCH', 'DELETE']) {
       const deps = makeDeps();
-      const res = await forward(req('/api/puzzles/p1/shares', { method, headers: { origin: 'http://evil.example' }, body: method === 'DELETE' ? undefined : '{}' }), deps);
+      const res = await forward(
+        req('/api/puzzles/p1/shares', {
+          method,
+          headers: { origin: 'http://evil.example' },
+          body: method === 'DELETE' ? undefined : '{}',
+        }),
+        deps,
+      );
       expect(res.status, method).toBe(403);
       expect((await res.json()).error.code).toBe('FORBIDDEN');
       expect(deps.fetch).not.toHaveBeenCalled();
     }
     const deps = makeDeps();
-    expect((await forward(req('/api/puzzles', { headers: { origin: 'http://evil.example' } }), deps)).status).toBe(200);
+    expect(
+      (await forward(req('/api/puzzles', { headers: { origin: 'http://evil.example' } }), deps))
+        .status,
+    ).toBe(200);
   });
 
   it('accepts the public origin and a missing Origin on writes', async () => {
     const deps = makeDeps();
-    expect((await forward(req('/api/x', { method: 'POST', headers: { origin: 'http://localhost:3000' }, body: '{}' }), deps)).status).toBe(200);
+    expect(
+      (
+        await forward(
+          req('/api/x', {
+            method: 'POST',
+            headers: { origin: 'http://localhost:3000' },
+            body: '{}',
+          }),
+          deps,
+        )
+      ).status,
+    ).toBe(200);
     expect((await forward(req('/api/x', { method: 'POST', body: '{}' }), deps)).status).toBe(200);
   });
 
@@ -131,7 +176,17 @@ describe('forward: refusals', () => {
     const deps = makeDeps();
     expect((await forward(req('/api/puzzles', { method: 'OPTIONS' }), deps)).status).toBe(404);
     expect((await forward(req('/api/puzzles', { method: 'HEAD' }), deps)).status).toBe(404);
-    for (const path of ['/api/a//b', '/api/a%2Fb', '/api/a%2fb', '/api/a%5Cb', '/api/a%5cb', '/api/a%2e%2e/b', '/api/%00', '/api/', '/apix/b']) {
+    for (const path of [
+      '/api/a//b',
+      '/api/a%2Fb',
+      '/api/a%2fb',
+      '/api/a%5Cb',
+      '/api/a%5cb',
+      '/api/a%2e%2e/b',
+      '/api/%00',
+      '/api/',
+      '/apix/b',
+    ]) {
       const res = await forward(req(path), deps);
       expect(res.status, path).toBe(404);
     }
@@ -146,7 +201,13 @@ describe('forward: responses', () => {
         async () =>
           new Response(JSON.stringify({ error: { code: 'RATE_LIMITED', message: 'slow' } }), {
             status: 429,
-            headers: { 'Content-Type': 'application/json', 'Retry-After': '30', 'Cache-Control': 'no-store', 'Set-Cookie': 'evil=1', 'X-Internal': 'drop' },
+            headers: {
+              'Content-Type': 'application/json',
+              'Retry-After': '30',
+              'Cache-Control': 'no-store',
+              'Set-Cookie': 'evil=1',
+              'X-Internal': 'drop',
+            },
           }),
       ),
     });
@@ -169,7 +230,9 @@ describe('forward: responses', () => {
 
   it('passes a 403 ACCOUNT_BLOCKED through unchanged and keeps the session', async () => {
     const deps = makeDeps({
-      fetch: vi.fn(async () => Response.json({ error: { code: 'ACCOUNT_BLOCKED', message: 'Blocked' } }, { status: 403 })),
+      fetch: vi.fn(async () =>
+        Response.json({ error: { code: 'ACCOUNT_BLOCKED', message: 'Blocked' } }, { status: 403 }),
+      ),
     });
     const res = await forward(req('/api/puzzles'), deps);
     expect(res.status).toBe(403);
@@ -206,10 +269,19 @@ describe('forward: responses', () => {
           : Response.json({ error: { code: 'UNAUTHENTICATED', message: 'no' } }, { status: 401 });
       }),
       ensureFresh: vi.fn(async (_s: Session, opts?: { force?: boolean }) =>
-        opts?.force ? { session: refreshedSession, refreshed: true } : { session, refreshed: false },
+        opts?.force
+          ? { session: refreshedSession, refreshed: true }
+          : { session, refreshed: false },
       ),
     });
-    const res = await forward(req('/api/puzzles', { method: 'POST', body: '{"a":1}', headers: { 'content-type': 'application/json' } }), deps);
+    const res = await forward(
+      req('/api/puzzles', {
+        method: 'POST',
+        body: '{"a":1}',
+        headers: { 'content-type': 'application/json' },
+      }),
+      deps,
+    );
     expect(res.status).toBe(200);
     expect(await res.json()).toEqual({ ok: 'second' });
     expect(calls).toEqual(['Bearer ACCESS', 'Bearer ACCESS2']);
@@ -221,9 +293,13 @@ describe('forward: responses', () => {
 
   it('passes a second 401 on and clears the cookies', async () => {
     const deps = makeDeps({
-      fetch: vi.fn(async () => Response.json({ error: { code: 'UNAUTHENTICATED', message: 'no' } }, { status: 401 })),
+      fetch: vi.fn(async () =>
+        Response.json({ error: { code: 'UNAUTHENTICATED', message: 'no' } }, { status: 401 }),
+      ),
       ensureFresh: vi.fn(async (_s: Session, opts?: { force?: boolean }) =>
-        opts?.force ? { session: refreshedSession, refreshed: true } : { session, refreshed: false },
+        opts?.force
+          ? { session: refreshedSession, refreshed: true }
+          : { session, refreshed: false },
       ),
     });
     const res = await forward(req('/api/puzzles'), deps);
@@ -234,8 +310,12 @@ describe('forward: responses', () => {
 
   it('clears the cookies when an upstream 401 cannot be refreshed', async () => {
     const deps = makeDeps({
-      fetch: vi.fn(async () => Response.json({ error: { code: 'UNAUTHENTICATED', message: 'no' } }, { status: 401 })),
-      ensureFresh: vi.fn(async (_s: Session, opts?: { force?: boolean }) => (opts?.force ? null : { session, refreshed: false })),
+      fetch: vi.fn(async () =>
+        Response.json({ error: { code: 'UNAUTHENTICATED', message: 'no' } }, { status: 401 }),
+      ),
+      ensureFresh: vi.fn(async (_s: Session, opts?: { force?: boolean }) =>
+        opts?.force ? null : { session, refreshed: false },
+      ),
     });
     const res = await forward(req('/api/puzzles'), deps);
     expect(res.status).toBe(401);
@@ -247,7 +327,9 @@ describe('forward: responses', () => {
     const dev: Session = { accessToken: 'DEV', expiresAt: Date.now() + 60_000 };
     const deps = makeDeps({
       session: dev,
-      fetch: vi.fn(async () => Response.json({ error: { code: 'UNAUTHENTICATED', message: 'no' } }, { status: 401 })),
+      fetch: vi.fn(async () =>
+        Response.json({ error: { code: 'UNAUTHENTICATED', message: 'no' } }, { status: 401 }),
+      ),
     });
     const res = await forward(req('/api/puzzles'), deps);
     expect(res.status).toBe(401);
@@ -268,7 +350,13 @@ describe('forward: streams', () => {
       },
     });
     const deps = makeDeps({
-      fetch: vi.fn(async () => new Response(upstreamBody, { status: 200, headers: { 'Content-Type': 'text/event-stream', 'Content-Encoding': 'gzip' } })),
+      fetch: vi.fn(
+        async () =>
+          new Response(upstreamBody, {
+            status: 200,
+            headers: { 'Content-Type': 'text/event-stream', 'Content-Encoding': 'gzip' },
+          }),
+      ),
     });
     const res = await forward(req('/api/tasks/t1/events'), deps);
     expect(res.headers.get('Content-Type')).toBe('text/event-stream');
@@ -294,7 +382,10 @@ describe('forward: streams', () => {
         return new Response('x', { headers: { 'Content-Type': 'text/event-stream' } });
       }),
     });
-    await forward(new Request('http://localhost:3000/api/tasks/t1/events', { signal: controller.signal }), deps);
+    await forward(
+      new Request('http://localhost:3000/api/tasks/t1/events', { signal: controller.signal }),
+      deps,
+    );
     expect(upstreamSignal?.aborted).toBe(false);
     controller.abort();
     expect(upstreamSignal?.aborted).toBe(true);
@@ -303,10 +394,16 @@ describe('forward: streams', () => {
 
 describe('forward: upstream failures', () => {
   it('answers 502 INTERNAL when fetch rejects', async () => {
-    const deps = makeDeps({ fetch: vi.fn(async () => { throw new TypeError('ECONNREFUSED'); }) });
+    const deps = makeDeps({
+      fetch: vi.fn(async () => {
+        throw new TypeError('ECONNREFUSED');
+      }),
+    });
     const res = await forward(req('/api/puzzles'), deps);
     expect(res.status).toBe(502);
-    expect(await res.json()).toEqual({ error: { code: 'INTERNAL', message: 'The API is unreachable.' } });
+    expect(await res.json()).toEqual({
+      error: { code: 'INTERNAL', message: 'The API is unreachable.' },
+    });
   });
 
   it('answers 504 INTERNAL when no headers arrive within the time limit', async () => {
@@ -315,12 +412,16 @@ describe('forward: upstream failures', () => {
       fetch: vi.fn(
         (_url: URL | RequestInfo, init?: RequestInit) =>
           new Promise<Response>((_resolve, reject) => {
-            (init?.signal as AbortSignal).addEventListener('abort', () => reject(new DOMException('aborted', 'AbortError')));
+            (init?.signal as AbortSignal).addEventListener('abort', () =>
+              reject(new DOMException('aborted', 'AbortError')),
+            );
           }),
       ),
     });
     const res = await forward(req('/api/puzzles'), deps);
     expect(res.status).toBe(504);
-    expect(await res.json()).toEqual({ error: { code: 'INTERNAL', message: 'The API did not answer in time.' } });
+    expect(await res.json()).toEqual({
+      error: { code: 'INTERNAL', message: 'The API did not answer in time.' },
+    });
   });
 });

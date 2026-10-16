@@ -44,8 +44,19 @@ describe('createInitialState', () => {
   it('builds one slot per blank in reading order, with zero-based blank and one-based labels', () => {
     const s = fresh();
     expect(s.slots.map((x) => x.id)).toEqual([S1, S2, S3]);
-    expect(s.slots[1]).toMatchObject({ questionId: 'q-1', blank: 1, sentenceNumber: 1, blankNumber: 2, blankCount: 2 });
-    expect(s.slots[2]).toMatchObject({ questionId: 'q-2', blank: 0, sentenceNumber: 2, blankNumber: 1 });
+    expect(s.slots[1]).toMatchObject({
+      questionId: 'q-1',
+      blank: 1,
+      sentenceNumber: 1,
+      blankNumber: 2,
+      blankCount: 2,
+    });
+    expect(s.slots[2]).toMatchObject({
+      questionId: 'q-2',
+      blank: 0,
+      sentenceNumber: 2,
+      blankNumber: 1,
+    });
     expect(s.words.map((w) => w.text)).toEqual(['writes', 'cache', 'index', 'table']);
     expect(s.words.map((w) => w.id)).toEqual(['w0', 'w1', 'w2', 'w3']);
     expect(s.placements).toEqual({ [S1]: null, [S2]: null, [S3]: null });
@@ -125,7 +136,9 @@ describe('PLACE (reusable words)', () => {
   it('ignores an unknown word or slot', () => {
     const before = fresh();
     expect(run(before, { type: 'PLACE', wordId: 'nope', slotId: S1, via: 'pointer' })).toBe(before);
-    expect(run(before, { type: 'PLACE', wordId: W_INDEX, slotId: 'nope', via: 'pointer' })).toBe(before);
+    expect(run(before, { type: 'PLACE', wordId: W_INDEX, slotId: 'nope', via: 'pointer' })).toBe(
+      before,
+    );
   });
 });
 
@@ -178,13 +191,21 @@ describe('MOVE and REMOVE', () => {
 
 describe('selection', () => {
   it('slot then word places the word', () => {
-    const s = run(fresh(), { type: 'SELECT_SLOT', slotId: S2 }, { type: 'SELECT_WORD', wordId: W_CACHE });
+    const s = run(
+      fresh(),
+      { type: 'SELECT_SLOT', slotId: S2 },
+      { type: 'SELECT_WORD', wordId: W_CACHE },
+    );
     expect(slotWord(s, S2)?.text).toBe('cache');
     expect(s.selection).toEqual({ kind: 'none' });
   });
 
   it('word then slot places the word', () => {
-    const s = run(fresh(), { type: 'SELECT_WORD', wordId: W_CACHE }, { type: 'SELECT_SLOT', slotId: S2 });
+    const s = run(
+      fresh(),
+      { type: 'SELECT_WORD', wordId: W_CACHE },
+      { type: 'SELECT_SLOT', slotId: S2 },
+    );
     expect(slotWord(s, S2)?.text).toBe('cache');
     expect(s.selection).toEqual({ kind: 'none' });
   });
@@ -199,7 +220,9 @@ describe('selection', () => {
   it('selecting a filled slot mentions the current word', () => {
     const placed = run(fresh(), { type: 'PLACE', wordId: W_INDEX, slotId: S1, via: 'pointer' });
     const s = run(placed, { type: 'SELECT_SLOT', slotId: S1 });
-    expect(s.announcement.text).toBe('Sentence 1, blank 1 selected. Choose a word. Currently index.');
+    expect(s.announcement.text).toBe(
+      'Sentence 1, blank 1 selected. Choose a word. Currently index.',
+    );
   });
 
   it('selecting a word announces that a blank is needed', () => {
@@ -209,14 +232,26 @@ describe('selection', () => {
   });
 
   it('toggles a selection off when selected again', () => {
-    const slotOff = run(fresh(), { type: 'SELECT_SLOT', slotId: S1 }, { type: 'SELECT_SLOT', slotId: S1 });
+    const slotOff = run(
+      fresh(),
+      { type: 'SELECT_SLOT', slotId: S1 },
+      { type: 'SELECT_SLOT', slotId: S1 },
+    );
     expect(slotOff.selection).toEqual({ kind: 'none' });
-    const wordOff = run(fresh(), { type: 'SELECT_WORD', wordId: W_CACHE }, { type: 'SELECT_WORD', wordId: W_CACHE });
+    const wordOff = run(
+      fresh(),
+      { type: 'SELECT_WORD', wordId: W_CACHE },
+      { type: 'SELECT_WORD', wordId: W_CACHE },
+    );
     expect(wordOff.selection).toEqual({ kind: 'none' });
   });
 
   it('switches selection from one slot to another slot', () => {
-    const s = run(fresh(), { type: 'SELECT_SLOT', slotId: S1 }, { type: 'SELECT_SLOT', slotId: S2 });
+    const s = run(
+      fresh(),
+      { type: 'SELECT_SLOT', slotId: S1 },
+      { type: 'SELECT_SLOT', slotId: S2 },
+    );
     expect(s.selection).toEqual({ kind: 'slot', slotId: S2 });
   });
 
@@ -245,7 +280,11 @@ describe('RESET', () => {
 
 describe('submitting', () => {
   it('ignores every move while submitting', () => {
-    const submitting = run(fresh(), { type: 'PLACE', wordId: W_INDEX, slotId: S1, via: 'pointer' }, { type: 'SUBMIT_START' });
+    const submitting = run(
+      fresh(),
+      { type: 'PLACE', wordId: W_INDEX, slotId: S1, via: 'pointer' },
+      { type: 'SUBMIT_START' },
+    );
     expect(submitting.status).toBe('submitting');
     const moves: Action[] = [
       { type: 'PLACE', wordId: W_CACHE, slotId: S2, via: 'pointer' },
@@ -260,7 +299,11 @@ describe('submitting', () => {
   });
 
   it('SUBMIT_FAIL keeps placements and sessionId, and asks for focus on the error', () => {
-    const error = new ApiClientError({ status: 0, code: 'NETWORK', message: 'Service unavailable.' });
+    const error = new ApiClientError({
+      status: 0,
+      code: 'NETWORK',
+      message: 'Service unavailable.',
+    });
     const s = run(
       fresh(),
       { type: 'PLACE', wordId: W_INDEX, slotId: S1, via: 'pointer' },
@@ -278,7 +321,12 @@ describe('submitting', () => {
 
   it('any move after a failure returns to editing, clears the error, and keeps the session', () => {
     const error = new ApiClientError({ status: 0, code: 'NETWORK', message: 'x' });
-    const failed = run(fresh(), { type: 'SUBMIT_START' }, { type: 'SESSION_CREATED', sessionId: 's-1' }, { type: 'SUBMIT_FAIL', error });
+    const failed = run(
+      fresh(),
+      { type: 'SUBMIT_START' },
+      { type: 'SESSION_CREATED', sessionId: 's-1' },
+      { type: 'SUBMIT_FAIL', error },
+    );
     const s = run(failed, { type: 'PLACE', wordId: W_INDEX, slotId: S1, via: 'pointer' });
     expect(s.status).toBe('editing');
     expect(s.error).toBeNull();
@@ -287,7 +335,12 @@ describe('submitting', () => {
 
   it('Retry (SUBMIT_START after a failure) is allowed and clears the error', () => {
     const error = new ApiClientError({ status: 0, code: 'NETWORK', message: 'x' });
-    const failed = run(fresh(), { type: 'SUBMIT_START' }, { type: 'SUBMIT_FAIL', error }, { type: 'SUBMIT_START' });
+    const failed = run(
+      fresh(),
+      { type: 'SUBMIT_START' },
+      { type: 'SUBMIT_FAIL', error },
+      { type: 'SUBMIT_START' },
+    );
     expect(failed.status).toBe('submitting');
     expect(failed.error).toBeNull();
   });
@@ -301,7 +354,11 @@ describe('selectors', () => {
   });
 
   it('nextEmptySlot wraps once and returns null when everything is filled', () => {
-    const s = run(fresh(), { type: 'PLACE', wordId: W_INDEX, slotId: S1, via: 'pointer' }, { type: 'PLACE', wordId: W_INDEX, slotId: S3, via: 'pointer' });
+    const s = run(
+      fresh(),
+      { type: 'PLACE', wordId: W_INDEX, slotId: S1, via: 'pointer' },
+      { type: 'PLACE', wordId: W_INDEX, slotId: S3, via: 'pointer' },
+    );
     expect(nextEmptySlot(s, S1)).toBe(S2);
     expect(nextEmptySlot(s, S3)).toBe(S2);
     const full = run(s, { type: 'PLACE', wordId: W_INDEX, slotId: S2, via: 'pointer' });
@@ -341,8 +398,14 @@ describe('draft placements (sessionStorage)', () => {
       { type: 'PLACE', wordId: W_WRITES, slotId: S2, via: 'pointer' },
     );
     saveDraft(placed.puzzleId, draftOf(placed));
-    const shuffled = createInitialState({ ...playPuzzle, wordBank: ['table', 'index', 'writes', 'cache'] });
-    const restored = boardReducer(shuffled, { type: 'RESTORE_DRAFT', draft: loadDraft(shuffled.puzzleId) });
+    const shuffled = createInitialState({
+      ...playPuzzle,
+      wordBank: ['table', 'index', 'writes', 'cache'],
+    });
+    const restored = boardReducer(shuffled, {
+      type: 'RESTORE_DRAFT',
+      draft: loadDraft(shuffled.puzzleId),
+    });
     expect(slotWord(restored, S1)?.text).toBe('index');
     expect(slotWord(restored, S2)?.text).toBe('writes');
     expect(slotWord(restored, S3)).toBeNull();

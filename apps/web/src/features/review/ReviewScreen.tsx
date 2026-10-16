@@ -63,7 +63,8 @@ export function ReviewScreen({ taskId }: ReviewScreenProps) {
 
   const titleByTask = useMemo(() => {
     const map = new Map<string, string>();
-    for (const s of sources.data ?? []) if (s.taskId && s.access === 'owner') map.set(s.taskId, s.title);
+    for (const s of sources.data ?? [])
+      if (s.taskId && s.access === 'owner') map.set(s.taskId, s.title);
     return map;
   }, [sources.data]);
 
@@ -118,7 +119,8 @@ export function ReviewScreen({ taskId }: ReviewScreenProps) {
     if (outcome.puzzle.status === 'published' || outcome.remainingDrafts === 0) {
       void queryClient.invalidateQueries({ queryKey: keys.puzzles.list });
       void queryClient.invalidateQueries({ queryKey: keys.sources.list });
-      if (draft.taskId) void queryClient.invalidateQueries({ queryKey: keys.tasks.detail(draft.taskId) });
+      if (draft.taskId)
+        void queryClient.invalidateQueries({ queryKey: keys.tasks.detail(draft.taskId) });
     }
     openNeighbour(draft.id);
     setIssues(noIssues());
@@ -194,7 +196,8 @@ export function ReviewScreen({ taskId }: ReviewScreenProps) {
   }
 
   if (draftsQuery.isPending) return <LoadingState label="Loading drafts" rows={3} />;
-  if (draftsQuery.isError) return <ErrorState error={draftsQuery.error} onRetry={() => void draftsQuery.refetch()} />;
+  if (draftsQuery.isError)
+    return <ErrorState error={draftsQuery.error} onRetry={() => void draftsQuery.refetch()} />;
 
   const finalOutcome = lastOutcome && lastTaskKey ? outcomeByTask[lastTaskKey] : undefined;
   const outcomePanel = finalOutcome ? <ReviewOutcomePanel outcome={finalOutcome} /> : null;
@@ -212,7 +215,10 @@ export function ReviewScreen({ taskId }: ReviewScreenProps) {
           <EmptyState
             title="No drafts are waiting for review."
             action={
-              <Link to="/sources" className="font-medium text-primary underline underline-offset-4 hover:text-primary-hover">
+              <Link
+                to="/sources"
+                className="font-medium text-primary underline underline-offset-4 hover:text-primary-hover"
+              >
                 Go to your sources
               </Link>
             }
@@ -225,7 +231,9 @@ export function ReviewScreen({ taskId }: ReviewScreenProps) {
   const position = (drafts ?? []).findIndex((d) => d.id === active.id) + 1;
   const total = drafts?.length ?? 0;
   const activeKey = active.taskId ?? active.puzzleId;
-  const remaining = outcomeByTask[activeKey]?.remainingDrafts ?? (drafts ?? []).filter((d) => d.taskId === active.taskId).length;
+  const remaining =
+    outcomeByTask[activeKey]?.remainingDrafts ??
+    (drafts ?? []).filter((d) => d.taskId === active.taskId).length;
 
   return (
     <div className="flex flex-col gap-4">
@@ -285,24 +293,46 @@ export function ReviewScreen({ taskId }: ReviewScreenProps) {
           onApprove={(changes) => void approve(active, changes)}
           onReject={() => setRejecting(true)}
         />
-        {active.origin === 'prompt' ? <CritiquePanel draft={active} /> : <PassagePanel draft={active} />}
+        {active.origin === 'prompt' ? (
+          <CritiquePanel draft={active} />
+        ) : (
+          <PassagePanel draft={active} />
+        )}
       </div>
 
       <Dialog open={rejecting} onOpenChange={(open) => !busy && setRejecting(open)}>
         <DialogContent>
           <DialogHeader>
             <DialogTitle>Reject this draft?</DialogTitle>
-            <DialogDescription>The draft will not be used in the puzzle. A reason is optional.</DialogDescription>
+            <DialogDescription>
+              The draft will not be used in the puzzle. A reason is optional.
+            </DialogDescription>
           </DialogHeader>
           <div className="flex flex-col gap-1">
             <Label htmlFor="reject-reason">Reason (optional)</Label>
-            <Textarea id="reject-reason" rows={3} maxLength={500} value={reason} onChange={(e) => setReason(e.target.value)} />
+            <Textarea
+              id="reject-reason"
+              rows={3}
+              maxLength={500}
+              value={reason}
+              onChange={(e) => setReason(e.target.value)}
+            />
           </div>
           <DialogFooter>
-            <Button type="button" variant="outline" disabled={busy} onClick={() => setRejecting(false)}>
+            <Button
+              type="button"
+              variant="outline"
+              disabled={busy}
+              onClick={() => setRejecting(false)}
+            >
               Cancel
             </Button>
-            <Button type="button" variant="destructive" disabled={busy} onClick={() => void reject(active)}>
+            <Button
+              type="button"
+              variant="destructive"
+              disabled={busy}
+              onClick={() => void reject(active)}
+            >
               Reject draft
             </Button>
           </DialogFooter>

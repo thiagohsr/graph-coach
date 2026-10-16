@@ -43,7 +43,11 @@ export interface UsageTracer {
 
 /** A separate, optional capability, so that usage-only code paths have no way to pass text. */
 export interface ContentCapture {
-  recordCallWithContent(step: StepHandle, call: CallRecord, content: { input: string; output: string }): void;
+  recordCallWithContent(
+    step: StepHandle,
+    call: CallRecord,
+    content: { input: string; output: string },
+  ): void;
 }
 
 export interface TracerConfig {
@@ -84,14 +88,20 @@ export function createUsageTracer(
 ): UsageTracer {
   if (!config.publicKey || !config.secretKey || !config.host) return new NoopUsageTracer();
   try {
-    const client = new Langfuse({ publicKey: config.publicKey, secretKey: config.secretKey, baseUrl: config.host });
+    const client = new Langfuse({
+      publicKey: config.publicKey,
+      secretKey: config.secretKey,
+      baseUrl: config.host,
+    });
     return new LangfuseUsageTracer({
       client: adaptLangfuse(client),
       captureContent: config.captureContent,
       ...(options.logger ? { logger: options.logger } : {}),
     });
   } catch (e) {
-    options.logger?.warn(`Usage tracing unavailable: ${e instanceof Error ? e.message : String(e)}`);
+    options.logger?.warn(
+      `Usage tracing unavailable: ${e instanceof Error ? e.message : String(e)}`,
+    );
     return new NoopUsageTracer();
   }
 }

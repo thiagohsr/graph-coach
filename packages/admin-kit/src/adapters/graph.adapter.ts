@@ -24,7 +24,10 @@ function graphModel(model: ResolvedAdminModel): ResolvedAdminModel {
  * Registers every generated statement for every graph model once, through the port, then runs them by name. Request
  * values only ever arrive as parameters.
  */
-export function createGraphAdapter(port: GraphPort, models: readonly ResolvedAdminModel[]): AdminAdapter {
+export function createGraphAdapter(
+  port: GraphPort,
+  models: readonly ResolvedAdminModel[],
+): AdminAdapter {
   for (const model of models) {
     if (model.source !== 'graph') continue;
     for (const query of buildGraphQueries(model)) port.register(query);
@@ -39,7 +42,8 @@ export function createGraphAdapter(port: GraphPort, models: readonly ResolvedAdm
   return {
     async list(model, params: AdminListParams) {
       graphModel(model);
-      const search = params.search !== undefined && params.search !== '' && model.searchFields.length > 0;
+      const search =
+        params.search !== undefined && params.search !== '' && model.searchFields.length > 0;
       const suffix = search ? '_search' : '';
       const base: Record<string, unknown> = search ? { search: params.search } : {};
       const [rows, counts] = await Promise.all([
@@ -80,9 +84,17 @@ export function createGraphAdapter(port: GraphPort, models: readonly ResolvedAdm
           });
         } else if (link.kind === 'count') {
           const rows = await port.run(graphLinkQueryName(model, link.name), { id });
-          links.push({ kind: 'count', name: link.name, label: link.label, count: asCount(rows[0]?.total) });
+          links.push({
+            kind: 'count',
+            name: link.name,
+            label: link.label,
+            count: asCount(rows[0]?.total),
+          });
         } else {
-          const rows = await port.run(graphLinkQueryName(model, link.name), { id, limit: ADMIN_MAX_LINK_ITEMS + 1 });
+          const rows = await port.run(graphLinkQueryName(model, link.name), {
+            id,
+            limit: ADMIN_MAX_LINK_ITEMS + 1,
+          });
           const items = rows.slice(0, ADMIN_MAX_LINK_ITEMS).flatMap((row) => {
             const itemId = asText(row.id);
             return itemId === null ? [] : [{ id: itemId, title: asText(row.title) ?? itemId }];

@@ -1,6 +1,11 @@
 import type { SourceKind } from '@coach/types';
 
-const KIND_TEXT: Record<SourceKind, string> = { prompt: 'Prompt', text: 'Text', markdown: 'Markdown', url: 'URL' };
+const KIND_TEXT: Record<SourceKind, string> = {
+  prompt: 'Prompt',
+  text: 'Text',
+  markdown: 'Markdown',
+  url: 'URL',
+};
 
 /** "Prompt", "Text", "Markdown", "URL" (contracts/ui-screens.md "/sources"). */
 export const kindLabel = (kind: SourceKind): string => KIND_TEXT[kind];

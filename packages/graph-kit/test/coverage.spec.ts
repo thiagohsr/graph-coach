@@ -19,8 +19,14 @@ describe('query test coverage', () => {
       .map((f) => readFileSync(join(packageDir, 'test', f), 'utf8'));
 
     const untested = names.filter(
-      (name) => !specs.some((text) => [`'${name}'`, `"${name}"`, `\`${name}\``].some((quoted) => text.includes(quoted))),
+      (name) =>
+        !specs.some((text) =>
+          [`'${name}'`, `"${name}"`, `\`${name}\``].some((quoted) => text.includes(quoted)),
+        ),
     );
-    expect(untested, `Queries without a test (add the quoted name to a test/*.queries.spec.ts): ${untested.join(', ')}`).toEqual([]);
+    expect(
+      untested,
+      `Queries without a test (add the quoted name to a test/*.queries.spec.ts): ${untested.join(', ')}`,
+    ).toEqual([]);
   });
 });

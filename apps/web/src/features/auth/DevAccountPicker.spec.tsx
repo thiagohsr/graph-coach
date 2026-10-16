@@ -58,7 +58,9 @@ describe('DevAccountPicker', () => {
     const onSignedIn = vi.fn();
     renderWithQuery(<DevAccountPicker redirect="/puzzles" onSignedIn={onSignedIn} />);
     await userEvent.click(await screen.findByRole('button', { name: /Ada Learner/ }));
-    expect(await screen.findByRole('alert')).toHaveTextContent('That account does not exist in the seed data');
+    expect(await screen.findByRole('alert')).toHaveTextContent(
+      'That account does not exist in the seed data',
+    );
     expect(onSignedIn).not.toHaveBeenCalled();
   });
 

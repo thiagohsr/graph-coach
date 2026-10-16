@@ -54,7 +54,9 @@ describe('POST /puzzles/:id/visibility (S8)', () => {
       expect(res.status).toBe(404);
       expect(res.body.error.code).toBe('NOT_FOUND');
     }
-    expect((await setVisibility(owner, 'no-such-puzzle', { visibility: 'public' })).status).toBe(404);
+    expect((await setVisibility(owner, 'no-such-puzzle', { visibility: 'public' })).status).toBe(
+      404,
+    );
   });
 
   it('an owned draft puzzle is 409 CONFLICT, and an invalid body is 422', async () => {
@@ -100,12 +102,15 @@ describe('roles on the visibility route', () => {
   beforeAll(async () => {
     roleApp = app;
   });
-  describeRoleMatrix(() => roleApp, [
-    {
-      method: 'POST',
-      path: '/puzzles/any-puzzle/visibility',
-      body: { visibility: 'public' },
-      allowed: ['reviewer', 'admin'],
-    },
-  ]);
+  describeRoleMatrix(
+    () => roleApp,
+    [
+      {
+        method: 'POST',
+        path: '/puzzles/any-puzzle/visibility',
+        body: { visibility: 'public' },
+        allowed: ['reviewer', 'admin'],
+      },
+    ],
+  );
 });

@@ -1,6 +1,12 @@
 {
   "responses": [
-    { "promptHash": "916708666a24a8c65e879cf02b01e386add11286b373468e54c8d92c5e3730e1", "response": { "answer": 42 } },
-    { "promptHash": "d9298a10d1b0735837dc4bd85dac641b0f3cef27a47e5d53a54f2f3f5b2fcffa", "response": "plain text reply" }
+    {
+      "promptHash": "916708666a24a8c65e879cf02b01e386add11286b373468e54c8d92c5e3730e1",
+      "response": { "answer": 42 }
+    },
+    {
+      "promptHash": "d9298a10d1b0735837dc4bd85dac641b0f3cef27a47e5d53a54f2f3f5b2fcffa",
+      "response": "plain text reply"
+    }
   ]
 }

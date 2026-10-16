@@ -14,7 +14,10 @@ export class SessionsController {
   constructor(@Inject(SessionsService) private readonly sessions: SessionsService) {}
 
   @Post('puzzles/:id/sessions')
-  start(@CurrentUser() user: AuthUser, @Param('id', idPipe) puzzleId: string): Promise<StartSessionResponse> {
+  start(
+    @CurrentUser() user: AuthUser,
+    @Param('id', idPipe) puzzleId: string,
+  ): Promise<StartSessionResponse> {
     return this.sessions.start(user, puzzleId);
   }
 
@@ -30,7 +33,10 @@ export class SessionsController {
 
   /** The stored result of a submitted session; the session's learner only (any other caller gets 404). */
   @Get('sessions/:id')
-  result(@CurrentUser() user: AuthUser, @Param('id', idPipe) sessionId: string): Promise<SubmitResult> {
+  result(
+    @CurrentUser() user: AuthUser,
+    @Param('id', idPipe) sessionId: string,
+  ): Promise<SubmitResult> {
     return this.sessions.getResult(user, sessionId);
   }
 }

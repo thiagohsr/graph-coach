@@ -16,11 +16,17 @@ export function requestRecommendation(input: { goal?: string } = {}) {
 }
 
 export function getDecision(decisionId: string, signal?: AbortSignal) {
-  return apiFetch(`/decisions/${id(decisionId)}`, { schema: DecisionDto, ...(signal ? { signal } : {}) });
+  return apiFetch(`/decisions/${id(decisionId)}`, {
+    schema: DecisionDto,
+    ...(signal ? { signal } : {}),
+  });
 }
 
 export function getDecisionPath(decisionId: string, signal?: AbortSignal) {
-  return apiFetch(`/decisions/${id(decisionId)}/path`, { schema: DecisionPathDto, ...(signal ? { signal } : {}) });
+  return apiFetch(`/decisions/${id(decisionId)}/path`, {
+    schema: DecisionPathDto,
+    ...(signal ? { signal } : {}),
+  });
 }
 
 /** A stored decision never changes. */

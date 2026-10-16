@@ -16,7 +16,15 @@ interface SentenceRowProps {
 }
 
 /** One numbered sentence with an inline blank button for each `___`. */
-export function SentenceRow({ question, sentenceNumber, state, disabled, onActivate, onBlankKeyDown, register }: SentenceRowProps) {
+export function SentenceRow({
+  question,
+  sentenceNumber,
+  state,
+  disabled,
+  onActivate,
+  onBlankKeyDown,
+  register,
+}: SentenceRowProps) {
   const split = splitSentence(question.sentence, question.blanks);
   if (!split.ok) return null; // the board refuses to render a mismatched puzzle before getting here
   return (
@@ -30,7 +38,9 @@ export function SentenceRow({ question, sentenceNumber, state, disabled, onActiv
       <p className="min-w-0 text-base leading-[46px] break-words sm:text-lg sm:leading-[44px]">
         {split.segments.map((segment, i) => {
           if (segment.kind === 'text') return <span key={i}>{segment.text}</span>;
-          const slot = state.slots.find((s) => s.questionId === question.id && s.blank === segment.index);
+          const slot = state.slots.find(
+            (s) => s.questionId === question.id && s.blank === segment.index,
+          );
           if (!slot) return null;
           return (
             <Blank

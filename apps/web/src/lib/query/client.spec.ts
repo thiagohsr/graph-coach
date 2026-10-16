@@ -16,7 +16,9 @@ function setup() {
 }
 
 async function failingQuery(client: ReturnType<typeof setup>['client'], error: unknown) {
-  await client.fetchQuery({ queryKey: ['x'], queryFn: () => Promise.reject(error), retry: false }).catch(() => undefined);
+  await client
+    .fetchQuery({ queryKey: ['x'], queryFn: () => Promise.reject(error), retry: false })
+    .catch(() => undefined);
 }
 
 async function failingMutation(client: ReturnType<typeof setup>['client'], error: unknown) {

@@ -36,7 +36,10 @@ export function createSqlAdapter(port: SqlPort): AdminAdapter {
         port.execute(count.text, count.params),
       ]);
       const total = counts[0]?.total;
-      return { rows: rows.map((row) => mapRow(model, row)), total: typeof total === 'number' ? total : Number(total ?? 0) };
+      return {
+        rows: rows.map((row) => mapRow(model, row)),
+        total: typeof total === 'number' ? total : Number(total ?? 0),
+      };
     },
 
     get: getRow,

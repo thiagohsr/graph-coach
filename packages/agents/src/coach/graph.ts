@@ -16,7 +16,9 @@ import { createSelectTargetNode } from './nodes/select-target';
 import { CoachState, type CoachStateType } from './state';
 
 /** resolveGoal when a (non-blank) goal was given and no decision is reused. */
-export function routeAfterCheckRecent(s: CoachStateType): 'reuse' | 'resolveGoal' | 'collectSignals' {
+export function routeAfterCheckRecent(
+  s: CoachStateType,
+): 'reuse' | 'resolveGoal' | 'collectSignals' {
   if (s.outcome === 'reused') return 'reuse';
   return normaliseGoal(s.goalText) !== '' ? 'resolveGoal' : 'collectSignals';
 }
@@ -28,12 +30,16 @@ export function routeAfterCollectSignals(s: CoachStateType): 'coldStart' | 'sele
 
 /** noContent when there is neither a puzzle nor a target. */
 export function routeAfterFindPuzzles(s: CoachStateType): 'explain' | 'noContent' {
-  return s.outcome === 'no_content' || (s.puzzle === null && s.selection === null) ? 'noContent' : 'explain';
+  return s.outcome === 'no_content' || (s.puzzle === null && s.selection === null)
+    ? 'noContent'
+    : 'explain';
 }
 
 /** requestCoverage only when `explain` saw the creation allowance pass (flag `coverage_requested`). */
 export function routeAfterRecordDecision(s: CoachStateType): 'requestCoverage' | 'end' {
-  return s.flags.includes('coverage_requested') && s.missingConceptIds.length > 0 ? 'requestCoverage' : 'end';
+  return s.flags.includes('coverage_requested') && s.missingConceptIds.length > 0
+    ? 'requestCoverage'
+    : 'end';
 }
 
 /** Tracer calls for one graph build. Every call is guarded: a faulty tracer never changes the outcome. */
@@ -84,7 +90,9 @@ function createTracing(deps: Pick<CoachDeps, 'tracer' | 'logger'>) {
   };
 }
 
-export function buildCoachGraph(deps: CoachDeps): { invoke(input: CoachInput): Promise<CoachStateType> } {
+export function buildCoachGraph(deps: CoachDeps): {
+  invoke(input: CoachInput): Promise<CoachStateType>;
+} {
   const tracing = createTracing(deps);
 
   const traced =
@@ -103,7 +111,9 @@ export function buildCoachGraph(deps: CoachDeps): { invoke(input: CoachInput): P
 
   const checkRecent = createCheckRecentNode(deps);
   // The run is opened after checkRecent has decided not to reuse (a reused decision opens no run), so this node is untraced.
-  const checkRecentThenOpenRun = async (state: CoachStateType): Promise<Partial<CoachStateType>> => {
+  const checkRecentThenOpenRun = async (
+    state: CoachStateType,
+  ): Promise<Partial<CoachStateType>> => {
     const out = await checkRecent(state);
     if (out.outcome !== 'reused') tracing.startRun(state.runId, state.learnerId);
     return out;
@@ -125,11 +135,20 @@ export function buildCoachGraph(deps: CoachDeps): { invoke(input: CoachInput): P
       collectSignals: 'collectSignals',
     })
     .addEdge('resolveGoal', 'collectSignals')
-    .addConditionalEdges('collectSignals', routeAfterCollectSignals, { coldStart: 'findPuzzles', select: 'selectTarget' })
+    .addConditionalEdges('collectSignals', routeAfterCollectSignals, {
+      coldStart: 'findPuzzles',
+      select: 'selectTarget',
+    })
     .addEdge('selectTarget', 'findPuzzles')
-    .addConditionalEdges('findPuzzles', routeAfterFindPuzzles, { explain: 'explain', noContent: END })
+    .addConditionalEdges('findPuzzles', routeAfterFindPuzzles, {
+      explain: 'explain',
+      noContent: END,
+    })
     .addEdge('explain', 'recordDecision')
-    .addConditionalEdges('recordDecision', routeAfterRecordDecision, { requestCoverage: 'requestCoverage', end: END })
+    .addConditionalEdges('recordDecision', routeAfterRecordDecision, {
+      requestCoverage: 'requestCoverage',
+      end: END,
+    })
     .addEdge('requestCoverage', END)
     .compile();
 

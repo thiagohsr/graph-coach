@@ -6,7 +6,10 @@ const fetchMock = vi.fn();
 
 function respond(status: number, body?: unknown) {
   fetchMock.mockResolvedValueOnce(
-    new Response(body === undefined ? null : JSON.stringify(body), { status, headers: { 'Content-Type': 'application/json' } }),
+    new Response(body === undefined ? null : JSON.stringify(body), {
+      status,
+      headers: { 'Content-Type': 'application/json' },
+    }),
   );
 }
 
@@ -36,7 +39,11 @@ describe('account api', () => {
 
   it('redeemCode: POST /api/me/codes/redeem with { code } returns what was granted', async () => {
     respond(200, { sourceRuns: 2, promptRuns: 0, limitsLiftedUntil: '2026-10-16T00:00:00.000Z' });
-    await expect(redeemCode('ABC-123')).resolves.toEqual({ sourceRuns: 2, promptRuns: 0, limitsLiftedUntil: '2026-10-16T00:00:00.000Z' });
+    await expect(redeemCode('ABC-123')).resolves.toEqual({
+      sourceRuns: 2,
+      promptRuns: 0,
+      limitsLiftedUntil: '2026-10-16T00:00:00.000Z',
+    });
     expect(lastCall()).toMatchObject({ url: '/api/me/codes/redeem', method: 'POST' });
     expect(JSON.parse(lastCall().body ?? '')).toEqual({ code: 'ABC-123' });
   });
@@ -54,9 +61,17 @@ describe('account api', () => {
 
   it('createSource sends { title, kind: "prompt", brief } with no content key for a prompt', async () => {
     respond(202, { taskId: 't-1', sourceId: 'src-1' });
-    await createSource({ title: 'T', kind: 'prompt', brief: { subject: 'B-trees', difficulty: 'easy', sentences: 5 } });
+    await createSource({
+      title: 'T',
+      kind: 'prompt',
+      brief: { subject: 'B-trees', difficulty: 'easy', sentences: 5 },
+    });
     const sent = JSON.parse(lastCall().body ?? '');
-    expect(sent).toEqual({ title: 'T', kind: 'prompt', brief: { subject: 'B-trees', difficulty: 'easy', sentences: 5 } });
+    expect(sent).toEqual({
+      title: 'T',
+      kind: 'prompt',
+      brief: { subject: 'B-trees', difficulty: 'easy', sentences: 5 },
+    });
     expect('content' in sent).toBe(false);
   });
 

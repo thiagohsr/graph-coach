@@ -55,7 +55,13 @@ export function VisibilityButton({ puzzle }: VisibilityButtonProps) {
 
   return (
     <>
-      <Button type="button" variant="outline" size="sm" aria-label={`${label} ${puzzle.name}`} onClick={() => setConfirming(true)}>
+      <Button
+        type="button"
+        variant="outline"
+        size="sm"
+        aria-label={`${label} ${puzzle.name}`}
+        onClick={() => setConfirming(true)}
+      >
         {label}
       </Button>
       {error && (
@@ -74,7 +80,12 @@ export function VisibilityButton({ puzzle }: VisibilityButtonProps) {
             </DialogDescription>
           </DialogHeader>
           <DialogFooter>
-            <Button type="button" variant="outline" disabled={busy} onClick={() => setConfirming(false)}>
+            <Button
+              type="button"
+              variant="outline"
+              disabled={busy}
+              onClick={() => setConfirming(false)}
+            >
               Cancel
             </Button>
             <Button type="button" disabled={busy} onClick={() => void confirm()}>

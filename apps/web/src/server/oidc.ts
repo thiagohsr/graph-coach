@@ -67,7 +67,11 @@ export function buildAuthorizeUrl(args: {
   return url.toString();
 }
 
-export function buildLogoutUrl(args: { cognitoDomain: string; clientId: string; publicOrigin: string }): string {
+export function buildLogoutUrl(args: {
+  cognitoDomain: string;
+  clientId: string;
+  publicOrigin: string;
+}): string {
   const url = new URL(`https://${args.cognitoDomain}/logout`);
   url.searchParams.set('client_id', args.clientId);
   url.searchParams.set('logout_uri', `${args.publicOrigin}/login`);
@@ -101,7 +105,10 @@ export async function startLoginHandler(request: Request, deps: OidcDeps): Promi
   return redirect(target, [cookie]);
 }
 
-async function tokenRequest(body: Record<string, string>, deps: OidcDeps): Promise<Record<string, unknown> | null> {
+async function tokenRequest(
+  body: Record<string, string>,
+  deps: OidcDeps,
+): Promise<Record<string, unknown> | null> {
   try {
     const res = await deps.fetch(`https://${deps.cognitoDomain}/oauth2/token`, {
       method: 'POST',
@@ -118,15 +125,21 @@ async function tokenRequest(body: Record<string, string>, deps: OidcDeps): Promi
 
 function toResult(json: Record<string, unknown>): ExchangeResult | null {
   if (typeof json.access_token !== 'string' || !json.access_token) return null;
-  const expiresIn = typeof json.expires_in === 'number' && json.expires_in > 0 ? json.expires_in : 3600;
+  const expiresIn =
+    typeof json.expires_in === 'number' && json.expires_in > 0 ? json.expires_in : 3600;
   const out: ExchangeResult = { accessToken: json.access_token, expiresIn };
-  if (typeof json.refresh_token === 'string' && json.refresh_token) out.refreshToken = json.refresh_token;
+  if (typeof json.refresh_token === 'string' && json.refresh_token)
+    out.refreshToken = json.refresh_token;
   if (typeof json.id_token === 'string' && json.id_token) out.idToken = json.id_token;
   return out;
 }
 
 /** Code exchange: the client id and the verifier only, no client secret. */
-export async function exchangeCode(code: string, codeVerifier: string, deps: OidcDeps): Promise<ExchangeResult | null> {
+export async function exchangeCode(
+  code: string,
+  codeVerifier: string,
+  deps: OidcDeps,
+): Promise<ExchangeResult | null> {
   const json = await tokenRequest(
     {
       grant_type: 'authorization_code',
@@ -141,8 +154,14 @@ export async function exchangeCode(code: string, codeVerifier: string, deps: Oid
 }
 
 /** Refresh grant: the client id and the refresh token only. The ID token, if any, is dropped. */
-export async function refreshTokens(refreshToken: string, deps: OidcDeps): Promise<TokenResult | null> {
-  const json = await tokenRequest({ grant_type: 'refresh_token', refresh_token: refreshToken, client_id: deps.clientId }, deps);
+export async function refreshTokens(
+  refreshToken: string,
+  deps: OidcDeps,
+): Promise<TokenResult | null> {
+  const json = await tokenRequest(
+    { grant_type: 'refresh_token', refresh_token: refreshToken, client_id: deps.clientId },
+    deps,
+  );
   const result = json ? toResult(json) : null;
   if (!result) return null;
   const { idToken: _discarded, ...rest } = result;
@@ -153,7 +172,10 @@ type MeOutcome = 'ok' | 'blocked' | 'unverified' | 'account';
 
 /** The one call that carries the ID token: it makes the API create or link the account. */
 async function callMe(exchange: ExchangeResult, deps: OidcDeps): Promise<MeOutcome> {
-  const headers: Record<string, string> = { Authorization: `Bearer ${exchange.accessToken}`, Accept: 'application/json' };
+  const headers: Record<string, string> = {
+    Authorization: `Bearer ${exchange.accessToken}`,
+    Accept: 'application/json',
+  };
   if (exchange.idToken) headers['X-Id-Token'] = exchange.idToken;
   if (deps.forwardedFor) headers['X-Forwarded-For'] = deps.forwardedFor;
   try {
@@ -185,7 +207,8 @@ export async function callbackHandler(request: Request, deps: OidcDeps): Promise
   const tx = readTransaction(cookies, deps.secret);
   const code = params.get('code');
   const state = params.get('state');
-  if (!tx || !code || !state || state !== tx.state) return redirect('/login?error=state', [clearTx]);
+  if (!tx || !code || !state || state !== tx.state)
+    return redirect('/login?error=state', [clearTx]);
 
   // 3. Exchange the code.
   const exchange = await exchangeCode(code, tx.codeVerifier, deps);
@@ -193,7 +216,10 @@ export async function callbackHandler(request: Request, deps: OidcDeps): Promise
 
   // 4. Create or link the account; the ID token is used here and then dropped.
   const outcome = await callMe(exchange, deps);
-  const session: Session = { accessToken: exchange.accessToken, expiresAt: now() + exchange.expiresIn * 1000 };
+  const session: Session = {
+    accessToken: exchange.accessToken,
+    expiresAt: now() + exchange.expiresIn * 1000,
+  };
   if (exchange.refreshToken) session.refreshToken = exchange.refreshToken;
   const sessionCookies = () =>
     writeSession(session, { ...cookieOptions, existing: sessionCookieNames(cookies), now: now() });
@@ -204,8 +230,14 @@ export async function callbackHandler(request: Request, deps: OidcDeps): Promise
     case 'blocked': // 6: keep the session so /blocked can sign out properly
       return redirect('/blocked', [clearTx, ...sessionCookies()]);
     case 'unverified': // 7
-      return redirect('/login?error=unverified', [clearTx, ...clearSession({ ...cookieOptions, existing: sessionCookieNames(cookies) })]);
+      return redirect('/login?error=unverified', [
+        clearTx,
+        ...clearSession({ ...cookieOptions, existing: sessionCookieNames(cookies) }),
+      ]);
     default: // 8
-      return redirect('/login?error=account', [clearTx, ...clearSession({ ...cookieOptions, existing: sessionCookieNames(cookies) })]);
+      return redirect('/login?error=account', [
+        clearTx,
+        ...clearSession({ ...cookieOptions, existing: sessionCookieNames(cookies) }),
+      ]);
   }
 }

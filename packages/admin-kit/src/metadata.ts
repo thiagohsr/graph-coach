@@ -1,5 +1,11 @@
 // Metadata returned to the UI (data-model.md section 5). Pure; omits entity, columns, relationships, and hooks.
-import type { AdminAction, AdminFieldMeta, AdminLinkMeta, AdminModelMeta, AdminRecordDto } from '@coach/types';
+import type {
+  AdminAction,
+  AdminFieldMeta,
+  AdminLinkMeta,
+  AdminModelMeta,
+  AdminRecordDto,
+} from '@coach/types';
 import { assertResolved, type ResolvedAdminModel, type ResolvedField } from './declaration';
 import {
   ADMIN_JSON_MAX_LENGTH,
@@ -33,7 +39,9 @@ function buildFieldMeta(model: ResolvedAdminModel, field: ResolvedField): AdminF
     ...(field.min !== undefined ? { min: field.min } : {}),
     ...(field.max !== undefined ? { max: field.max } : {}),
     ...(field.help !== undefined ? { help: field.help } : {}),
-    ...(field.quickActions ? { quickActions: field.quickActions.map((a) => ({ value: a.value, label: a.label })) } : {}),
+    ...(field.quickActions
+      ? { quickActions: field.quickActions.map((a) => ({ value: a.value, label: a.label })) }
+      : {}),
   };
 }
 
@@ -78,7 +86,8 @@ export function buildActions(model: ResolvedAdminModel, record: AdminRecordDto):
     if (!field.quickActions || field.readonly || field.computed) continue;
     const current = record.values[key];
     for (const action of field.quickActions) {
-      if (action.value !== current) actions.push({ field: key, value: action.value, label: action.label });
+      if (action.value !== current)
+        actions.push({ field: key, value: action.value, label: action.label });
     }
   }
   return actions;

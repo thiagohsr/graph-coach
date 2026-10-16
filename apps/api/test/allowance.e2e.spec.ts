@@ -9,7 +9,11 @@ import { AllowanceService } from '../src/apps/allowance/allowance.service';
 import { CodesService } from '../src/apps/allowance/codes.service';
 import { CreationCounts } from '../src/apps/allowance/creation-counts';
 import { normalizeCode } from '../src/apps/allowance/code-format';
-import { RateLimitedError, ValidationFailedError, ForbiddenError } from '../src/common/errors/app-error';
+import {
+  RateLimitedError,
+  ValidationFailedError,
+  ForbiddenError,
+} from '../src/common/errors/app-error';
 import { SettingsService } from '../src/common/settings/settings.service';
 import { createTestApp, type TestApp, type TestUser } from './support/test-app';
 
@@ -32,7 +36,13 @@ beforeAll(async () => {
   const capture = (message: unknown, ...rest: unknown[]) => {
     logLines.push([message, ...rest].map((part) => String(part)).join(' '));
   };
-  Logger.overrideLogger({ log: capture, error: capture, warn: capture, debug: capture, verbose: capture });
+  Logger.overrideLogger({
+    log: capture,
+    error: capture,
+    warn: capture,
+    debug: capture,
+    verbose: capture,
+  });
 });
 
 afterAll(async () => {
@@ -44,7 +54,11 @@ const baseCode = { label: 'demo', sourceRuns: 0, promptRuns: 2, liftDays: 0, max
 
 async function bonusOf(userId: string) {
   const [row] = await t.db
-    .select({ source: users.bonusSourceRuns, prompt: users.bonusPromptRuns, lift: users.limitsLiftedUntil })
+    .select({
+      source: users.bonusSourceRuns,
+      prompt: users.bonusPromptRuns,
+      lift: users.limitsLiftedUntil,
+    })
     .from(users)
     .where(eq(users.id, userId));
   return row!;
@@ -92,7 +106,9 @@ describe('atomic bonus decrement', () => {
     const refused = results.filter((r) => r.status === 'rejected');
     expect(granted).toHaveLength(1);
     expect(refused).toHaveLength(1);
-    const grant = (granted[0] as PromiseFulfilledResult<Awaited<ReturnType<typeof allowance.begin>>>).value;
+    const grant = (
+      granted[0] as PromiseFulfilledResult<Awaited<ReturnType<typeof allowance.begin>>>
+    ).value;
     expect(grant.via).toBe('bonus');
     const error = (refused[0] as PromiseRejectedResult).reason as RateLimitedError;
     expect(error.code).toBe('CREATION_LIMIT_REACHED');
@@ -153,29 +169,33 @@ describe('access codes', () => {
 
     // Typing variations of the same code are accepted.
     const typed = code.toLowerCase().replaceAll('-', ' ');
-    expect((await t.http.post('/me/codes/redeem').set(b.auth).send({ code: typed })).status).toBe(200);
+    expect((await t.http.post('/me/codes/redeem').set(b.auth).send({ code: typed })).status).toBe(
+      200,
+    );
 
     const full = await t.http.post('/me/codes/redeem').set(c.auth).send({ code });
     expect(full.status).toBe(422);
     expect(full.body.error.code).toBe('CODE_INVALID');
 
     const [row] = await t.db.select().from(accessCodes).where(eq(accessCodes.id, meta.id));
-    const redemptions = await t.db.select().from(codeRedemptions).where(eq(codeRedemptions.codeId, meta.id));
+    const redemptions = await t.db
+      .select()
+      .from(codeRedemptions)
+      .where(eq(codeRedemptions.codeId, meta.id));
     expect(row!.redeemedCount).toBe(2);
     expect(redemptions).toHaveLength(2);
   });
 
   it('answers every refusal with the identical 422 body', async () => {
     const user = await t.createUser();
-    const expired = await codes.create({ ...baseCode, label: 'expired', expiresAt: new Date(t.clock.now().getTime() - 1) });
+    const expired = await codes.create({
+      ...baseCode,
+      label: 'expired',
+      expiresAt: new Date(t.clock.now().getTime() - 1),
+    });
     const disabled = await codes.create({ ...baseCode, label: 'disabled' });
     await codes.disable(disabled.meta.id);
-    const attempts = [
-      expired.code,
-      disabled.code,
-      'GC-00000-00000-00000-00000',
-      'not a code',
-    ];
+    const attempts = [expired.code, disabled.code, 'GC-00000-00000-00000-00000', 'not a code'];
     const bodies: unknown[] = [];
     for (const code of attempts) {
       const res = await t.http.post('/me/codes/redeem').set(user.auth).send({ code });
@@ -184,7 +204,9 @@ describe('access codes', () => {
       t.clock.advance(3 * MINUTE); // stay under the throttle
     }
     for (const body of bodies) expect(body).toEqual(bodies[0]);
-    expect(bodies[0]).toEqual({ error: { code: 'CODE_INVALID', message: 'This code is not valid' } });
+    expect(bodies[0]).toEqual({
+      error: { code: 'CODE_INVALID', message: 'This code is not valid' },
+    });
   });
 
   it('liftDays sets the lift from now, and a second lift extends the first', async () => {
@@ -227,7 +249,9 @@ describe('access codes', () => {
     const one = await allowance.begin(caller, 'prompt');
     const two = await allowance.begin(caller, 'prompt');
     expect([one.via, two.via]).toEqual(['bonus', 'bonus']);
-    await expect(allowance.begin(caller, 'prompt')).rejects.toMatchObject({ code: 'CREATION_LIMIT_REACHED' });
+    await expect(allowance.begin(caller, 'prompt')).rejects.toMatchObject({
+      code: 'CREATION_LIMIT_REACHED',
+    });
     // Uploads are unaffected.
     expect((await allowance.begin(caller, 'upload')).via).toBe('allowance');
   });
@@ -237,7 +261,10 @@ describe('access codes', () => {
     const user = await t.createUser();
     const { code } = await codes.create({ ...baseCode, label: 'throttle' });
     for (let i = 0; i < 5; i += 1) {
-      const res = await t.http.post('/me/codes/redeem').set(user.auth).send({ code: 'GC-00000-00000-00000-00000' });
+      const res = await t.http
+        .post('/me/codes/redeem')
+        .set(user.auth)
+        .send({ code: 'GC-00000-00000-00000-00000' });
       expect(res.status).toBe(422);
     }
     const sixth = await t.http.post('/me/codes/redeem').set(user.auth).send({ code });
@@ -251,8 +278,12 @@ describe('access codes', () => {
   });
 
   it('refuses a code without a grant and unknown ids', async () => {
-    await expect(codes.create({ ...baseCode, promptRuns: 0 })).rejects.toBeInstanceOf(ValidationFailedError);
-    await expect(codes.disable('00000000-0000-4000-8000-000000000000')).rejects.toMatchObject({ code: 'NOT_FOUND' });
+    await expect(codes.create({ ...baseCode, promptRuns: 0 })).rejects.toBeInstanceOf(
+      ValidationFailedError,
+    );
+    await expect(codes.disable('00000000-0000-4000-8000-000000000000')).rejects.toMatchObject({
+      code: 'NOT_FOUND',
+    });
   });
 });
 
@@ -272,7 +303,11 @@ describe('GET /me/allowance', () => {
 
     const res = await t.http.get('/me/allowance').set(user.auth);
     expect(res.status).toBe(200);
-    expect(res.body.upload).toMatchObject({ used: 2, bonus: 2, resetsAt: '2026-11-01T00:00:00.000Z' });
+    expect(res.body.upload).toMatchObject({
+      used: 2,
+      bonus: 2,
+      resetsAt: '2026-11-01T00:00:00.000Z',
+    });
     expect(res.body.prompt).toMatchObject({ used: 1, bonus: 1 });
     expect(res.body.upload.allowance).toBe(await settings.get('monthlySourceAllowance'));
     expect(res.body.hourly.used).toBe(1);
@@ -280,12 +315,20 @@ describe('GET /me/allowance', () => {
     expect(res.body.hourly.liftedUntil).toBeUndefined();
     expect(res.body.creationEnabled).toBe(true);
 
-    await t.db.update(users).set({ limitsLiftedUntil: new Date(now + DAY) }).where(eq(users.id, user.id));
+    await t.db
+      .update(users)
+      .set({ limitsLiftedUntil: new Date(now + DAY) })
+      .where(eq(users.id, user.id));
     expect((await t.http.get('/me/allowance').set(user.auth)).body.hourly.liftedUntil).toBe(
       new Date(now + DAY).toISOString(),
     );
-    await t.db.update(users).set({ limitsLiftedUntil: new Date(now - 1) }).where(eq(users.id, user.id));
-    expect((await t.http.get('/me/allowance').set(user.auth)).body.hourly.liftedUntil).toBeUndefined();
+    await t.db
+      .update(users)
+      .set({ limitsLiftedUntil: new Date(now - 1) })
+      .where(eq(users.id, user.id));
+    expect(
+      (await t.http.get('/me/allowance').set(user.auth)).body.hourly.liftedUntil,
+    ).toBeUndefined();
 
     await settings.set('creationEnabled', false);
     expect((await t.http.get('/me/allowance').set(user.auth)).body.creationEnabled).toBe(false);
@@ -332,9 +375,21 @@ describe('CreationCounts and setBonusRuns', () => {
     await t.testGraph.load(sources(user.id, [{ kind: 'prompt', createdAt: now - MINUTE }]));
     const empty = await t.createUser();
     const result = await counts.creationCountsFor([user.id, empty.id, 'no-such-learner']);
-    expect(result.get(user.id)).toEqual({ uploadsThisMonth: 0, promptsThisMonth: 1, creationsLastHour: 1 });
-    expect(result.get(empty.id)).toEqual({ uploadsThisMonth: 0, promptsThisMonth: 0, creationsLastHour: 0 });
-    expect(result.get('no-such-learner')).toEqual({ uploadsThisMonth: 0, promptsThisMonth: 0, creationsLastHour: 0 });
+    expect(result.get(user.id)).toEqual({
+      uploadsThisMonth: 0,
+      promptsThisMonth: 1,
+      creationsLastHour: 1,
+    });
+    expect(result.get(empty.id)).toEqual({
+      uploadsThisMonth: 0,
+      promptsThisMonth: 0,
+      creationsLastHour: 0,
+    });
+    expect(result.get('no-such-learner')).toEqual({
+      uploadsThisMonth: 0,
+      promptsThisMonth: 0,
+      creationsLastHour: 0,
+    });
   });
 
   it('setBonusRuns sets both columns, leaves an omitted kind, and bounds the values', async () => {
@@ -347,8 +402,12 @@ describe('CreationCounts and setBonusRuns', () => {
       bonusSourceRuns: 4,
       bonusPromptRuns: 0,
     });
-    await expect(accounts.setBonusRuns(null, user.id, { source: 1001 })).rejects.toBeInstanceOf(ValidationFailedError);
-    await expect(accounts.setBonusRuns(null, user.id, { source: -1 })).rejects.toBeInstanceOf(ValidationFailedError);
+    await expect(accounts.setBonusRuns(null, user.id, { source: 1001 })).rejects.toBeInstanceOf(
+      ValidationFailedError,
+    );
+    await expect(accounts.setBonusRuns(null, user.id, { source: -1 })).rejects.toBeInstanceOf(
+      ValidationFailedError,
+    );
     await expect(
       accounts.setBonusRuns({ id: user.id, role: 'learner' }, user.id, { source: 10 }),
     ).rejects.toBeInstanceOf(ForbiddenError);

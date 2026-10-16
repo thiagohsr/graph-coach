@@ -4,12 +4,7 @@ import { withStep } from '../../steps';
 import { viewOutline } from '../outline-view';
 import { buildWriterPrompt } from '../prompts';
 import { PromptDrafts } from '../schemas';
-import {
-  promptRunOf,
-  readPromptSource,
-  type PromptDraft,
-  type PromptNodeFactory,
-} from '../state';
+import { promptRunOf, readPromptSource, type PromptDraft, type PromptNodeFactory } from '../state';
 
 /**
  * Writer (one model call), from the stored outline only: one draft per planned sentence. The drafts stay in memory
@@ -28,7 +23,11 @@ export const draftQuestionsNode: PromptNodeFactory = (deps) => async (state) => 
       }
       const { brief, outline } = await readPromptSource(deps, state, 'draftQuestions');
       if (!outline) {
-        throw new CuratorStepError('draftQuestions', 'INCONSISTENT_STATE', 'The outline is missing');
+        throw new CuratorStepError(
+          'draftQuestions',
+          'INCONSISTENT_STATE',
+          'The outline is missing',
+        );
       }
       const view = viewOutline(outline);
       const prompt = buildWriterPrompt({

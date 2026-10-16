@@ -3,7 +3,14 @@ import { Link } from '@tanstack/react-router';
 import { MenuIcon } from 'lucide-react';
 import { useState, type ReactNode } from 'react';
 import { Button } from '~/components/ui/button';
-import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle, SheetTrigger } from '~/components/ui/sheet';
+import {
+  Sheet,
+  SheetContent,
+  SheetDescription,
+  SheetHeader,
+  SheetTitle,
+  SheetTrigger,
+} from '~/components/ui/sheet';
 import { roleAtLeast } from '~/lib/auth/guards';
 import { useSignOut } from '~/lib/auth/use-sign-out';
 
@@ -27,7 +34,15 @@ export function visibleNavItems(user: Pick<MeDto, 'role'>): NavItem[] {
   return NAV_ITEMS.filter((item) => !item.adminOnly || roleAtLeast(user.role, 'admin'));
 }
 
-function NavLinks({ user, onNavigate, orientation }: { user: Pick<MeDto, 'role'>; onNavigate?: () => void; orientation: 'row' | 'column' }) {
+function NavLinks({
+  user,
+  onNavigate,
+  orientation,
+}: {
+  user: Pick<MeDto, 'role'>;
+  onNavigate?: () => void;
+  orientation: 'row' | 'column';
+}) {
   return (
     <ul className={orientation === 'row' ? 'flex items-center gap-1' : 'flex flex-col gap-1'}>
       {visibleNavItems(user).map((item) => (
@@ -70,8 +85,13 @@ function UserMenu({ user }: { user: MeDto }) {
     <Sheet open={open} onOpenChange={setOpen}>
       <SheetTrigger asChild>
         <Button type="button" variant="ghost" size="sm" aria-label="User menu">
-          <span className="hidden max-w-32 truncate text-text-secondary sm:inline">{user.name}</span>
-          <span aria-hidden="true" className="grid size-8 place-items-center rounded-full bg-primary-soft text-[13px] font-bold text-primary">
+          <span className="hidden max-w-32 truncate text-text-secondary sm:inline">
+            {user.name}
+          </span>
+          <span
+            aria-hidden="true"
+            className="grid size-8 place-items-center rounded-full bg-primary-soft text-[13px] font-bold text-primary"
+          >
             {initials(user.name)}
           </span>
         </Button>
@@ -85,7 +105,11 @@ function UserMenu({ user }: { user: MeDto }) {
         </SheetHeader>
         <div className="flex flex-col gap-2 px-4">
           {/* The /account route arrives with the allowance story. */}
-          <Link to={'/account' as never} onClick={() => setOpen(false)} className="inline-flex min-h-10 items-center rounded-md px-3 text-sm hover:bg-accent">
+          <Link
+            to={'/account' as never}
+            onClick={() => setOpen(false)}
+            className="inline-flex min-h-10 items-center rounded-md px-3 text-sm hover:bg-accent"
+          >
             Account
           </Link>
           <Button type="button" variant="outline" onClick={() => void signOut()}>

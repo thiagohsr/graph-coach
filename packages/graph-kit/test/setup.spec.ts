@@ -19,7 +19,11 @@ describe('setupGraph', () => {
     expect(first.created.filter((i) => i.kind === 'unique')).toHaveLength(2);
     expect(first.created.filter((i) => i.kind === 'vector')).toHaveLength(1);
     expect(first.skipped).toEqual([]);
-    expect(first.vectorIndex).toMatchObject({ dimension: 64, rebuilt: false, chunksWithEmbedding: 0 });
+    expect(first.vectorIndex).toMatchObject({
+      dimension: 64,
+      rebuilt: false,
+      chunksWithEmbedding: 0,
+    });
 
     const schemaAfterFirst = await describeSchema(tg.graph);
     const second = await setupGraph(tg.graph, { embeddingDim: 64 });

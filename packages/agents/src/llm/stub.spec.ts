@@ -13,7 +13,10 @@ import {
   sumUsage,
   type StepHandle,
 } from './index';
-import { RecordingUsageTracer as FromTesting, StubChatProvider as StubFromTesting } from '../testing/index';
+import {
+  RecordingUsageTracer as FromTesting,
+  StubChatProvider as StubFromTesting,
+} from '../testing/index';
 
 const schema = z.object({ n: z.number() });
 const msgs = [
@@ -30,8 +33,18 @@ describe('usage helpers', () => {
   it('addUsage and sumUsage are field-wise; ZERO_USAGE is frozen', () => {
     const a = { modelCalls: 1, inputTokens: 2, outputTokens: 3, embeddingTokens: 4 };
     const b = { modelCalls: 10, inputTokens: 20, outputTokens: 30, embeddingTokens: 40 };
-    expect(addUsage(a, b)).toEqual({ modelCalls: 11, inputTokens: 22, outputTokens: 33, embeddingTokens: 44 });
-    expect(sumUsage([a, b, a])).toEqual({ modelCalls: 12, inputTokens: 24, outputTokens: 36, embeddingTokens: 48 });
+    expect(addUsage(a, b)).toEqual({
+      modelCalls: 11,
+      inputTokens: 22,
+      outputTokens: 33,
+      embeddingTokens: 44,
+    });
+    expect(sumUsage([a, b, a])).toEqual({
+      modelCalls: 12,
+      inputTokens: 24,
+      outputTokens: 36,
+      embeddingTokens: 48,
+    });
     expect(sumUsage([])).toEqual(ZERO_USAGE);
     expect(Object.isFrozen(ZERO_USAGE)).toBe(true);
     expect(addUsage(ZERO_USAGE, ZERO_USAGE)).not.toBe(ZERO_USAGE);
@@ -105,7 +118,9 @@ describe('StubChatProvider', () => {
 
   it('throws ProviderOutputError with issues after retries are exhausted', async () => {
     const stub = new StubChatProvider().enqueue('s', { n: 'x' }, { n: 'y' });
-    const err = await stub.completeStructured(msgs, schema, { label: 's', maxRetries: 1 }).catch((e: unknown) => e);
+    const err = await stub
+      .completeStructured(msgs, schema, { label: 's', maxRetries: 1 })
+      .catch((e: unknown) => e);
     expect(err).toBeInstanceOf(ProviderOutputError);
     const out = err as ProviderOutputError;
     expect(out.issues.length).toBeGreaterThan(0);
@@ -124,7 +139,9 @@ describe('StubChatProvider', () => {
         outputTokens: stubTokens('twelve chars'),
         embeddingTokens: 0,
       });
-      const again = await new StubChatProvider().on('c', 'twelve chars').complete(msgs, { label: 'c' });
+      const again = await new StubChatProvider()
+        .on('c', 'twelve chars')
+        .complete(msgs, { label: 'c' });
       expect(again.usage).toEqual(r.usage);
     });
 
@@ -158,7 +175,9 @@ describe('StubChatProvider', () => {
 
     it('a scripted Error counts the call and its input tokens only', async () => {
       const stub = new StubChatProvider().on('e', new Error('boom'));
-      const err = (await stub.complete(msgs, { label: 'e' }).catch((e: unknown) => e)) as ProviderError;
+      const err = (await stub
+        .complete(msgs, { label: 'e' })
+        .catch((e: unknown) => e)) as ProviderError;
       expect(err).toBeInstanceOf(ProviderError);
       expect(err.usage).toEqual({
         modelCalls: 1,
@@ -169,8 +188,14 @@ describe('StubChatProvider', () => {
     });
 
     it('a ProviderError scripted on the second attempt reports the attempts made', async () => {
-      const stub = new StubChatProvider().enqueue('s', { n: 'bad' }, new ProviderUnavailableError('down', { provider: 'stub' }));
-      const err = (await stub.completeStructured(msgs, schema, { label: 's' }).catch((e: unknown) => e)) as ProviderError;
+      const stub = new StubChatProvider().enqueue(
+        's',
+        { n: 'bad' },
+        new ProviderUnavailableError('down', { provider: 'stub' }),
+      );
+      const err = (await stub
+        .completeStructured(msgs, schema, { label: 's' })
+        .catch((e: unknown) => e)) as ProviderError;
       expect(err).toBeInstanceOf(ProviderUnavailableError);
       expect(err.usage.modelCalls).toBe(2);
     });
@@ -206,7 +231,9 @@ describe('StubChatProvider', () => {
     it('failed attempts are recorded and the total equals the thrown usage', async () => {
       const tracer = new RecordingUsageTracer();
       const step = open(tracer);
-      const stub = new StubChatProvider({ tracer }).enqueue('s', { n: 'a' }, { n: 'b' }).on('e', new Error('boom'));
+      const stub = new StubChatProvider({ tracer })
+        .enqueue('s', { n: 'a' }, { n: 'b' })
+        .on('e', new Error('boom'));
       const out = (await stub
         .completeStructured(msgs, schema, { label: 's', trace: step, maxRetries: 1 })
         .catch((e: unknown) => e)) as ProviderError;
@@ -215,7 +242,9 @@ describe('StubChatProvider', () => {
 
       tracer.reset();
       const step2 = open(tracer);
-      const err = (await stub.complete(msgs, { label: 'e', trace: step2 }).catch((e: unknown) => e)) as ProviderError;
+      const err = (await stub
+        .complete(msgs, { label: 'e', trace: step2 })
+        .catch((e: unknown) => e)) as ProviderError;
       expect(tracer.calls).toHaveLength(1);
       expect(tracer.calls[0]!.call.ok).toBe(false);
       expect(tracer.totalUsage()).toEqual(err.usage);
@@ -270,7 +299,12 @@ describe('StubEmbeddingsProvider', () => {
     });
     expect(r.usageReported).toBe(true);
     expect(tracer.calls).toHaveLength(1);
-    expect(tracer.calls[0]!.call).toMatchObject({ provider: 'stub', model: 'stub-embeddings', label: 'emb', ok: true });
+    expect(tracer.calls[0]!.call).toMatchObject({
+      provider: 'stub',
+      model: 'stub-embeddings',
+      label: 'emb',
+      ok: true,
+    });
     expect(tracer.totalUsage()).toEqual(r.usage);
     await stub.embed(texts);
     expect(tracer.calls).toHaveLength(1);
@@ -290,7 +324,10 @@ describe('RecordingUsageTracer', () => {
     t.endStep(b, { ok: false });
     t.endRun(run, { ok: false });
     expect(t.runs).toEqual([{ id: 'r', kind: 'coach', userId: 'u', ok: false, ended: true }]);
-    expect(t.steps.map((s) => [s.node, s.ok, s.ended])).toEqual([['a', true, true], ['b', false, true]]);
+    expect(t.steps.map((s) => [s.node, s.ok, s.ended])).toEqual([
+      ['a', true, true],
+      ['b', false, true],
+    ]);
     expect(t.callsFor('a')).toHaveLength(1);
     expect(t.totalUsage('r').modelCalls).toBe(2);
     expect(t.totalUsage('other')).toEqual(ZERO_USAGE);

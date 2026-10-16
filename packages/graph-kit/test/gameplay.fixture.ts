@@ -13,11 +13,24 @@ export interface FixtureIds {
   M: string;
 }
 
-export const DEFAULT_IDS: FixtureIds = { A: 'learner-a', B: 'learner-b', C: 'learner-c', R: 'learner-r', M: 'learner-m' };
+export const DEFAULT_IDS: FixtureIds = {
+  A: 'learner-a',
+  B: 'learner-b',
+  C: 'learner-c',
+  R: 'learner-r',
+  M: 'learner-m',
+};
 
-const NAMES: Record<keyof FixtureIds, string> = { A: 'Ann', B: 'Bea', C: 'Cid', R: 'Rui', M: 'Max' };
+const NAMES: Record<keyof FixtureIds, string> = {
+  A: 'Ann',
+  B: 'Bea',
+  C: 'Cid',
+  R: 'Rui',
+  M: 'Max',
+};
 
-const text = (seed: string, n: number) => (seed + ' lorem ipsum dolor sit amet ').repeat(40).slice(0, n);
+const text = (seed: string, n: number) =>
+  (seed + ' lorem ipsum dolor sit amet ').repeat(40).slice(0, n);
 
 export async function buildGameplayFixture(
   run: Run,
@@ -105,7 +118,12 @@ export async function buildGameplayFixture(
   );
 }
 
-export async function share(run: Run, puzzleId: string, learnerId: string, withSource: boolean): Promise<void> {
+export async function share(
+  run: Run,
+  puzzleId: string,
+  learnerId: string,
+  withSource: boolean,
+): Promise<void> {
   await run(
     `MATCH (p:Puzzle {id: $puzzleId}), (l:Learner {id: $learnerId})
      MERGE (p)-[sh:SHARED_WITH]->(l) SET sh.withSource = $withSource, sh.at = 1`,
@@ -114,8 +132,11 @@ export async function share(run: Run, puzzleId: string, learnerId: string, withS
 }
 
 export async function unshare(run: Run, puzzleId: string, learnerId: string): Promise<void> {
-  await run(`MATCH (:Puzzle {id: $puzzleId})-[sh:SHARED_WITH]->(:Learner {id: $learnerId}) DELETE sh`, {
-    puzzleId,
-    learnerId,
-  });
+  await run(
+    `MATCH (:Puzzle {id: $puzzleId})-[sh:SHARED_WITH]->(:Learner {id: $learnerId}) DELETE sh`,
+    {
+      puzzleId,
+      learnerId,
+    },
+  );
 }

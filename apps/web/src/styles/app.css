@@ -38,10 +38,10 @@
   --ring: #2f56d0;
 
   /* new: surfaces and text */
-  --surface-raised: #ffffff;          /* dialogs, dragged chip; separated by shadow in light */
+  --surface-raised: #ffffff; /* dialogs, dragged chip; separated by shadow in light */
   --text-secondary: #454b55;
   --primary-hover: #095753;
-  --primary-soft: #e0f0ee;            /* filled blank, "Yours" marker */
+  --primary-soft: #e0f0ee; /* filled blank, "Yours" marker */
   --destructive-foreground: #ffffff;
 
   /* new: graph accent */
@@ -61,11 +61,21 @@
   /* new: mastery scale, 1 = weak … 5 = strong.
      -solid: dots, pips, node fills, meter bars (non-text, >= 3:1)
      -fg / -bg: chip text on chip background (>= 4.5:1) */
-  --mastery-1: #a3330c; --mastery-1-fg: #8a2a0a; --mastery-1-bg: #fdebdd;
-  --mastery-2: #ad7a00; --mastery-2-fg: #7a4600; --mastery-2-bg: #fcf1d9;
-  --mastery-3: #6f7680; --mastery-3-fg: #3f454d; --mastery-3-bg: #ecedef;
-  --mastery-4: #2f7db3; --mastery-4-fg: #1c5a87; --mastery-4-bg: #e0edf7;
-  --mastery-5: #173f75; --mastery-5-fg: #12325e; --mastery-5-bg: #d5e1f2;
+  --mastery-1: #a3330c;
+  --mastery-1-fg: #8a2a0a;
+  --mastery-1-bg: #fdebdd;
+  --mastery-2: #ad7a00;
+  --mastery-2-fg: #7a4600;
+  --mastery-2-bg: #fcf1d9;
+  --mastery-3: #6f7680;
+  --mastery-3-fg: #3f454d;
+  --mastery-3-bg: #ecedef;
+  --mastery-4: #2f7db3;
+  --mastery-4-fg: #1c5a87;
+  --mastery-4-bg: #e0edf7;
+  --mastery-5: #173f75;
+  --mastery-5-fg: #12325e;
+  --mastery-5-bg: #d5e1f2;
 
   /* new: elevation */
   --shadow-1: 0 1px 2px rgb(27 31 36 / 0.06), 0 1px 1px rgb(27 31 36 / 0.04);
@@ -119,11 +129,21 @@
     --info: #7db3f2;
     --info-soft: #152a42;
 
-    --mastery-1: #f0875a; --mastery-1-fg: #f7b394; --mastery-1-bg: #38211a;
-    --mastery-2: #e2a43c; --mastery-2-fg: #f2cb85; --mastery-2-bg: #33280f;
-    --mastery-3: #9aa1aa; --mastery-3-fg: #c9ced4; --mastery-3-bg: #262a30;
-    --mastery-4: #4c9ad6; --mastery-4-fg: #a3cff0; --mastery-4-bg: #15283a;
-    --mastery-5: #b8cbff; --mastery-5-fg: #c7d8ff; --mastery-5-bg: #1d2848;
+    --mastery-1: #f0875a;
+    --mastery-1-fg: #f7b394;
+    --mastery-1-bg: #38211a;
+    --mastery-2: #e2a43c;
+    --mastery-2-fg: #f2cb85;
+    --mastery-2-bg: #33280f;
+    --mastery-3: #9aa1aa;
+    --mastery-3-fg: #c9ced4;
+    --mastery-3-bg: #262a30;
+    --mastery-4: #4c9ad6;
+    --mastery-4-fg: #a3cff0;
+    --mastery-4-bg: #15283a;
+    --mastery-5: #b8cbff;
+    --mastery-5-fg: #c7d8ff;
+    --mastery-5-bg: #1d2848;
 
     --shadow-1: 0 1px 2px rgb(0 0 0 / 0.4);
     --shadow-2: 0 2px 8px rgb(0 0 0 / 0.45);
@@ -184,10 +204,10 @@
   --color-mastery-5-fg: var(--mastery-5-fg);
   --color-mastery-5-bg: var(--mastery-5-bg);
 
-  --radius-sm: calc(var(--radius) - 4px);   /* 6px: badges, small chips */
-  --radius-md: calc(var(--radius) - 2px);   /* 8px: buttons, inputs, blanks */
-  --radius-lg: var(--radius);               /* 10px: cards */
-  --radius-xl: calc(var(--radius) + 4px);   /* 14px: dialogs, sheets */
+  --radius-sm: calc(var(--radius) - 4px); /* 6px: badges, small chips */
+  --radius-md: calc(var(--radius) - 2px); /* 8px: buttons, inputs, blanks */
+  --radius-lg: var(--radius); /* 10px: cards */
+  --radius-xl: calc(var(--radius) + 4px); /* 14px: dialogs, sheets */
 
   --shadow-xs: var(--shadow-1);
   --shadow-sm: var(--shadow-2);

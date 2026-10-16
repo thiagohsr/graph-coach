@@ -21,11 +21,13 @@ export interface ErrorPresentation {
 export function describeError(error: unknown): ErrorPresentation {
   if (!isApiClientError(error)) return { kind: 'service', message: SERVICE_UNAVAILABLE };
   if (error.code === 'CONTRACT_MISMATCH') return { kind: 'contract', message: error.message };
-  if (error.status === 403 && error.code === 'FORBIDDEN') return { kind: 'forbidden', message: 'You do not have access to this page.' };
+  if (error.status === 403 && error.code === 'FORBIDDEN')
+    return { kind: 'forbidden', message: 'You do not have access to this page.' };
   if (error.status === 404) return { kind: 'not-found', message: 'Not found.' };
   const byCode = MESSAGES[error.code as ErrorCode];
   if (byCode) return { kind: 'service', message: byCode };
-  if (error.status >= 500 || error.status === 0) return { kind: 'service', message: SERVICE_UNAVAILABLE };
+  if (error.status >= 500 || error.status === 0)
+    return { kind: 'service', message: SERVICE_UNAVAILABLE };
   return { kind: 'service', message: error.message || SERVICE_UNAVAILABLE };
 }
 

@@ -7,13 +7,26 @@ import { ErrorState } from '~/components/states/ErrorState';
 import { RateLimitNotice } from '~/components/states/RateLimitNotice';
 import { Alert, AlertDescription } from '~/components/ui/alert';
 import { Button } from '~/components/ui/button';
-import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from '~/components/ui/dialog';
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from '~/components/ui/dialog';
 import { Input } from '~/components/ui/input';
 import { Label } from '~/components/ui/label';
 import { Skeleton } from '~/components/ui/skeleton';
 import { deleteShare, putShare, sharesOptions } from '~/lib/api/sharing';
 import { keys } from '~/lib/query/keys';
-import { canOfferSource, checkShareAddress, mapShareError, sortShares, type ShareErrorView } from './share-state';
+import {
+  canOfferSource,
+  checkShareAddress,
+  mapShareError,
+  sortShares,
+  type ShareErrorView,
+} from './share-state';
 
 export interface ShareDialogProps {
   puzzle: { id: string; name: string; sourceShared: boolean };
@@ -68,7 +81,10 @@ export function ShareDialog({ puzzle, ownEmail }: ShareDialogProps) {
       }
       setPending({ kind: 'add' });
       try {
-        const row = await putShare(puzzle.id, { email: check.email, withSource: offerSource && value.withSource });
+        const row = await putShare(puzzle.id, {
+          email: check.email,
+          withSource: offerSource && value.withSource,
+        });
         upsert(row);
         afterChange();
         formApi.setFieldValue('email', '');
@@ -194,7 +210,13 @@ export function ShareDialog({ puzzle, ownEmail }: ShareDialogProps) {
                     className="size-4"
                     checked={offerSource && field.state.value}
                     disabled={!offerSource}
-                    aria-describedby={!offerSource ? 'share-source-note' : sourceError ? 'share-source-error' : undefined}
+                    aria-describedby={
+                      !offerSource
+                        ? 'share-source-note'
+                        : sourceError
+                          ? 'share-source-error'
+                          : undefined
+                    }
                     onChange={(e) => field.handleChange(e.target.checked)}
                   />
                   Share the source too
@@ -234,25 +256,40 @@ export function ShareDialog({ puzzle, ownEmail }: ShareDialogProps) {
             Shared with
           </h3>
           {shares.isPending && (
-            <div aria-busy="true" role="group" aria-label="Loading shares" className="flex flex-col gap-2">
+            <div
+              aria-busy="true"
+              role="group"
+              aria-label="Loading shares"
+              className="flex flex-col gap-2"
+            >
               <Skeleton className="h-12 w-full" />
               <Skeleton className="h-12 w-full" />
             </div>
           )}
-          {shares.isError && <ErrorState error={shares.error} onRetry={() => void shares.refetch()} />}
-          {shares.isSuccess && list.length === 0 && <p className="text-sm text-muted-foreground">Not shared with anyone yet.</p>}
+          {shares.isError && (
+            <ErrorState error={shares.error} onRetry={() => void shares.refetch()} />
+          )}
+          {shares.isSuccess && list.length === 0 && (
+            <p className="text-sm text-muted-foreground">Not shared with anyone yet.</p>
+          )}
           {shares.isSuccess && list.length > 0 && (
             <ul className="flex flex-col gap-2">
               {list.map((row) => {
-                const busy = pending !== null && 'userId' in pending && pending.userId === row.userId;
-                const rowError = error && typeof error.target === 'object' && error.target.row === row.userId ? error : null;
+                const busy =
+                  pending !== null && 'userId' in pending && pending.userId === row.userId;
+                const rowError =
+                  error && typeof error.target === 'object' && error.target.row === row.userId
+                    ? error
+                    : null;
                 return (
                   <li key={row.userId} className="flex flex-col gap-2 rounded-md border p-3">
                     <div className="flex flex-col gap-0.5">
                       <span className="font-medium break-words">{row.name}</span>
                       <span className="text-sm break-all text-muted-foreground">{row.email}</span>
                       <span className="text-sm text-muted-foreground">
-                        <time dateTime={row.sharedAt}>{new Date(row.sharedAt).toLocaleDateString()}</time>
+                        <time dateTime={row.sharedAt}>
+                          {new Date(row.sharedAt).toLocaleDateString()}
+                        </time>
                       </span>
                     </div>
                     <div className="flex flex-wrap items-center gap-3">
@@ -279,10 +316,16 @@ export function ShareDialog({ puzzle, ownEmail }: ShareDialogProps) {
                           {busy && pending?.kind === 'revoke' ? 'Revoking…' : 'Revoke'}
                         </Button>
                       )}
-                      {busy && pending?.kind === 'toggle' && <span className="text-sm">Saving…</span>}
+                      {busy && pending?.kind === 'toggle' && (
+                        <span className="text-sm">Saving…</span>
+                      )}
                     </div>
                     {confirmRevoke === row.userId && (
-                      <div className="flex flex-col gap-2" role="group" aria-label={`Confirm revoking ${row.name}`}>
+                      <div
+                        className="flex flex-col gap-2"
+                        role="group"
+                        aria-label={`Confirm revoking ${row.name}`}
+                      >
                         <p className="text-sm">{`${row.name} will lose the puzzle and its source at once.`}</p>
                         <div className="flex gap-2">
                           <Button
@@ -295,7 +338,13 @@ export function ShareDialog({ puzzle, ownEmail }: ShareDialogProps) {
                           >
                             {busy ? 'Revoking…' : 'Revoke'}
                           </Button>
-                          <Button type="button" variant="outline" size="sm" disabled={pending !== null} onClick={() => setConfirmRevoke(null)}>
+                          <Button
+                            type="button"
+                            variant="outline"
+                            size="sm"
+                            disabled={pending !== null}
+                            onClick={() => setConfirmRevoke(null)}
+                          >
                             Cancel
                           </Button>
                         </div>

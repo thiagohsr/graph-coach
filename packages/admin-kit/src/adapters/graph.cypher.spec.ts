@@ -14,7 +14,11 @@ registry.register({
   entity: 'Task',
   listDisplay: ['kind', 'createdAt'],
   titleField: 'id',
-  fields: { id: { readonly: true }, kind: { type: 'enum', choices: ['a'] }, createdAt: { type: 'datetime', readonly: true } },
+  fields: {
+    id: { readonly: true },
+    kind: { type: 'enum', choices: ['a'] },
+    createdAt: { type: 'datetime', readonly: true },
+  },
   ordering: ['-createdAt', 'id'],
   readOnly: true,
 });
@@ -38,7 +42,9 @@ describe('buildGraphQueries', () => {
       'admin_sample_concept_link_unlocks',
       'admin_sample_concept_link_question_count',
     ]);
-    expect(queries.filter((q) => q.mode === 'write').map((q) => q.name)).toEqual(['admin_sample_concept_update']);
+    expect(queries.filter((q) => q.mode === 'write').map((q) => q.name)).toEqual([
+      'admin_sample_concept_update',
+    ]);
   });
 
   it('list and search match data-model section 7', () => {
@@ -59,14 +65,23 @@ describe('buildGraphQueries', () => {
         'SKIP $skip LIMIT $limit',
       ].join('\n'),
     );
-    expect(byName('admin_sample_concept_count').cypher).toBe('MATCH (n:Concept)\nRETURN count(n) AS total');
-    expect(byName('admin_sample_concept_count_search').cypher).toContain('WHERE toLower(n.slug) CONTAINS $search');
+    expect(byName('admin_sample_concept_count').cypher).toBe(
+      'MATCH (n:Concept)\nRETURN count(n) AS total',
+    );
+    expect(byName('admin_sample_concept_count_search').cypher).toContain(
+      'WHERE toLower(n.slug) CONTAINS $search',
+    );
   });
 
   it('detail and update match data-model section 7', () => {
-    const fields = 'n.id AS id, n.slug AS slug, n.name AS name, n.description AS description, n.createdAt AS createdAt';
-    expect(byName('admin_sample_concept_detail').cypher).toBe(`MATCH (n:Concept {id: $id})\nRETURN ${fields}\nLIMIT 1`);
-    expect(byName('admin_sample_concept_update').cypher).toBe(`MATCH (n:Concept {id: $id})\nSET n += $props\nRETURN ${fields}`);
+    const fields =
+      'n.id AS id, n.slug AS slug, n.name AS name, n.description AS description, n.createdAt AS createdAt';
+    expect(byName('admin_sample_concept_detail').cypher).toBe(
+      `MATCH (n:Concept {id: $id})\nRETURN ${fields}\nLIMIT 1`,
+    );
+    expect(byName('admin_sample_concept_update').cypher).toBe(
+      `MATCH (n:Concept {id: $id})\nSET n += $props\nRETURN ${fields}`,
+    );
   });
 
   it('link texts match data-model section 7 and a count link reads no target property', () => {
@@ -78,9 +93,13 @@ describe('buildGraphQueries', () => {
         'LIMIT $limit',
       ].join('\n'),
     );
-    expect(byName('admin_sample_concept_link_unlocks').cypher).toContain('-[:PREREQUISITE_OF]->(m:Concept)');
+    expect(byName('admin_sample_concept_link_unlocks').cypher).toContain(
+      '-[:PREREQUISITE_OF]->(m:Concept)',
+    );
     const count = byName('admin_sample_concept_link_question_count').cypher;
-    expect(count).toBe('MATCH (n:Concept {id: $id})<-[:TESTS]-(m:Question)\nRETURN count(m) AS total');
+    expect(count).toBe(
+      'MATCH (n:Concept {id: $id})<-[:TESTS]-(m:Question)\nRETURN count(m) AS total',
+    );
     expect(count).not.toMatch(/m\./);
   });
 
@@ -97,7 +116,11 @@ describe('buildGraphQueries', () => {
 
   it('a model without searchFields gets no _search queries, and a read-only one no update', () => {
     const names = buildGraphQueries(registry.get('no-search')!).map((q) => q.name);
-    expect(names).toEqual(['admin_no_search_list', 'admin_no_search_count', 'admin_no_search_detail']);
+    expect(names).toEqual([
+      'admin_no_search_list',
+      'admin_no_search_count',
+      'admin_no_search_detail',
+    ]);
   });
 
   it('refuses models that are not resolved, branded models, and sql models', () => {
@@ -120,7 +143,10 @@ describe('createGraphAdapter', () => {
 
     const result = await adapter.list(model, { page: 3, pageSize: 10 });
     expect(result).toEqual({ rows: [{ id: 'c1', name: 'A' }], total: 7 });
-    expect(port.calls.find((c) => c.name === 'admin_sample_concept_list')!.params).toEqual({ skip: 20, limit: 10 });
+    expect(port.calls.find((c) => c.name === 'admin_sample_concept_list')!.params).toEqual({
+      skip: 20,
+      limit: 10,
+    });
     expect(port.registered.length).toBe(registeredBefore);
   });
 
@@ -128,19 +154,33 @@ describe('createGraphAdapter', () => {
     const port = createRecordingGraphPort();
     const adapter = createGraphAdapter(port, registry.list());
     await adapter.list(model, { page: 1, pageSize: 5, search: "x') RETURN 1 //" });
-    expect(port.calls.map((c) => c.name).sort()).toEqual(['admin_sample_concept_count_search', 'admin_sample_concept_list_search']);
+    expect(port.calls.map((c) => c.name).sort()).toEqual([
+      'admin_sample_concept_count_search',
+      'admin_sample_concept_list_search',
+    ]);
     expect(port.calls[0]!.params.search).toBe("x') RETURN 1 //");
   });
 
   it('update builds $props from the editable fields only, even when changes holds other keys', async () => {
     const port = createRecordingGraphPort({ admin_sample_concept_update: [{ id: 'c1' }] });
     const adapter = createGraphAdapter(port, registry.list());
-    await adapter.update(model, 'c1', { name: 'N', slug: 'forced', nope: 'x', createdAt: 5 } as never);
-    expect(port.calls[0]).toEqual({ name: 'admin_sample_concept_update', params: { id: 'c1', props: { name: 'N' } } });
+    await adapter.update(model, 'c1', {
+      name: 'N',
+      slug: 'forced',
+      nope: 'x',
+      createdAt: 5,
+    } as never);
+    expect(port.calls[0]).toEqual({
+      name: 'admin_sample_concept_update',
+      params: { id: 'c1', props: { name: 'N' } },
+    });
   });
 
   it('links: items, truncation, title fallback, counts, and routes', async () => {
-    const many = Array.from({ length: 51 }, (_, i) => ({ id: `c${i}`, title: i === 0 ? null : `T${i}` }));
+    const many = Array.from({ length: 51 }, (_, i) => ({
+      id: `c${i}`,
+      title: i === 0 ? null : `T${i}`,
+    }));
     const port = createRecordingGraphPort({
       admin_sample_concept_link_prerequisites: many,
       admin_sample_concept_link_unlocks: [{ id: 'c9', title: 'Nine' }],
@@ -154,10 +194,27 @@ describe('createGraphAdapter', () => {
     expect(first.kind === 'records' && first.truncated).toBe(true);
     expect(first.kind === 'records' && first.items[0]).toEqual({ id: 'c0', title: 'c0' });
     expect(first.kind === 'records' && first.model).toBe('sample-concept');
-    expect(links[1]).toMatchObject({ kind: 'records', truncated: false, items: [{ id: 'c9', title: 'Nine' }] });
+    expect(links[1]).toMatchObject({
+      kind: 'records',
+      truncated: false,
+      items: [{ id: 'c9', title: 'Nine' }],
+    });
     expect(links[1]).not.toHaveProperty('model');
-    expect(links[2]).toEqual({ kind: 'count', name: 'questionCount', label: 'Questions', count: 3 });
-    expect(links[3]).toEqual({ kind: 'route', name: 'open', label: 'Open', href: '/concepts/a%2Fb' });
-    expect(port.calls.find((c) => c.name.endsWith('prerequisites'))!.params).toEqual({ id: 'a/b', limit: 51 });
+    expect(links[2]).toEqual({
+      kind: 'count',
+      name: 'questionCount',
+      label: 'Questions',
+      count: 3,
+    });
+    expect(links[3]).toEqual({
+      kind: 'route',
+      name: 'open',
+      label: 'Open',
+      href: '/concepts/a%2Fb',
+    });
+    expect(port.calls.find((c) => c.name.endsWith('prerequisites'))!.params).toEqual({
+      id: 'a/b',
+      limit: 51,
+    });
   });
 });

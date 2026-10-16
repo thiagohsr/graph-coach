@@ -1,4 +1,9 @@
-import { PROMPT_ORIGIN_NOTICE, type AllowanceDto, type CreationKind, type RedeemResult } from '@coach/types';
+import {
+  PROMPT_ORIGIN_NOTICE,
+  type AllowanceDto,
+  type CreationKind,
+  type RedeemResult,
+} from '@coach/types';
 import { useQuery } from '@tanstack/react-query';
 import { useState, type ReactNode } from 'react';
 import { RouteFocus } from '~/components/a11y/RouteFocus';
@@ -13,7 +18,8 @@ import { allowanceLine, choiceState, type ChoiceState } from './allowance';
 import { CreationLimitNotice } from './CreationLimitNotice';
 import { PromptForm } from './PromptForm';
 
-const UPLOAD_DIFFERENCE = 'Questions are checked against your material and show the passage they came from.';
+const UPLOAD_DIFFERENCE =
+  'Questions are checked against your material and show the passage they came from.';
 
 interface ChoiceProps {
   kind: CreationKind;
@@ -29,10 +35,23 @@ interface ChoiceProps {
   children: ReactNode;
 }
 
-function Choice({ kind, title, description, difference, expanded, onToggle, line, blocked, children }: ChoiceProps) {
+function Choice({
+  kind,
+  title,
+  description,
+  difference,
+  expanded,
+  onToggle,
+  line,
+  blocked,
+  children,
+}: ChoiceProps) {
   const panelId = `choice-panel-${kind}`;
   return (
-    <section className="flex flex-col gap-3 rounded-lg border bg-card p-4 shadow-xs" aria-labelledby={`choice-heading-${kind}`}>
+    <section
+      className="flex flex-col gap-3 rounded-lg border bg-card p-4 shadow-xs"
+      aria-labelledby={`choice-heading-${kind}`}
+    >
       <h2 id={`choice-heading-${kind}`} className="text-lg font-semibold">
         <button
           type="button"
@@ -67,9 +86,11 @@ export function CreatePage({ initialChoice = null }: { initialChoice?: CreationK
 
   const data: AllowanceDto | undefined = allowance.data;
   const loading = allowance.isPending;
-  const stateOf = (kind: CreationKind): ChoiceState | null => (data ? choiceState(data, kind, now) : null);
+  const stateOf = (kind: CreationKind): ChoiceState | null =>
+    data ? choiceState(data, kind, now) : null;
   const states = { prompt: stateOf('prompt'), upload: stateOf('upload') };
-  const hourlyReached = states.prompt?.state === 'hourly_reached' || states.upload?.state === 'hourly_reached';
+  const hourlyReached =
+    states.prompt?.state === 'hourly_reached' || states.upload?.state === 'hourly_reached';
 
   const redeem = (heading: string) => (
     <section aria-label={heading} className="flex flex-col gap-1">
@@ -86,13 +107,20 @@ export function CreatePage({ initialChoice = null }: { initialChoice?: CreationK
 
   const lineFor = (kind: CreationKind): ReactNode => {
     if (loading) return <Skeleton className="h-5 w-48" aria-label="Loading allowance" />;
-    if (!data) return <span className="font-normal text-muted-foreground">Your allowance could not be loaded; the server will decide when you submit.</span>;
+    if (!data)
+      return (
+        <span className="font-normal text-muted-foreground">
+          Your allowance could not be loaded; the server will decide when you submit.
+        </span>
+      );
     const text = allowanceLine(data, kind, now);
-    const retry = states[kind]?.state === 'hourly_reached' && limit?.window === 'hour' && limit.retryAt;
+    const retry =
+      states[kind]?.state === 'hourly_reached' && limit?.window === 'hour' && limit.retryAt;
     return retry ? `${text} Try again at ${formatClock(limit.retryAt!)}.` : text;
   };
 
-  const blockedFor = (kind: CreationKind): ReactNode => (states[kind]?.state === 'exhausted' ? redeem('Redeem a code') : null);
+  const blockedFor = (kind: CreationKind): ReactNode =>
+    states[kind]?.state === 'exhausted' ? redeem('Redeem a code') : null;
   const submitBlocked = (kind: CreationKind) => {
     const state = states[kind]?.state;
     return state === 'exhausted' || state === 'hourly_reached';
@@ -109,8 +137,14 @@ export function CreatePage({ initialChoice = null }: { initialChoice?: CreationK
   return (
     <div className="flex flex-col gap-4">
       <RouteFocus title="Create a puzzle" />
-      <h1 className="text-2xl leading-[30px] font-bold tracking-tight sm:text-[30px] sm:leading-9">Create a puzzle</h1>
-      <div role="group" aria-label="How do you want to create a puzzle?" className="grid gap-4 md:grid-cols-2">
+      <h1 className="text-2xl leading-[30px] font-bold tracking-tight sm:text-[30px] sm:leading-9">
+        Create a puzzle
+      </h1>
+      <div
+        role="group"
+        aria-label="How do you want to create a puzzle?"
+        className="grid gap-4 md:grid-cols-2"
+      >
         <Choice
           kind="prompt"
           title="Describe what to practise"

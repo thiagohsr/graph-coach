@@ -39,7 +39,10 @@ describe('createOllamaHealthCheck', () => {
   });
 
   it('reports down for a non-2xx answer and for a network error', async () => {
-    const bad = createOllamaHealthCheck({ baseUrl: 'http://o', fetch: fakeFetch(async () => ({ ok: false })).fn });
+    const bad = createOllamaHealthCheck({
+      baseUrl: 'http://o',
+      fetch: fakeFetch(async () => ({ ok: false })).fn,
+    });
     expect(await bad()).toBe(false);
     const boom = createOllamaHealthCheck({
       baseUrl: 'http://o',
@@ -55,7 +58,9 @@ describe('createOllamaHealthCheck', () => {
     try {
       const f = fakeFetch(
         (_n, signal) =>
-          new Promise((_resolve, reject) => signal.addEventListener('abort', () => reject(new Error('aborted')))),
+          new Promise((_resolve, reject) =>
+            signal.addEventListener('abort', () => reject(new Error('aborted'))),
+          ),
       );
       const check = createOllamaHealthCheck({ baseUrl: 'http://o', fetch: f.fn });
       const result = check();
@@ -100,7 +105,10 @@ describe('createOllamaHealthCheck', () => {
 describe('header helpers', () => {
   it('cfAccessHeaders is undefined without a token', () => {
     expect(cfAccessHeaders(undefined)).toBeUndefined();
-    expect(cfAccessHeaders(cf)).toEqual({ 'CF-Access-Client-Id': 'id-123', 'CF-Access-Client-Secret': 'secret-456' });
+    expect(cfAccessHeaders(cf)).toEqual({
+      'CF-Access-Client-Id': 'id-123',
+      'CF-Access-Client-Secret': 'secret-456',
+    });
   });
 
   it('openRouterHeaders carries the referer and the app title', () => {
@@ -167,7 +175,8 @@ describe('FallbackChatProvider', () => {
     );
     await (chat as FallbackChatProvider).forRun();
     const logged = JSON.stringify(warn.mock.calls);
-    for (const secret of ['secret-456', 'id-123', 'sk-or-secret']) expect(logged).not.toContain(secret);
+    for (const secret of ['secret-456', 'id-123', 'sk-or-secret'])
+      expect(logged).not.toContain(secret);
   });
 });
 
@@ -179,7 +188,10 @@ describe('factory: ollama-with-fallback', () => {
       baseUrl: 'http://o',
       fallback: { apiKey: 'k', model: 'openai/gpt-4o-mini' },
     };
-    const down = createChatProvider(config, { fetch: async () => ({ ok: false }), logger: { log() {}, warn() {} } });
+    const down = createChatProvider(config, {
+      fetch: async () => ({ ok: false }),
+      logger: { log() {}, warn() {} },
+    });
     const r1 = await chatForRun(down);
     expect([r1.name, r1.model]).toEqual(['openrouter', 'openai/gpt-4o-mini']);
     const up = createChatProvider(config, { fetch: async () => ({ ok: true }) });
@@ -188,9 +200,9 @@ describe('factory: ollama-with-fallback', () => {
   });
 
   it('requires the Ollama base URL', () => {
-    expect(() => createChatProvider({ provider: 'ollama-with-fallback', model: 'qwen3:8b' })).toThrow(
-      ProviderConfigError,
-    );
+    expect(() =>
+      createChatProvider({ provider: 'ollama-with-fallback', model: 'qwen3:8b' }),
+    ).toThrow(ProviderConfigError);
   });
 });
 
@@ -212,7 +224,10 @@ describe('config from the environment', () => {
   });
 
   it('leaves out the token unless both halves are set, and the fallback unless the key is set', () => {
-    const config = llmConfigFromEnv({ LLM_PROVIDER: 'ollama-with-fallback', CF_ACCESS_CLIENT_ID: 'i' });
+    const config = llmConfigFromEnv({
+      LLM_PROVIDER: 'ollama-with-fallback',
+      CF_ACCESS_CLIENT_ID: 'i',
+    });
     expect(config.cfAccess).toBeUndefined();
     expect(config.fallback).toBeUndefined();
   });
@@ -223,9 +238,18 @@ describe('config from the environment', () => {
       EMBEDDING_DIM: '4096',
       OPENROUTER_API_KEY: 'k',
     });
-    expect(config).toMatchObject({ provider: 'openrouter', model: 'qwen/qwen3-embedding-8b', apiKey: 'k', dimension: 4096 });
-    expect(() => embeddingsConfigFromEnv({ EMBEDDING_PROVIDER: 'openrouter', EMBEDDING_DIM: '4096' })).toThrow(/KEY/);
-    expect(() => embeddingsConfigFromEnv({ EMBEDDING_PROVIDER: 'openrouter', OPENROUTER_API_KEY: 'k' })).toThrow(/DIM/);
+    expect(config).toMatchObject({
+      provider: 'openrouter',
+      model: 'qwen/qwen3-embedding-8b',
+      apiKey: 'k',
+      dimension: 4096,
+    });
+    expect(() =>
+      embeddingsConfigFromEnv({ EMBEDDING_PROVIDER: 'openrouter', EMBEDDING_DIM: '4096' }),
+    ).toThrow(/KEY/);
+    expect(() =>
+      embeddingsConfigFromEnv({ EMBEDDING_PROVIDER: 'openrouter', OPENROUTER_API_KEY: 'k' }),
+    ).toThrow(/DIM/);
   });
 });
 
@@ -237,7 +261,10 @@ describe('over HTTP (local fake servers, no real network)', () => {
   });
 
   async function listen(
-    handler: (req: IncomingMessage, body: string) => { status?: number; body: unknown; ndjson?: boolean },
+    handler: (
+      req: IncomingMessage,
+      body: string,
+    ) => { status?: number; body: unknown; ndjson?: boolean },
   ) {
     const seen: Array<{ url: string; headers: IncomingMessage['headers']; body: string }> = [];
     server = createServer((req, res) => {
@@ -246,7 +273,9 @@ describe('over HTTP (local fake servers, no real network)', () => {
       req.on('end', () => {
         seen.push({ url: req.url ?? '', headers: req.headers, body: raw });
         const out = handler(req, raw);
-        res.writeHead(out.status ?? 200, { 'content-type': out.ndjson ? 'application/x-ndjson' : 'application/json' });
+        res.writeHead(out.status ?? 200, {
+          'content-type': out.ndjson ? 'application/x-ndjson' : 'application/json',
+        });
         res.end(out.ndjson ? `${JSON.stringify(out.body)}\n` : JSON.stringify(out.body));
       });
     });
@@ -266,7 +295,12 @@ describe('over HTTP (local fake servers, no real network)', () => {
 
   it('Ollama chat sends think:false and the Access headers when configured', async () => {
     const srv = await listen(() => ({ body: ollamaReply, ndjson: true }));
-    const chat = createChatProvider({ provider: 'ollama', model: 'qwen3:8b', baseUrl: srv.url, cfAccess: cf });
+    const chat = createChatProvider({
+      provider: 'ollama',
+      model: 'qwen3:8b',
+      baseUrl: srv.url,
+      cfAccess: cf,
+    });
     const result = await chat.complete(msgs);
     expect(result.text).toBe('ok');
     const req = srv.seen.find((r) => r.url === '/api/chat')!;
@@ -277,7 +311,9 @@ describe('over HTTP (local fake servers, no real network)', () => {
 
   it('Ollama chat sends no Access headers without a token', async () => {
     const srv = await listen(() => ({ body: ollamaReply, ndjson: true }));
-    await createChatProvider({ provider: 'ollama', model: 'qwen3:8b', baseUrl: srv.url }).complete(msgs);
+    await createChatProvider({ provider: 'ollama', model: 'qwen3:8b', baseUrl: srv.url }).complete(
+      msgs,
+    );
     const req = srv.seen.find((r) => r.url === '/api/chat')!;
     expect(req.headers['cf-access-client-id']).toBeUndefined();
     expect(req.headers['cf-access-client-secret']).toBeUndefined();
@@ -290,7 +326,9 @@ describe('over HTTP (local fake servers, no real network)', () => {
         object: 'chat.completion',
         created: 1,
         model: 'openai/gpt-4o-mini',
-        choices: [{ index: 0, finish_reason: 'stop', message: { role: 'assistant', content: 'ok' } }],
+        choices: [
+          { index: 0, finish_reason: 'stop', message: { role: 'assistant', content: 'ok' } },
+        ],
         usage: { prompt_tokens: 4, completion_tokens: 1, total_tokens: 5 },
       },
     }));

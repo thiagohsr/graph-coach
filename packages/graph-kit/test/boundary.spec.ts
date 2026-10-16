@@ -6,7 +6,15 @@ import { describe, expect, it } from 'vitest';
 
 const packageDir = join(dirname(fileURLToPath(import.meta.url)), '..');
 const repoRoot = join(packageDir, '..', '..');
-const SKIP_DIRS = new Set(['node_modules', 'dist', '.next', '.output', 'coverage', '.turbo', '.vinxi']);
+const SKIP_DIRS = new Set([
+  'node_modules',
+  'dist',
+  '.next',
+  '.output',
+  'coverage',
+  '.turbo',
+  '.vinxi',
+]);
 const SOURCE_FILE = /\.(?:[cm]?[jt]sx?)$/;
 // import ... from 'falkordb', import 'falkordb', require('falkordb'), import('falkordb'), also 'falkordb/...' subpaths.
 const FALKORDB_IMPORT = /(?:from|import|require)\s*\(?\s*['"`]falkordb(?:\/[^'"`]*)?['"`]/;
@@ -35,7 +43,10 @@ describe('falkordb import boundary', () => {
       .filter((file) => !file.startsWith(packageDir + '/'))
       .filter((file) => FALKORDB_IMPORT.test(readFileSync(file, 'utf8')))
       .map((file) => relative(repoRoot, file));
-    expect(offenders, `Files importing falkordb outside packages/graph-kit: ${offenders.join(', ')}`).toEqual([]);
+    expect(
+      offenders,
+      `Files importing falkordb outside packages/graph-kit: ${offenders.join(', ')}`,
+    ).toEqual([]);
   });
 
   it('recognises the import forms it is meant to catch', () => {

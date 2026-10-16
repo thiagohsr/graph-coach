@@ -5,7 +5,9 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { renderWithQuery } from '~/test/render';
 import { navigateMock } from '~/test/router-mock';
 
-vi.mock('@tanstack/react-router', async (orig) => (await import('~/test/router-mock')).routerMock(await orig()));
+vi.mock('@tanstack/react-router', async (orig) =>
+  (await import('~/test/router-mock')).routerMock(await orig()),
+);
 
 import { SourceForm } from './SourceForm';
 
@@ -27,7 +29,10 @@ const LONG_TEXT = SENTENCES.join(' ');
 
 function respond(status: number, body?: unknown) {
   fetchMock.mockResolvedValueOnce(
-    new Response(body === undefined ? null : JSON.stringify(body), { status, headers: { 'Content-Type': 'application/json' } }),
+    new Response(body === undefined ? null : JSON.stringify(body), {
+      status,
+      headers: { 'Content-Type': 'application/json' },
+    }),
   );
 }
 
@@ -94,10 +99,19 @@ describe('SourceForm', () => {
     renderWithQuery(<SourceForm />);
     await fill();
     await submit();
-    await waitFor(() => expect(navigateMock).toHaveBeenCalledWith({ to: '/tasks/$taskId', params: { taskId: 't-9' } }));
+    await waitFor(() =>
+      expect(navigateMock).toHaveBeenCalledWith({
+        to: '/tasks/$taskId',
+        params: { taskId: 't-9' },
+      }),
+    );
     const [url, init] = fetchMock.mock.calls[0] as [string, RequestInit];
     expect(url).toBe('/api/sources');
-    expect(JSON.parse(String(init.body))).toEqual({ title: 'Database notes', kind: 'text', content: LONG_TEXT });
+    expect(JSON.parse(String(init.body))).toEqual({
+      title: 'Database notes',
+      kind: 'text',
+      content: LONG_TEXT,
+    });
   });
 
   it('on 200 duplicate shows the notice linked to the task, or to the sources when there is none', async () => {
@@ -106,7 +120,10 @@ describe('SourceForm', () => {
     await fill();
     await submit();
     expect(await screen.findByText(/You already added this material/)).toBeInTheDocument();
-    expect(screen.getByRole('link', { name: 'View the run' })).toHaveAttribute('href', '/tasks/t-1');
+    expect(screen.getByRole('link', { name: 'View the run' })).toHaveAttribute(
+      'href',
+      '/tasks/t-1',
+    );
     expect(navigateMock).not.toHaveBeenCalled();
     unmount();
 
@@ -114,7 +131,10 @@ describe('SourceForm', () => {
     renderWithQuery(<SourceForm />);
     await fill();
     await submit();
-    expect(await screen.findByRole('link', { name: 'See your sources' })).toHaveAttribute('href', '/sources');
+    expect(await screen.findByRole('link', { name: 'See your sources' })).toHaveAttribute(
+      'href',
+      '/sources',
+    );
   });
 
   it('lists the 422 SOURCE_REJECTED reasons even though the pre-check passed, keeping the values', async () => {
@@ -122,14 +142,22 @@ describe('SourceForm', () => {
       422,
       apiError(422, 'SOURCE_REJECTED', 'The text was not accepted', {
         reasons: ['low_diversity'],
-        issues: [{ path: 'content', message: 'The text looks like repeated or non-text characters.', code: 'low_diversity' }],
+        issues: [
+          {
+            path: 'content',
+            message: 'The text looks like repeated or non-text characters.',
+            code: 'low_diversity',
+          },
+        ],
       }),
     );
     renderWithQuery(<SourceForm />);
     await fill();
     await submit();
     const alert = await screen.findByRole('alert');
-    expect(within(alert).getByText('The text looks like repeated or non-text characters.')).toBeInTheDocument();
+    expect(
+      within(alert).getByText('The text looks like repeated or non-text characters.'),
+    ).toBeInTheDocument();
     expect(screen.getByRole('textbox', { name: 'Title' })).toHaveValue('Database notes');
     expect(screen.getByRole('textbox', { name: 'Content' })).toHaveValue(LONG_TEXT);
   });
@@ -137,13 +165,17 @@ describe('SourceForm', () => {
   it('shows 422 VALIDATION_FAILED issues at their fields', async () => {
     respond(
       422,
-      apiError(422, 'VALIDATION_FAILED', 'Invalid', { issues: [{ path: 'title', message: 'Title is too long.' }] }),
+      apiError(422, 'VALIDATION_FAILED', 'Invalid', {
+        issues: [{ path: 'title', message: 'Title is too long.' }],
+      }),
     );
     renderWithQuery(<SourceForm />);
     await fill();
     await submit();
     expect(await screen.findByText('Title is too long.')).toBeInTheDocument();
-    expect(screen.getByRole('textbox', { name: 'Title' })).toHaveAccessibleDescription('Title is too long.');
+    expect(screen.getByRole('textbox', { name: 'Title' })).toHaveAccessibleDescription(
+      'Title is too long.',
+    );
   });
 
   it('names the window and the reset time on 429 CREATION_LIMIT_REACHED', async () => {
@@ -169,7 +201,14 @@ describe('SourceForm', () => {
   });
 
   it('names "this month" for the monthly window', async () => {
-    respond(429, apiError(429, 'CREATION_LIMIT_REACHED', 'Limit', { window: 'month', kind: 'upload', resetAt: '2026-11-01T00:00:00.000Z' }));
+    respond(
+      429,
+      apiError(429, 'CREATION_LIMIT_REACHED', 'Limit', {
+        window: 'month',
+        kind: 'upload',
+        resetAt: '2026-11-01T00:00:00.000Z',
+      }),
+    );
     renderWithQuery(<SourceForm />);
     await fill();
     await submit();

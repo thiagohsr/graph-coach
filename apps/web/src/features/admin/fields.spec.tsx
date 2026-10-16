@@ -46,7 +46,10 @@ describe('FieldControl', () => {
   });
 
   it('enum -> select with its choices', async () => {
-    const onChange = renderField(field({ type: 'enum', choices: ['learner', 'admin'], required: true }), 'learner');
+    const onChange = renderField(
+      field({ type: 'enum', choices: ['learner', 'admin'], required: true }),
+      'learner',
+    );
     const select = screen.getByRole('combobox', { name: /Thing/ });
     expect(screen.getAllByRole('option').map((o) => o.textContent)).toEqual(['learner', 'admin']);
     await userEvent.selectOptions(select, 'admin');
@@ -56,7 +59,10 @@ describe('FieldControl', () => {
   it('list -> one item per line, sent as an array', () => {
     renderField(field({ type: 'list' }), toFormValue(field({ type: 'list' }), ['x', 'y']));
     expect(screen.getByRole('textbox', { name: 'Thing' })).toHaveValue('x\ny');
-    expect(parseFormValue(field({ type: 'list' }), 'x\n\n y \n')).toEqual({ ok: true, value: ['x', 'y'] });
+    expect(parseFormValue(field({ type: 'list' }), 'x\n\n y \n')).toEqual({
+      ok: true,
+      value: ['x', 'y'],
+    });
   });
 
   it('json -> parsed before sending; invalid JSON is refused', () => {
@@ -71,7 +77,14 @@ describe('FieldControl', () => {
     expect(screen.getByText('2026-10-11 09:00 UTC')).toBeInTheDocument();
     expect(screen.queryByRole('textbox')).not.toBeInTheDocument();
     // Even when the caller says editable, a datetime has no input.
-    render(<FieldControl field={field({ type: 'datetime', name: 'other' })} value="2026-10-11T09:00:00.000Z" editable onChange={() => {}} />);
+    render(
+      <FieldControl
+        field={field({ type: 'datetime', name: 'other' })}
+        value="2026-10-11T09:00:00.000Z"
+        editable
+        onChange={() => {}}
+      />,
+    );
     expect(screen.queryByRole('textbox')).not.toBeInTheDocument();
   });
 
@@ -96,7 +109,15 @@ describe('FieldControl', () => {
   });
 
   it('shows an error under the control', () => {
-    render(<FieldControl field={field({ type: 'string' })} value="" editable onChange={() => {}} error="Bad." />);
+    render(
+      <FieldControl
+        field={field({ type: 'string' })}
+        value=""
+        editable
+        onChange={() => {}}
+        error="Bad."
+      />,
+    );
     expect(screen.getByRole('alert')).toHaveTextContent('Bad.');
     expect(screen.getByRole('textbox')).toHaveAttribute('aria-invalid', 'true');
   });
@@ -105,7 +126,10 @@ describe('FieldControl', () => {
 describe('parseFormValue', () => {
   it('refuses an out-of-range number and a non-integer', () => {
     const f = field({ type: 'integer', min: 0, max: 1000 });
-    expect(parseFormValue(f, '1001')).toEqual({ ok: false, message: 'Must be between 0 and 1000.' });
+    expect(parseFormValue(f, '1001')).toEqual({
+      ok: false,
+      message: 'Must be between 0 and 1000.',
+    });
     expect(parseFormValue(f, '1.5')).toEqual({ ok: false, message: 'Must be a whole number.' });
     expect(parseFormValue(f, '12')).toEqual({ ok: true, value: 12 });
     expect(parseFormValue(f, '')).toEqual({ ok: true, value: null });

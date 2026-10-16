@@ -45,7 +45,11 @@ export interface MasterySpec {
   daysAgo: number;
 }
 
-export async function addMastery(tg: TestGraph, learnerId: string, rows: MasterySpec[]): Promise<void> {
+export async function addMastery(
+  tg: TestGraph,
+  learnerId: string,
+  rows: MasterySpec[],
+): Promise<void> {
   await tg.cypher(
     `MATCH (l:Learner {id: $learnerId})
      UNWIND $rows AS r
@@ -67,7 +71,9 @@ export async function addMastery(tg: TestGraph, learnerId: string, rows: Mastery
 /** Seed plus a second weak concept (`transactions`) whose prerequisite is not weak: a second group. */
 export async function loadTwoWeakGroups(tg: TestGraph): Promise<WorkedExample> {
   const ids = await loadWorkedExample(tg);
-  await addMastery(tg, ids.learnerId, [{ slug: 'transactions', score: 0.3, attempts: 2, daysAgo: 5 }]);
+  await addMastery(tg, ids.learnerId, [
+    { slug: 'transactions', score: 0.3, attempts: 2, daysAgo: 5 },
+  ]);
   return ids;
 }
 
@@ -82,7 +88,9 @@ export async function addConcepts(tg: TestGraph, concepts: ConceptSpec[]): Promi
      CREATE (:Concept {id: r.id, slug: r.slug, name: r.name, createdAt: 1})`,
     { rows: concepts.map((c) => ({ id: cid(c.slug), slug: c.slug, name: c.slug.toUpperCase() })) },
   );
-  const edges = concepts.flatMap((c) => (c.prereqs ?? []).map((p) => ({ from: cid(p), to: cid(c.slug) })));
+  const edges = concepts.flatMap((c) =>
+    (c.prereqs ?? []).map((p) => ({ from: cid(p), to: cid(c.slug) })),
+  );
   if (edges.length > 0) {
     await tg.cypher(
       `UNWIND $edges AS e
@@ -94,7 +102,10 @@ export async function addConcepts(tg: TestGraph, concepts: ConceptSpec[]): Promi
 }
 
 export async function addLearner(tg: TestGraph, id: string, displayName = id): Promise<void> {
-  await tg.cypher(`MERGE (l:Learner {id: $id}) SET l.displayName = $name, l.createdAt = 1`, { id, name: displayName });
+  await tg.cypher(`MERGE (l:Learner {id: $id}) SET l.displayName = $name, l.createdAt = 1`, {
+    id,
+    name: displayName,
+  });
 }
 
 export async function addAgents(tg: TestGraph): Promise<void> {
@@ -108,7 +119,12 @@ export interface PuzzleSpec {
   status?: 'draft' | 'published';
   visibility?: 'private' | 'public';
   /** Each question tests the listed concept slugs. */
-  questions: Array<{ id: string; tests: string[]; status?: 'draft' | 'approved' | 'rejected'; sentence?: string }>;
+  questions: Array<{
+    id: string;
+    tests: string[];
+    status?: 'draft' | 'approved' | 'rejected';
+    sentence?: string;
+  }>;
 }
 
 export async function addPuzzle(tg: TestGraph, spec: PuzzleSpec): Promise<void> {
@@ -156,24 +172,43 @@ export interface SessionSpec {
 }
 
 export async function addSession(tg: TestGraph, spec: SessionSpec): Promise<void> {
-  const submittedAt = spec.submittedDaysAgo === undefined ? null : NOW - spec.submittedDaysAgo * DAY;
+  const submittedAt =
+    spec.submittedDaysAgo === undefined ? null : NOW - spec.submittedDaysAgo * DAY;
   await tg.cypher(
     `MATCH (l:Learner {id: $learnerId}), (p:Puzzle {id: $puzzleId})
      CREATE (l)-[:PLAYED]->(s:Session {id: $id, startedAt: $startedAt, score: 0, maxScore: 10})
      CREATE (s)-[:OF]->(p)
      SET s.submittedAt = $submittedAt`,
-    { learnerId: spec.learnerId, puzzleId: spec.puzzleId, id: spec.id, startedAt: NOW - 1000, submittedAt },
+    {
+      learnerId: spec.learnerId,
+      puzzleId: spec.puzzleId,
+      id: spec.id,
+      startedAt: NOW - 1000,
+      submittedAt,
+    },
   );
   await tg.cypher(
     `MATCH (s:Session {id: $id})
      UNWIND $answers AS a
      MATCH (q:Question {id: a.questionId})
      CREATE (s)-[:ANSWERED {blank: a.blank, word: 'w', correct: a.correct}]->(q)`,
-    { id: spec.id, answers: spec.answers.map((a) => ({ questionId: a.questionId, blank: a.blank ?? 0, correct: a.correct })) },
+    {
+      id: spec.id,
+      answers: spec.answers.map((a) => ({
+        questionId: a.questionId,
+        blank: a.blank ?? 0,
+        correct: a.correct,
+      })),
+    },
   );
 }
 
-export async function share(tg: TestGraph, puzzleId: string, learnerId: string, withSource: boolean): Promise<void> {
+export async function share(
+  tg: TestGraph,
+  puzzleId: string,
+  learnerId: string,
+  withSource: boolean,
+): Promise<void> {
   await tg.cypher(
     `MATCH (p:Puzzle {id: $puzzleId}), (l:Learner {id: $learnerId})
      MERGE (p)-[sh:SHARED_WITH]->(l) SET sh.withSource = $withSource, sh.at = 1`,
@@ -181,11 +216,18 @@ export async function share(tg: TestGraph, puzzleId: string, learnerId: string, 
   );
 }
 
-export async function revokeShare(tg: TestGraph, puzzleId: string, learnerId: string): Promise<void> {
-  await tg.cypher(`MATCH (:Puzzle {id: $puzzleId})-[sh:SHARED_WITH]->(:Learner {id: $learnerId}) DELETE sh`, {
-    puzzleId,
-    learnerId,
-  });
+export async function revokeShare(
+  tg: TestGraph,
+  puzzleId: string,
+  learnerId: string,
+): Promise<void> {
+  await tg.cypher(
+    `MATCH (:Puzzle {id: $puzzleId})-[sh:SHARED_WITH]->(:Learner {id: $learnerId}) DELETE sh`,
+    {
+      puzzleId,
+      learnerId,
+    },
+  );
 }
 
 export const L1 = 'learner-main';

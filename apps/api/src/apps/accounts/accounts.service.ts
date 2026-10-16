@@ -5,7 +5,11 @@ import type { MeDto, Role, UserStatus, ValidationDetails } from '@coach/types';
 import { ENV } from '../../config/config.module';
 import type { Env } from '../../config/env';
 import type { AuthUser } from '../../common/auth/auth-user';
-import { TOKEN_VERIFIER, type TokenVerifier, type VerifiedIdentity } from '../../common/auth/token-verifier';
+import {
+  TOKEN_VERIFIER,
+  type TokenVerifier,
+  type VerifiedIdentity,
+} from '../../common/auth/token-verifier';
 import { CLOCK, type Clock } from '../../common/clock';
 import { DB, type Db } from '../../common/db/db.module';
 import {
@@ -170,7 +174,8 @@ export class AccountsService {
   async touchLastSeen(userId: string, options: { force?: boolean } = {}): Promise<void> {
     const now = this.clock.now();
     const last = this.touched.get(userId);
-    if (!options.force && last !== undefined && now.getTime() - last < LAST_SEEN_INTERVAL_MS) return;
+    if (!options.force && last !== undefined && now.getTime() - last < LAST_SEEN_INTERVAL_MS)
+      return;
     this.touched.set(userId, now.getTime());
     try {
       await this.db.update(users).set({ lastSeenAt: now }).where(eq(users.id, userId));
@@ -209,7 +214,11 @@ export class AccountsService {
           if (existing) return existing;
         }
 
-        const [byEmail] = await tx.select().from(users).where(eq(users.email, profile.email)).limit(1);
+        const [byEmail] = await tx
+          .select()
+          .from(users)
+          .where(eq(users.email, profile.email))
+          .limit(1);
         if (byEmail) {
           await tx
             .insert(userIdentities)
@@ -224,7 +233,9 @@ export class AccountsService {
         }
 
         const id = newId();
-        const role: Role = this.env.BOOTSTRAP_ADMIN_EMAILS.includes(profile.email) ? 'admin' : 'learner';
+        const role: Role = this.env.BOOTSTRAP_ADMIN_EMAILS.includes(profile.email)
+          ? 'admin'
+          : 'learner';
         const displayName = profile.name.slice(0, 120);
         await tx.insert(users).values({
           id,
@@ -235,7 +246,9 @@ export class AccountsService {
           createdAt: now,
           lastSeenAt: now,
         });
-        await tx.insert(userIdentities).values({ cognitoSub: profile.sub, userId: id, provider: profile.provider });
+        await tx
+          .insert(userIdentities)
+          .values({ cognitoSub: profile.sub, userId: id, provider: profile.provider });
         await this.graph.runOne(createLearner, { id, displayName, createdAt: toEpochMs(now) });
         createdLearnerId = id;
         this.logger.log(`account created user=${id}`);
@@ -261,7 +274,13 @@ export class AccountsService {
   async me(userId: string): Promise<MeDto> {
     const [row] = await this.db.select().from(users).where(eq(users.id, userId)).limit(1);
     if (!row) throw new NotFoundError('User');
-    return { id: row.id, name: row.displayName, email: row.email, role: row.role, status: row.status };
+    return {
+      id: row.id,
+      name: row.displayName,
+      email: row.email,
+      role: row.role,
+      status: row.status,
+    };
   }
 
   /** True when the user exists and is not blocked. Same 5-second cache as the guard. */
@@ -286,37 +305,66 @@ export class AccountsService {
     return row?.n ?? 0;
   }
 
-  async assertCanChangeStatus(actor: AuthUser | null, targetUserId: string, status: UserStatus): Promise<void> {
+  async assertCanChangeStatus(
+    actor: AuthUser | null,
+    targetUserId: string,
+    status: UserStatus,
+  ): Promise<void> {
     const target = await this.loadTarget(targetUserId);
     if (status !== 'blocked') return;
-    if (actor && actor.id === targetUserId) throw new ConflictError('You cannot block your own account');
-    if (target.role === 'admin' && target.status === 'active' && (await this.otherActiveAdmins(targetUserId)) === 0) {
+    if (actor && actor.id === targetUserId)
+      throw new ConflictError('You cannot block your own account');
+    if (
+      target.role === 'admin' &&
+      target.status === 'active' &&
+      (await this.otherActiveAdmins(targetUserId)) === 0
+    ) {
       throw new ConflictError('At least one active admin must remain');
     }
   }
 
-  async assertCanChangeRole(actor: AuthUser | null, targetUserId: string, role: Role): Promise<void> {
+  async assertCanChangeRole(
+    actor: AuthUser | null,
+    targetUserId: string,
+    role: Role,
+  ): Promise<void> {
     const target = await this.loadTarget(targetUserId);
     if (role === 'admin') return;
     if (actor && actor.id === targetUserId && actor.role === 'admin') {
       throw new ConflictError('You cannot remove your own admin role');
     }
-    if (target.role === 'admin' && target.status === 'active' && (await this.otherActiveAdmins(targetUserId)) === 0) {
+    if (
+      target.role === 'admin' &&
+      target.status === 'active' &&
+      (await this.otherActiveAdmins(targetUserId)) === 0
+    ) {
       throw new ConflictError('At least one active admin must remain');
     }
   }
 
   /** Check, write, and invalidate the cache entry, so a block is seen by the guard at once in this process. */
-  async setStatus(actor: AuthUser | null, targetUserId: string, status: UserStatus): Promise<Account> {
+  async setStatus(
+    actor: AuthUser | null,
+    targetUserId: string,
+    status: UserStatus,
+  ): Promise<Account> {
     await this.assertCanChangeStatus(actor, targetUserId, status);
-    const [row] = await this.db.update(users).set({ status }).where(eq(users.id, targetUserId)).returning();
+    const [row] = await this.db
+      .update(users)
+      .set({ status })
+      .where(eq(users.id, targetUserId))
+      .returning();
     this.invalidate(targetUserId);
     return toAccount(row!);
   }
 
   async setRole(actor: AuthUser | null, targetUserId: string, role: Role): Promise<Account> {
     await this.assertCanChangeRole(actor, targetUserId, role);
-    const [row] = await this.db.update(users).set({ role }).where(eq(users.id, targetUserId)).returning();
+    const [row] = await this.db
+      .update(users)
+      .set({ role })
+      .where(eq(users.id, targetUserId))
+      .returning();
     this.invalidate(targetUserId);
     return toAccount(row!);
   }
@@ -374,6 +422,7 @@ export class AccountsService {
   /** Drops the cache entry after a write made elsewhere (for example the admin's SQL adapter). */
   invalidate(userId: string): void {
     this.byId.delete(userId);
-    for (const [sub, entry] of this.subToUser) if (entry.value === userId) this.subToUser.delete(sub);
+    for (const [sub, entry] of this.subToUser)
+      if (entry.value === userId) this.subToUser.delete(sub);
   }
 }

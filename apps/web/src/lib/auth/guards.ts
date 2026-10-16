@@ -16,7 +16,10 @@ export function roleAtLeast(role: Role, minimum: Role): boolean {
  * A same-site relative path or the fallback. Rejects absolute URLs, protocol-relative `//host`, backslash
  * tricks, and control characters.
  */
-export function safeRedirect(value: string | null | undefined, fallback: string = DEFAULT_REDIRECT): string {
+export function safeRedirect(
+  value: string | null | undefined,
+  fallback: string = DEFAULT_REDIRECT,
+): string {
   if (typeof value !== 'string' || value.length === 0) return fallback;
   if (!value.startsWith('/') || value.startsWith('//') || value.startsWith('/\\')) return fallback;
   if (/[\u0000-\u001f\u007f\\]/.test(value)) return fallback;
@@ -33,16 +36,28 @@ export type GuardResult =
   | { kind: 'redirect'; to: '/blocked' };
 
 /** Pure decision behind `requireSession`. */
-export function guardSession(session: SessionState, location: { pathname: string; search?: string }): GuardResult {
+export function guardSession(
+  session: SessionState,
+  location: { pathname: string; search?: string },
+): GuardResult {
   if (session === null) {
-    return { kind: 'redirect', to: '/login', search: { redirect: safeRedirect(`${location.pathname}${location.search ?? ''}`, DEFAULT_REDIRECT) } };
+    return {
+      kind: 'redirect',
+      to: '/login',
+      search: {
+        redirect: safeRedirect(`${location.pathname}${location.search ?? ''}`, DEFAULT_REDIRECT),
+      },
+    };
   }
   if (isBlocked(session)) return { kind: 'redirect', to: '/blocked' };
   return { kind: 'ok', user: session };
 }
 
 /** For `beforeLoad`: returns the user or throws a router redirect. */
-export function requireSession(session: SessionState, location: { pathname: string; search?: string }): MeDto {
+export function requireSession(
+  session: SessionState,
+  location: { pathname: string; search?: string },
+): MeDto {
   const result = guardSession(session, location);
   if (result.kind === 'ok') return result.user;
   if (result.to === '/login') throw redirect({ to: '/login', search: result.search });

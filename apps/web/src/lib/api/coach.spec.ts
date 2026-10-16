@@ -6,7 +6,10 @@ const fetchMock = vi.fn();
 
 function respond(status: number, body?: unknown) {
   fetchMock.mockResolvedValueOnce(
-    new Response(body === undefined ? null : JSON.stringify(body), { status, headers: { 'Content-Type': 'application/json' } }),
+    new Response(body === undefined ? null : JSON.stringify(body), {
+      status,
+      headers: { 'Content-Type': 'application/json' },
+    }),
   );
 }
 function lastCall() {
@@ -41,7 +44,10 @@ describe('coach api', () => {
 
   it('surfaces 409 NO_PLAYABLE_CONTENT', async () => {
     respond(409, { error: { code: 'NO_PLAYABLE_CONTENT', message: 'nothing' } });
-    await expect(requestRecommendation()).rejects.toMatchObject({ status: 409, code: 'NO_PLAYABLE_CONTENT' });
+    await expect(requestRecommendation()).rejects.toMatchObject({
+      status: 409,
+      code: 'NO_PLAYABLE_CONTENT',
+    });
   });
 
   it('getDecision and getDecisionPath use the canonical paths', async () => {

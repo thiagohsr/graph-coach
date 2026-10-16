@@ -3,7 +3,9 @@ import userEvent from '@testing-library/user-event';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { renderWithQuery } from '~/test/render';
 
-vi.mock('@tanstack/react-router', async (orig) => (await import('~/test/router-mock')).routerMock(await orig()));
+vi.mock('@tanstack/react-router', async (orig) =>
+  (await import('~/test/router-mock')).routerMock(await orig()),
+);
 
 const createSession = vi.fn();
 const submitSession = vi.fn();
@@ -45,8 +47,14 @@ describe('PlayBoard (keyboard)', () => {
     expect(blank(1, 2, 2, 'empty')).toBeInTheDocument();
     expect(blank(2, 1, 1, 'empty')).toBeInTheDocument();
     const bank = screen.getByRole('group', { name: 'Word bank' });
-    expect(within(bank).getAllByRole('button').map((b) => b.getAttribute('aria-label'))).toEqual(['writes', 'cache', 'index', 'table']);
-    expect(screen.getByRole('group', { name: 'Play board' })).toHaveAccessibleDescription(/select a blank and then a word/);
+    expect(
+      within(bank)
+        .getAllByRole('button')
+        .map((b) => b.getAttribute('aria-label')),
+    ).toEqual(['writes', 'cache', 'index', 'table']);
+    expect(screen.getByRole('group', { name: 'Play board' })).toHaveAccessibleDescription(
+      /select a blank and then a word/,
+    );
     expect(screen.getByText('0 of 3 blanks filled')).toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'Submit answers' })).toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'Clear all' })).toBeInTheDocument();
@@ -202,10 +210,17 @@ describe('PlayBoard (keyboard)', () => {
 describe('PlayBoard (long sentence, many blanks)', () => {
   it('keeps every blank an inline button inside its sentence paragraph', () => {
     const words = ['alpha', 'bravo', 'charlie', 'delta', 'echo', 'foxtrot', 'golf', 'hotel'];
-    const filler = 'a rather long stretch of explanatory text that has to wrap on a narrow phone screen';
+    const filler =
+      'a rather long stretch of explanatory text that has to wrap on a narrow phone screen';
     const sentence = `${words.map(() => `${filler} ___`).join(', ')}.`;
     renderWithQuery(
-      <PlayBoard puzzle={{ ...playPuzzle, questions: [{ id: 'q-long', order: 1, sentence, blanks: words.length }], wordBank: words }} />,
+      <PlayBoard
+        puzzle={{
+          ...playPuzzle,
+          questions: [{ id: 'q-long', order: 1, sentence, blanks: words.length }],
+          wordBank: words,
+        }}
+      />,
     );
     const blanks = screen.getAllByRole('button', { name: /^Sentence 1, blank \d+ of 8, empty$/ });
     expect(blanks).toHaveLength(8);
@@ -221,7 +236,14 @@ describe('PlayBoard (long sentence, many blanks)', () => {
 
 describe('PlayBoard (payload guards)', () => {
   it('refuses a sentence whose blank count does not match', () => {
-    renderWithQuery(<PlayBoard puzzle={{ ...playPuzzle, questions: [{ id: 'q', order: 1, sentence: 'One ___ only.', blanks: 2 }] }} />);
+    renderWithQuery(
+      <PlayBoard
+        puzzle={{
+          ...playPuzzle,
+          questions: [{ id: 'q', order: 1, sentence: 'One ___ only.', blanks: 2 }],
+        }}
+      />,
+    );
     expect(screen.getByText('This puzzle cannot be displayed')).toBeInTheDocument();
     expect(screen.queryByRole('button', { name: 'Submit answers' })).not.toBeInTheDocument();
   });
@@ -229,6 +251,9 @@ describe('PlayBoard (payload guards)', () => {
   it('shows the empty state for a puzzle with no questions', () => {
     renderWithQuery(<PlayBoard puzzle={{ ...playPuzzle, questions: [] }} />);
     expect(screen.getByText('This puzzle has no questions.')).toBeInTheDocument();
-    expect(screen.getByRole('link', { name: 'Back to puzzles' })).toHaveAttribute('href', '/puzzles');
+    expect(screen.getByRole('link', { name: 'Back to puzzles' })).toHaveAttribute(
+      'href',
+      '/puzzles',
+    );
   });
 });

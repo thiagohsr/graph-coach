@@ -7,7 +7,13 @@ const WINDOW_TEXT: Record<string, string> = { hour: 'this hour', month: 'this mo
 const KIND_TEXT: Record<string, string> = { upload: 'uploads', prompt: 'prompt puzzles' };
 
 /** 429 `CREATION_LIMIT_REACHED`: which limit, for which kind, when it resets, and the redeem form when a code can help. */
-export function CreationLimitNotice({ error, redeem }: { error: ApiClientError; redeem: ReactNode }) {
+export function CreationLimitNotice({
+  error,
+  redeem,
+}: {
+  error: ApiClientError;
+  redeem: ReactNode;
+}) {
   const window = error.window ? WINDOW_TEXT[error.window] : undefined;
   const kind = error.kind ? KIND_TEXT[error.kind] : undefined;
   const reset = error.retryAt

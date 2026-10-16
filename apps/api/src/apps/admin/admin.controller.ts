@@ -25,7 +25,10 @@ export class AdminController {
   }
 
   @Get(':model')
-  list(@Param('model') model: string, @Query() query: Record<string, unknown>): Promise<AdminListResponse> {
+  list(
+    @Param('model') model: string,
+    @Query() query: Record<string, unknown>,
+  ): Promise<AdminListResponse> {
     return this.admin.list(model, query);
   }
 

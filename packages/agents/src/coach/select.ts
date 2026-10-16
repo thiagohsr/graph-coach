@@ -68,7 +68,13 @@ function selectWeak(weak: WeakRow[], settings: CoachSettings): Selection | null 
 
   const drivers = first.members
     .filter((row) => row.conceptId !== first.target.conceptId)
-    .sort((a, b) => round4(b.risk) - round4(a.risk) || cmp(a.name, b.name) || cmp(a.slug, b.slug) || cmp(a.conceptId, b.conceptId))
+    .sort(
+      (a, b) =>
+        round4(b.risk) - round4(a.risk) ||
+        cmp(a.name, b.name) ||
+        cmp(a.slug, b.slug) ||
+        cmp(a.conceptId, b.conceptId),
+    )
     .map(fromWeakRow);
 
   return {

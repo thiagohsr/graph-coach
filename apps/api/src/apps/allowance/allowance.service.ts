@@ -182,7 +182,8 @@ export class AllowanceService {
     }
 
     // 4. Monthly allowance of this kind.
-    const used = (kind === 'upload' ? counts.uploadsThisMonth : counts.promptsThisMonth) + pendingOfKind;
+    const used =
+      (kind === 'upload' ? counts.uploadsThisMonth : counts.promptsThisMonth) + pendingOfKind;
     const allowance =
       kind === 'upload' ? settings.monthlySourceAllowance : settings.monthlyPromptAllowance;
     if (used < allowance) return { ok: true, via: 'allowance' };

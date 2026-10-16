@@ -5,13 +5,19 @@ import { buttonVariants } from '~/components/ui/button';
 import { cn } from '~/lib/utils';
 
 /** "2 of the 3 questions needed were approved." */
-export function notPublishedSentence(reason: NonNullable<ReviewOutcome['notPublishedReason']>): string {
+export function notPublishedSentence(
+  reason: NonNullable<ReviewOutcome['notPublishedReason']>,
+): string {
   return `${reason.approved} of the ${reason.minQuestions} questions needed were approved.`;
 }
 
 function PlayLink({ puzzleId }: { puzzleId: string }) {
   return (
-    <Link to="/puzzles/$puzzleId/play" params={{ puzzleId }} className={cn(buttonVariants({ size: 'sm' }))}>
+    <Link
+      to="/puzzles/$puzzleId/play"
+      params={{ puzzleId }}
+      className={cn(buttonVariants({ size: 'sm' }))}
+    >
       Play
     </Link>
   );
@@ -27,7 +33,10 @@ export function ReviewOutcomePanel({ outcome }: { outcome: ReviewOutcome }) {
 
   if (outcome.remainingDrafts === 0) {
     return (
-      <section aria-label="Review outcome" className="flex flex-col gap-3 rounded-lg border bg-card p-4 shadow-xs">
+      <section
+        aria-label="Review outcome"
+        className="flex flex-col gap-3 rounded-lg border bg-card p-4 shadow-xs"
+      >
         {published ? (
           <>
             <h2 id="outcome-heading" tabIndex={-1} className="text-lg font-semibold outline-none">
@@ -35,7 +44,10 @@ export function ReviewOutcomePanel({ outcome }: { outcome: ReviewOutcome }) {
             </h2>
             <div className="flex flex-wrap items-center gap-3">
               <PlayLink puzzleId={outcome.puzzle.id} />
-              <Link to="/puzzles" className="text-sm font-medium text-primary underline underline-offset-4 hover:text-primary-hover">
+              <Link
+                to="/puzzles"
+                className="text-sm font-medium text-primary underline underline-offset-4 hover:text-primary-hover"
+              >
                 Share it from the puzzle list
               </Link>
             </div>
@@ -45,8 +57,15 @@ export function ReviewOutcomePanel({ outcome }: { outcome: ReviewOutcome }) {
             <h2 id="outcome-heading" tabIndex={-1} className="text-lg font-semibold outline-none">
               Puzzle not published:
             </h2>
-            <p>{outcome.notPublishedReason ? notPublishedSentence(outcome.notPublishedReason) : 'No questions were approved.'}</p>
-            <Link to="/sources" className="text-sm font-medium text-primary underline underline-offset-4 hover:text-primary-hover">
+            <p>
+              {outcome.notPublishedReason
+                ? notPublishedSentence(outcome.notPublishedReason)
+                : 'No questions were approved.'}
+            </p>
+            <Link
+              to="/sources"
+              className="text-sm font-medium text-primary underline underline-offset-4 hover:text-primary-hover"
+            >
               Back to sources
             </Link>
           </>

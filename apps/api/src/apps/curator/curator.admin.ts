@@ -83,7 +83,15 @@ export const taskAdmin = registerAdmin({
   entity: 'Task',
   readOnly: true,
   titleField: 'id',
-  listDisplay: ['kind', 'status', 'result', 'createdAt', 'updatedAt', 'inputTokens', 'outputTokens'],
+  listDisplay: [
+    'kind',
+    'status',
+    'result',
+    'createdAt',
+    'updatedAt',
+    'inputTokens',
+    'outputTokens',
+  ],
   searchFields: ['id'],
   ordering: ['-createdAt'],
   fields: {

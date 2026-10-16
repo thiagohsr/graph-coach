@@ -36,7 +36,9 @@ describe('admin-setting hook', () => {
 
   it('rejects any edit of embeddingDim', () => {
     for (const value of [64, null, 'x']) {
-      expect(validateSetting(ctx('embeddingDim', value))).toEqual({ fields: { value: expect.stringContaining('embeddingDim') } });
+      expect(validateSetting(ctx('embeddingDim', value))).toEqual({
+        fields: { value: expect.stringContaining('embeddingDim') },
+      });
     }
   });
 

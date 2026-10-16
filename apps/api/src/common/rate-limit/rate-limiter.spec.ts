@@ -14,7 +14,10 @@ class FakeClock implements Clock {
 }
 
 const MIN = 60_000;
-const oneWindow: RateLimitRule = { name: 'shares', windows: [{ name: 'main', limit: 3, windowMs: 10 * MIN }] };
+const oneWindow: RateLimitRule = {
+  name: 'shares',
+  windows: [{ name: 'main', limit: 3, windowMs: 10 * MIN }],
+};
 const twoWindows: RateLimitRule = {
   name: 'codes.redeem',
   windows: [
@@ -33,7 +36,8 @@ beforeEach(() => {
 
 describe('one window', () => {
   it('allows `limit` events then refuses', async () => {
-    for (let i = 0; i < 3; i += 1) expect((await limiter.consume(oneWindow, 'u1')).allowed).toBe(true);
+    for (let i = 0; i < 3; i += 1)
+      expect((await limiter.consume(oneWindow, 'u1')).allowed).toBe(true);
     const refused = await limiter.consume(oneWindow, 'u1');
     expect(refused.allowed).toBe(false);
     expect(refused.window).toBe('main');
@@ -73,14 +77,18 @@ describe('one window', () => {
   });
 
   it('peek does not count', async () => {
-    for (let i = 0; i < 10; i += 1) expect((await limiter.peek(oneWindow, 'u1')).allowed).toBe(true);
+    for (let i = 0; i < 10; i += 1)
+      expect((await limiter.peek(oneWindow, 'u1')).allowed).toBe(true);
     expect((await limiter.peek(oneWindow, 'u1')).windows[0]!.used).toBe(0);
     await limiter.consume(oneWindow, 'u1');
     expect((await limiter.peek(oneWindow, 'u1')).windows[0]!.used).toBe(1);
   });
 
   it('limit 0 refuses everything', async () => {
-    const blocked: RateLimitRule = { name: 'off', windows: [{ name: 'main', limit: 0, windowMs: MIN }] };
+    const blocked: RateLimitRule = {
+      name: 'off',
+      windows: [{ name: 'main', limit: 0, windowMs: MIN }],
+    };
     const result = await limiter.consume(blocked, 'u1');
     expect(result.allowed).toBe(false);
     expect(result.window).toBe('main');
@@ -98,27 +106,35 @@ describe('one window', () => {
 
 describe('two windows', () => {
   it('refuses on the short window first, then on the day window, and counts nothing on a refusal', async () => {
-    for (let i = 0; i < 5; i += 1) expect((await limiter.consume(twoWindows, 'u1')).allowed).toBe(true);
+    for (let i = 0; i < 5; i += 1)
+      expect((await limiter.consume(twoWindows, 'u1')).allowed).toBe(true);
     const shortRefusal = await limiter.consume(twoWindows, 'u1');
     expect(shortRefusal.allowed).toBe(false);
     expect(shortRefusal.window).toBe('short');
     // The refusal consumed nothing from the day window.
-    expect(await limiter.usage('codes.redeem', 'u1', [{ name: 'day', windowMs: 24 * 60 * MIN }])).toEqual([
-      { name: 'day', used: 5 },
-    ]);
+    expect(
+      await limiter.usage('codes.redeem', 'u1', [{ name: 'day', windowMs: 24 * 60 * MIN }]),
+    ).toEqual([{ name: 'day', used: 5 }]);
 
     // Three more batches of five, each after the short window has emptied: 20 events in the day.
     for (let batch = 0; batch < 3; batch += 1) {
       clock.advance(11 * MIN);
-      for (let i = 0; i < 5; i += 1) expect((await limiter.consume(twoWindows, 'u1')).allowed).toBe(true);
+      for (let i = 0; i < 5; i += 1)
+        expect((await limiter.consume(twoWindows, 'u1')).allowed).toBe(true);
     }
     clock.advance(11 * MIN);
     const dayRefusal = await limiter.consume(twoWindows, 'u1');
     expect(dayRefusal.allowed).toBe(false);
     expect(dayRefusal.window).toBe('day');
     expect(dayRefusal.windows.find((w) => w.name === 'short')!.used).toBe(0);
-    expect(dayRefusal.windows.find((w) => w.name === 'day')).toMatchObject({ used: 20, remaining: 0 });
-    expect((await limiter.usage('codes.redeem', 'u1', [{ name: 'day', windowMs: 24 * 60 * MIN }]))[0]!.used).toBe(20);
+    expect(dayRefusal.windows.find((w) => w.name === 'day')).toMatchObject({
+      used: 20,
+      remaining: 0,
+    });
+    expect(
+      (await limiter.usage('codes.redeem', 'u1', [{ name: 'day', windowMs: 24 * 60 * MIN }]))[0]!
+        .used,
+    ).toBe(20);
   });
 
   it('names the window that frees up last when both are exhausted', async () => {

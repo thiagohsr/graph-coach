@@ -8,28 +8,30 @@ const blankToUndefined = (v: unknown) => (typeof v === 'string' && v.trim() === 
 
 const optionalString = z.preprocess(blankToUndefined, z.string().optional());
 
-const booleanFlag = z.preprocess(
-  (v) => {
-    const raw = blankToUndefined(v);
-    if (raw === undefined) return undefined;
-    if (typeof raw === 'string') {
-      const s = raw.trim().toLowerCase();
-      if (s === 'true' || s === '1') return true;
-      if (s === 'false' || s === '0') return false;
-    }
-    return raw;
-  },
-  z.boolean().default(false),
-);
+const booleanFlag = z.preprocess((v) => {
+  const raw = blankToUndefined(v);
+  if (raw === undefined) return undefined;
+  if (typeof raw === 'string') {
+    const s = raw.trim().toLowerCase();
+    if (s === 'true' || s === '1') return true;
+    if (s === 'false' || s === '0') return false;
+  }
+  return raw;
+}, z.boolean().default(false));
 
 const EnvSchema = z
   .object({
     NODE_ENV: optionalString,
-    WEB_PORT: z.preprocess(blankToUndefined, z.coerce.number().int().min(1).max(65535).default(3000)),
+    WEB_PORT: z.preprocess(
+      blankToUndefined,
+      z.coerce.number().int().min(1).max(65535).default(3000),
+    ),
     API_URL: z.preprocess(blankToUndefined, z.string().url().default('http://localhost:3001/api')),
     COOKIE_SECURE: booleanFlag,
     AUTH_MODE: z.preprocess(blankToUndefined, z.enum(['cognito', 'dev']).default('dev')),
-    SESSION_SECRET: z.string({ required_error: 'SESSION_SECRET is required' }).min(32, 'SESSION_SECRET must be at least 32 characters'),
+    SESSION_SECRET: z
+      .string({ required_error: 'SESSION_SECRET is required' })
+      .min(32, 'SESSION_SECRET must be at least 32 characters'),
     COGNITO_DOMAIN: optionalString,
     COGNITO_CLIENT_ID: optionalString,
     WEB_ORIGIN: z.preprocess(blankToUndefined, z.string().url().optional()),
@@ -37,11 +39,20 @@ const EnvSchema = z
   })
   .superRefine((env, ctx) => {
     if (env.AUTH_MODE === 'dev' && env.NODE_ENV === 'production') {
-      ctx.addIssue({ code: 'custom', path: ['AUTH_MODE'], message: 'AUTH_MODE=dev is refused when NODE_ENV=production' });
+      ctx.addIssue({
+        code: 'custom',
+        path: ['AUTH_MODE'],
+        message: 'AUTH_MODE=dev is refused when NODE_ENV=production',
+      });
     }
     if (env.AUTH_MODE === 'cognito') {
       for (const key of ['COGNITO_DOMAIN', 'COGNITO_CLIENT_ID', 'WEB_ORIGIN'] as const) {
-        if (!env[key]) ctx.addIssue({ code: 'custom', path: [key], message: `${key} is required when AUTH_MODE=cognito` });
+        if (!env[key])
+          ctx.addIssue({
+            code: 'custom',
+            path: [key],
+            message: `${key} is required when AUTH_MODE=cognito`,
+          });
       }
     }
   });
@@ -73,7 +84,9 @@ export class EnvError extends Error {
 export function parseEnv(source: Record<string, string | undefined>): WebEnv {
   const parsed = EnvSchema.safeParse(source);
   if (!parsed.success) {
-    throw new EnvError(parsed.error.issues.map((i) => `${i.path.join('.') || 'env'}: ${i.message}`));
+    throw new EnvError(
+      parsed.error.issues.map((i) => `${i.path.join('.') || 'env'}: ${i.message}`),
+    );
   }
   const e = parsed.data;
   return {

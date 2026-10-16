@@ -44,9 +44,13 @@ function issues(values: Record<string, unknown>) {
 
 describe('validateUpdate', () => {
   it('flags unknown, read-only, computed, and id keys', () => {
-    expect(issues({ colour: 1 })).toEqual([{ path: 'values.colour', message: expect.any(String), code: 'unknown_field' }]);
+    expect(issues({ colour: 1 })).toEqual([
+      { path: 'values.colour', message: expect.any(String), code: 'unknown_field' },
+    ]);
     for (const key of ['slug', 'total', 'id', 'createdAt']) {
-      expect(issues({ [key]: 'x' })).toEqual([{ path: `values.${key}`, message: expect.any(String), code: 'read_only' }]);
+      expect(issues({ [key]: 'x' })).toEqual([
+        { path: `values.${key}`, message: expect.any(String), code: 'read_only' },
+      ]);
     }
   });
 
@@ -91,7 +95,12 @@ describe('validateUpdate', () => {
 
   it('returns all errors together', () => {
     const found = issues({ runs: -1, kind: 'z', colour: 1, slug: 'x' });
-    expect(found.map((i) => i.code).sort()).toEqual(['invalid_choice', 'out_of_range', 'read_only', 'unknown_field']);
+    expect(found.map((i) => i.code).sort()).toEqual([
+      'invalid_choice',
+      'out_of_range',
+      'read_only',
+      'unknown_field',
+    ]);
     expect(found.every((i) => i.path.startsWith('values.'))).toBe(true);
   });
 
@@ -102,7 +111,10 @@ describe('validateUpdate', () => {
   });
 
   it('accepts null for a non-required field', () => {
-    expect(validateUpdate(model, { kind: null, tags: null })).toEqual({ ok: true, changes: { kind: null, tags: null } });
+    expect(validateUpdate(model, { kind: null, tags: null })).toEqual({
+      ok: true,
+      changes: { kind: null, tags: null },
+    });
   });
 
   it('survives hostile keys', () => {

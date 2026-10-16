@@ -4,7 +4,12 @@ import { falkorConnectionFromEnv } from '@coach/graph-kit/testing';
 import { MasteryService } from '../src/apps/gameplay/mastery.service';
 import { buildGameplayFixture, share, unshare, type Run } from './support/gameplay-fixture';
 import { PlayPuzzleDto } from '@coach/types';
-import { ACCESS, describeAccessMatrix, describeRoleMatrix, type Actors } from './support/role-matrix';
+import {
+  ACCESS,
+  describeAccessMatrix,
+  describeRoleMatrix,
+  type Actors,
+} from './support/role-matrix';
 import { createTestApp, type TestApp, type TestUser } from './support/test-app';
 
 let app: TestApp;
@@ -39,7 +44,11 @@ beforeAll(async () => {
   r = await app.createUser({ role: 'reviewer', name: 'Rui' });
   m = await app.createUser({ role: 'admin', name: 'Max' });
   run = (text, params) => app.testGraph.cypher(text, params as Record<string, never>);
-  await buildGameplayFixture(run, { A: a.id, B: b.id, C: c.id, R: r.id, M: m.id }, { createLearners: false });
+  await buildGameplayFixture(
+    run,
+    { A: a.id, B: b.id, C: c.id, R: r.id, M: m.id },
+    { createLearners: false },
+  );
 });
 afterAll(async () => {
   await app?.close();
@@ -70,7 +79,13 @@ describe('S1: play and submit', () => {
     const res = await app.http.get('/puzzles').set(a.auth);
     expect(res.status).toBe(200);
     const p1 = res.body.find((p: { id: string }) => p.id === 'P1');
-    expect(p1).toMatchObject({ origin: 'seed', access: 'public', ownerName: 'Max', questionCount: 3, sourceShared: false });
+    expect(p1).toMatchObject({
+      origin: 'seed',
+      access: 'public',
+      ownerName: 'Max',
+      questionCount: 3,
+      sourceShared: false,
+    });
     expect('sourceId' in p1).toBe(false);
   });
 
@@ -80,7 +95,16 @@ describe('S1: play and submit', () => {
       const res = await app.http.get('/puzzles/P1/play').set(a.auth);
       expect(res.status).toBe(200);
       expect(res.headers['cache-control']).toBe('no-store');
-      expect(playKeys(res.body)).toEqual(['blanks', 'id', 'name', 'order', 'origin', 'questions', 'sentence', 'wordBank']);
+      expect(playKeys(res.body)).toEqual([
+        'blanks',
+        'id',
+        'name',
+        'order',
+        'origin',
+        'questions',
+        'sentence',
+        'wordBank',
+      ]);
       expect(res.body.origin).toBe('seed');
       expect(res.body.questions).toHaveLength(3);
       expect([...res.body.wordBank].sort()).toEqual(['B-tree', 'cache', 'heap', 'index', 'writes']);
@@ -119,14 +143,22 @@ describe('S1: play and submit', () => {
 
   it('a second submit answers 409 and changes nothing', async () => {
     const sessionId = await start(a);
-    expect((await submit(a, sessionId, [{ questionId: 'q2', blank: 0, word: 'B-tree' }])).status).toBe(200);
+    expect(
+      (await submit(a, sessionId, [{ questionId: 'q2', blank: 0, word: 'B-tree' }])).status,
+    ).toBe(200);
     const edges = await app.testGraph.countEdges('ANSWERED');
-    const [before] = await run(`MATCH (s:Session {id: $id}) RETURN s.score AS score, s.submittedAt AS at`, { id: sessionId });
+    const [before] = await run(
+      `MATCH (s:Session {id: $id}) RETURN s.score AS score, s.submittedAt AS at`,
+      { id: sessionId },
+    );
     const res = await submit(a, sessionId, ALL_CORRECT);
     expect(res.status).toBe(409);
     expect(res.body.error.code).toBe('SESSION_ALREADY_SUBMITTED');
     expect(await app.testGraph.countEdges('ANSWERED')).toBe(edges);
-    const [after] = await run(`MATCH (s:Session {id: $id}) RETURN s.score AS score, s.submittedAt AS at`, { id: sessionId });
+    const [after] = await run(
+      `MATCH (s:Session {id: $id}) RETURN s.score AS score, s.submittedAt AS at`,
+      { id: sessionId },
+    );
     expect(after).toEqual(before);
   });
 
@@ -136,16 +168,23 @@ describe('S1: play and submit', () => {
     expect(res.status).toBe(422);
     expect(res.body.error.code).toBe('VALIDATION_FAILED');
     expect(res.body.error.details.issues[0].path).toBe('answers.0.questionId');
-    const [row] = await run(`MATCH (s:Session {id: $id}) RETURN s.submittedAt AS at`, { id: sessionId });
+    const [row] = await run(`MATCH (s:Session {id: $id}) RETURN s.submittedAt AS at`, {
+      id: sessionId,
+    });
     expect((row as { at: unknown }).at).toBeNull();
     expect((await submit(a, sessionId, [])).status).toBe(200);
   });
 
   it('schema failures answer 422 (extra key, long word) and a malformed id answers 422', async () => {
     const sessionId = await start(a);
-    const extra = await app.http.post(`/sessions/${sessionId}/submit`).set(a.auth).send({ answers: [], correct: true });
+    const extra = await app.http
+      .post(`/sessions/${sessionId}/submit`)
+      .set(a.auth)
+      .send({ answers: [], correct: true });
     expect(extra.status).toBe(422);
-    const long = await submit(a, sessionId, [{ questionId: 'q1', blank: 0, word: 'x'.repeat(101) }]);
+    const long = await submit(a, sessionId, [
+      { questionId: 'q1', blank: 0, word: 'x'.repeat(101) },
+    ]);
     expect(long.status).toBe(422);
     const badId = await app.http.get(`/puzzles/${'x'.repeat(65)}/play`).set(a.auth);
     expect(badId.status).toBe(422);
@@ -157,14 +196,22 @@ describe('S1: play and submit', () => {
     expect((await app.http.get('/puzzles/nope/play').set(a.auth)).status).toBe(404);
   });
 
-  describeRoleMatrix(() => app, [
-    { method: 'GET', path: '/puzzles', allowed: ['learner', 'reviewer', 'admin'] },
-    { method: 'GET', path: '/puzzles/P1/play', allowed: ['learner', 'reviewer', 'admin'] },
-    { method: 'POST', path: '/puzzles/P1/sessions', allowed: ['learner', 'reviewer', 'admin'] },
-    { method: 'POST', path: '/sessions/none/submit', body: { answers: [] }, allowed: ['learner', 'reviewer', 'admin'] },
-    { method: 'GET', path: '/sessions/none', allowed: ['learner', 'reviewer', 'admin'] },
-    { method: 'GET', path: '/me/mastery', allowed: ['learner', 'reviewer', 'admin'] },
-  ]);
+  describeRoleMatrix(
+    () => app,
+    [
+      { method: 'GET', path: '/puzzles', allowed: ['learner', 'reviewer', 'admin'] },
+      { method: 'GET', path: '/puzzles/P1/play', allowed: ['learner', 'reviewer', 'admin'] },
+      { method: 'POST', path: '/puzzles/P1/sessions', allowed: ['learner', 'reviewer', 'admin'] },
+      {
+        method: 'POST',
+        path: '/sessions/none/submit',
+        body: { answers: [] },
+        allowed: ['learner', 'reviewer', 'admin'],
+      },
+      { method: 'GET', path: '/sessions/none', allowed: ['learner', 'reviewer', 'admin'] },
+      { method: 'GET', path: '/me/mastery', allowed: ['learner', 'reviewer', 'admin'] },
+    ],
+  );
 });
 
 describe('S2: review the result', () => {
@@ -174,9 +221,21 @@ describe('S2: review the result', () => {
     expect(res.status).toBe(200);
     expect(res.body.review).toHaveLength(4);
     for (const item of res.body.review) {
-      expect(Object.keys(item).sort()).toEqual(['blank', 'correct', 'expected', 'questionId', 'submitted']);
+      expect(Object.keys(item).sort()).toEqual([
+        'blank',
+        'correct',
+        'expected',
+        'questionId',
+        'submitted',
+      ]);
     }
-    expect(res.body.review[1]).toMatchObject({ questionId: 'q1', blank: 1, submitted: null, expected: 'writes', correct: false });
+    expect(res.body.review[1]).toMatchObject({
+      questionId: 'q1',
+      blank: 1,
+      submitted: null,
+      expected: 'writes',
+      correct: false,
+    });
     expect(res.body.questions.map((q: { id: string }) => q.id)).toEqual(['q1', 'q2', 'q3']);
     const mastery = res.body.mastery as Array<{ name: string; before: number; after: number }>;
     expect(mastery.map((x) => x.name)).toEqual(['B-trees', 'Indexes']);
@@ -219,11 +278,12 @@ describe('S3: be remembered', () => {
     expect(first.status).toBe(200);
     const afterOne = await app.http.get('/me/mastery').set(c.auth);
     expect(afterOne.status).toBe(200);
-    const byName = (rows: Array<{ name: string }>, name: string) => rows.find((x) => x.name === name)! as never as {
-      score: number;
-      attempts: number;
-      lastSeen: string;
-    };
+    const byName = (rows: Array<{ name: string }>, name: string) =>
+      rows.find((x) => x.name === name)! as never as {
+        score: number;
+        attempts: number;
+        lastSeen: string;
+      };
     expect(byName(afterOne.body, 'Indexes').attempts).toBe(3);
     expect(byName(afterOne.body, 'B-trees').attempts).toBe(1);
     for (const change of first.body.mastery as Array<{ name: string; after: number }>) {
@@ -233,7 +293,10 @@ describe('S3: be remembered', () => {
     const second = await submit(c, await start(c), ALL_CORRECT);
     expect(second.status).toBe(200);
     expect(second.body.score).toBe(40);
-    const sessions = await run(`MATCH (:Learner {id: $id})-[:PLAYED]->(s:Session) RETURN count(s) AS n`, { id: c.id });
+    const sessions = await run(
+      `MATCH (:Learner {id: $id})-[:PLAYED]->(s:Session) RETURN count(s) AS n`,
+      { id: c.id },
+    );
     expect((sessions[0] as { n: number }).n).toBe(2);
 
     const afterTwo = await app.http.get('/me/mastery').set(c.auth);
@@ -243,7 +306,10 @@ describe('S3: be remembered', () => {
     expect(byName(afterTwo.body, 'B-trees').score).toBeCloseTo(fold(0.35, 1));
 
     // Survives a restart: a fresh graph connection and a fresh service see the same body.
-    const graph = await GraphKit.create({ ...falkorConnectionFromEnv(), graphName: app.testGraph.name });
+    const graph = await GraphKit.create({
+      ...falkorConnectionFromEnv(),
+      graphName: app.testGraph.name,
+    });
     try {
       const fresh = new MasteryService(graph, { get: async () => 0.3 as never }, app.clock);
       expect(await fresh.list(c.id)).toEqual(afterTwo.body);
@@ -263,7 +329,9 @@ describe('S3: be remembered', () => {
        CREATE (p)-[:CONTAINS {order: 1}]->(:Question {id: 'q10', sentence: 'Plain ___.', status: 'approved', answers: ['word']})`,
       { M: m.id },
     );
-    const res = await submit(r, await start(r, 'P6'), [{ questionId: 'q10', blank: 0, word: 'word' }]);
+    const res = await submit(r, await start(r, 'P6'), [
+      { questionId: 'q10', blank: 0, word: 'word' },
+    ]);
     expect(res.status).toBe(200);
     expect(res.body.mastery).toEqual([]);
     expect(res.body.score).toBe(10);
@@ -283,43 +351,83 @@ async function arrangePrivate(app_: TestApp, actors: Actors, tag: string) {
      CREATE (p)-[:CONTAINS {order: 1}]->(:Question {id: $question, sentence: 'Matrix ___.', status: 'approved', answers: ['word']})`,
     { owner: actors.owner.id, puzzle, question: `qx-${tag}` },
   );
-  await run(`MATCH (p:Puzzle {id: $puzzle}), (l:Learner {id: $l}) MERGE (p)-[sh:SHARED_WITH]->(l) SET sh.withSource = false, sh.at = 1`, {
-    puzzle,
-    l: actors.shared.id,
-  });
-  await run(`MATCH (p:Puzzle {id: $puzzle}), (l:Learner {id: $l}) MERGE (p)-[sh:SHARED_WITH]->(l) SET sh.withSource = true, sh.at = 1`, {
-    puzzle,
-    l: actors.sharedWithSource.id,
-  });
+  await run(
+    `MATCH (p:Puzzle {id: $puzzle}), (l:Learner {id: $l}) MERGE (p)-[sh:SHARED_WITH]->(l) SET sh.withSource = false, sh.at = 1`,
+    {
+      puzzle,
+      l: actors.shared.id,
+    },
+  );
+  await run(
+    `MATCH (p:Puzzle {id: $puzzle}), (l:Learner {id: $l}) MERGE (p)-[sh:SHARED_WITH]->(l) SET sh.withSource = true, sh.at = 1`,
+    {
+      puzzle,
+      l: actors.sharedWithSource.id,
+    },
+  );
   const open = await app_.http.post(`/puzzles/${puzzle}/sessions`).set(actors.owner.auth);
   const done = await app_.http.post(`/puzzles/${puzzle}/sessions`).set(actors.owner.auth);
-  await app_.http.post(`/sessions/${done.body.sessionId}/submit`).set(actors.owner.auth).send({ answers: [] });
-  return { puzzle, openSession: open.body.sessionId as string, doneSession: done.body.sessionId as string };
+  await app_.http
+    .post(`/sessions/${done.body.sessionId}/submit`)
+    .set(actors.owner.auth)
+    .send({ answers: [] });
+  return {
+    puzzle,
+    openSession: open.body.sessionId as string,
+    doneSession: done.body.sessionId as string,
+  };
 }
 
 describe('S4: fair play (shared preset matrix)', () => {
-  describeAccessMatrix(() => app, (a_, actors) => arrangePrivate(a_, actors, 'm'), [
-    { name: 'GET play', request: (x) => ({ method: 'GET', path: `/puzzles/${x.puzzle}/play` }), expect: ACCESS.ownerAndShared },
-    {
-      name: 'POST start',
-      request: (x) => ({ method: 'POST', path: `/puzzles/${x.puzzle}/sessions` }),
-      expect: { owner: 201, shared: 201, sharedWithSource: 201, otherLearner: 404, reviewer: 404, admin: 404 },
-    },
-    {
-      name: 'POST submit (session of the owner)',
-      request: (x) => ({ method: 'POST', path: `/sessions/${x.openSession}/submit`, body: { answers: [] } }),
-      expect: { otherLearner: 404, reviewer: 404, admin: 404, shared: 404, sharedWithSource: 404, owner: 200 },
-    },
-    {
-      name: 'GET result (session of the owner)',
-      request: (x) => ({ method: 'GET', path: `/sessions/${x.doneSession}` }),
-      expect: ACCESS.ownerOnly,
-    },
-  ]);
+  describeAccessMatrix(
+    () => app,
+    (a_, actors) => arrangePrivate(a_, actors, 'm'),
+    [
+      {
+        name: 'GET play',
+        request: (x) => ({ method: 'GET', path: `/puzzles/${x.puzzle}/play` }),
+        expect: ACCESS.ownerAndShared,
+      },
+      {
+        name: 'POST start',
+        request: (x) => ({ method: 'POST', path: `/puzzles/${x.puzzle}/sessions` }),
+        expect: {
+          owner: 201,
+          shared: 201,
+          sharedWithSource: 201,
+          otherLearner: 404,
+          reviewer: 404,
+          admin: 404,
+        },
+      },
+      {
+        name: 'POST submit (session of the owner)',
+        request: (x) => ({
+          method: 'POST',
+          path: `/sessions/${x.openSession}/submit`,
+          body: { answers: [] },
+        }),
+        expect: {
+          otherLearner: 404,
+          reviewer: 404,
+          admin: 404,
+          shared: 404,
+          sharedWithSource: 404,
+          owner: 200,
+        },
+      },
+      {
+        name: 'GET result (session of the owner)',
+        request: (x) => ({ method: 'GET', path: `/sessions/${x.doneSession}` }),
+        expect: ACCESS.ownerOnly,
+      },
+    ],
+  );
 });
 
 describe('S4: fair play (fixture P2, P3)', () => {
-  const list = async (u: TestUser) => (await app.http.get('/puzzles').set(u.auth)).body as Array<Record<string, unknown>>;
+  const list = async (u: TestUser) =>
+    (await app.http.get('/puzzles').set(u.auth)).body as Array<Record<string, unknown>>;
 
   it('owner and shared user open P2; everyone else gets the same 404 as for an unknown id', async () => {
     await share(run, 'P2', a.id, false);
@@ -337,7 +445,11 @@ describe('S4: fair play (fixture P2, P3)', () => {
       }
       // S4.4: lists
       expect((await list(b)).find((p) => p.id === 'P2')).toMatchObject({ access: 'owner' });
-      expect((await list(a)).find((p) => p.id === 'P2')).toMatchObject({ access: 'shared', ownerName: 'Bea', sourceShared: false });
+      expect((await list(a)).find((p) => p.id === 'P2')).toMatchObject({
+        access: 'shared',
+        ownerName: 'Bea',
+        sourceShared: false,
+      });
       for (const u of [c, r, m]) expect((await list(u)).some((p) => p.id === 'P2')).toBe(false);
     } finally {
       await unshare(run, 'P2', a.id);
@@ -349,10 +461,15 @@ describe('S4: fair play (fixture P2, P3)', () => {
     try {
       for (const u of [a, b, c, r, m]) {
         for (const item of await list(u)) {
-          expect('sourceId' in item, `${u.name} on ${String(item.id)}`).toBe(item.sourceShared === true);
+          expect('sourceId' in item, `${u.name} on ${String(item.id)}`).toBe(
+            item.sourceShared === true,
+          );
         }
       }
-      expect((await list(r)).find((p) => p.id === 'P4')).toMatchObject({ sourceShared: true, sourceId: 'S4' });
+      expect((await list(r)).find((p) => p.id === 'P4')).toMatchObject({
+        sourceShared: true,
+        sourceId: 'S4',
+      });
       expect('sourceId' in (await list(a)).find((p) => p.id === 'P2')!).toBe(false);
     } finally {
       await unshare(run, 'P2', a.id);
@@ -380,10 +497,13 @@ describe('S4: fair play (fixture P2, P3)', () => {
       expect(res.status).toBe(404);
       expect(res.body.error.code).toBe('NOT_FOUND');
     }
-    const [open] = await run(`MATCH (s:Session {id: $id}) RETURN s.submittedAt AS at`, { id: sessionId });
+    const [open] = await run(`MATCH (s:Session {id: $id}) RETURN s.submittedAt AS at`, {
+      id: sessionId,
+    });
     expect((open as { at: unknown }).at).toBeNull();
     expect((await submit(a, sessionId, [])).status).toBe(200);
-    for (const u of [b, c, r, m]) expect((await app.http.get(`/sessions/${sessionId}`).set(u.auth)).status).toBe(404);
+    for (const u of [b, c, r, m])
+      expect((await app.http.get(`/sessions/${sessionId}`).set(u.auth)).status).toBe(404);
   });
 
   it('a draft puzzle is absent from lists and answers 404 for all five users', async () => {
@@ -410,7 +530,8 @@ describe('S4: fair play (fixture P2, P3)', () => {
 // ---------------------------------------------------------------------------------------------------------------
 
 const collapse = (s: string) => s.replace(/\s+/g, ' ').trim();
-const passagesOf = (body: { review: Array<{ passage?: unknown }> }) => body.review.filter((i) => i.passage);
+const passagesOf = (body: { review: Array<{ passage?: unknown }> }) =>
+  body.review.filter((i) => i.passage);
 const withoutPassages = (body: { review: Array<Record<string, unknown>> }) => ({
   ...body,
   review: body.review.map(({ passage: _passage, ...rest }) => rest),
@@ -450,7 +571,9 @@ describe('S5: where a question came from (source access matrix)', () => {
       reviewer: { start: 404, passage: false },
       admin: { start: 404, passage: false },
     };
-    for (const [name, want] of Object.entries(expected) as Array<[keyof Actors, (typeof expected)[keyof Actors]]>) {
+    for (const [name, want] of Object.entries(expected) as Array<
+      [keyof Actors, (typeof expected)[keyof Actors]]
+    >) {
       const started = await app.http.post(`/puzzles/${puzzle}/sessions`).set(actors[name].auth);
       expect(started.status, name).toBe(want.start);
       if (want.start !== 201) continue;
@@ -466,7 +589,9 @@ describe('S5: where a question came from', () => {
     const sessionId = await start(b, 'P2');
     const res = await submit(b, sessionId, [{ questionId: 'q6', blank: 0, word: 'wrong' }]);
     expect(res.status).toBe(200);
-    const [item] = passagesOf(res.body) as Array<{ passage: { chunkId: string; sourceId: string; excerpt: string } }>;
+    const [item] = passagesOf(res.body) as Array<{
+      passage: { chunkId: string; sourceId: string; excerpt: string };
+    }>;
     expect(item!.passage.chunkId).toBe('ch-1');
     expect(item!.passage.sourceId).toBe('S2');
     expect(item!.passage.excerpt.length).toBeLessThanOrEqual(281);
@@ -483,11 +608,15 @@ describe('S5: where a question came from', () => {
   });
 
   it('prompt-made puzzle P5 is labelled prompt everywhere and never carries a passage', async () => {
-    const listed = (await app.http.get('/puzzles').set(a.auth)).body.find((p: { id: string }) => p.id === 'P5');
+    const listed = (await app.http.get('/puzzles').set(a.auth)).body.find(
+      (p: { id: string }) => p.id === 'P5',
+    );
     expect(listed).toMatchObject({ origin: 'prompt', sourceShared: true, sourceId: 'S5' });
     const play = await app.http.get('/puzzles/P5/play').set(a.auth);
     expect(play.body.origin).toBe('prompt');
-    const res = await submit(a, await start(a, 'P5'), [{ questionId: 'q8', blank: 0, word: 'rows' }]);
+    const res = await submit(a, await start(a, 'P5'), [
+      { questionId: 'q8', blank: 0, word: 'rows' },
+    ]);
     expect(res.body.puzzle.origin).toBe('prompt');
     expect(playKeys(res.body)).not.toContain('passage');
   });
@@ -503,7 +632,9 @@ describe('S5: where a question came from', () => {
       await share(run, 'P2', a.id, true);
       const widened = await app.http.get(`/sessions/${sessionId}`).set(a.auth);
       expect(passagesOf(widened.body)).toHaveLength(1);
-      const second = await submit(a, await start(a, 'P2'), [{ questionId: 'q6', blank: 0, word: 'wrong' }]);
+      const second = await submit(a, await start(a, 'P2'), [
+        { questionId: 'q6', blank: 0, word: 'wrong' },
+      ]);
       expect(passagesOf(second.body)).toHaveLength(1);
 
       await unshare(run, 'P2', a.id);
@@ -537,7 +668,9 @@ describe('S5: where a question came from', () => {
       return (original as (n: string, ...r: unknown[]) => Promise<unknown>)(name, ...rest);
     };
     try {
-      const res = await submit(b, await start(b, 'P2'), [{ questionId: 'q6', blank: 0, word: 'wrong' }]);
+      const res = await submit(b, await start(b, 'P2'), [
+        { questionId: 'q6', blank: 0, word: 'wrong' },
+      ]);
       expect(res.status).toBe(200);
       expect(passagesOf(res.body)).toHaveLength(0);
     } finally {
@@ -584,17 +717,24 @@ describe('SC-G01: answer-free sweep', () => {
 describe('input hardening', () => {
   const rejected = async (body: unknown) => {
     const sessionId = await start(c);
-    const res = await app.http.post(`/sessions/${sessionId}/submit`).set(c.auth).send(body as object);
+    const res = await app.http
+      .post(`/sessions/${sessionId}/submit`)
+      .set(c.auth)
+      .send(body as object);
     expect(res.status).toBe(422);
     expect(res.body.error.code).toBe('VALIDATION_FAILED');
     expect(res.body.error.details.issues.length).toBeGreaterThan(0);
-    const [row] = await run(`MATCH (s:Session {id: $id}) RETURN s.submittedAt AS at`, { id: sessionId });
+    const [row] = await run(`MATCH (s:Session {id: $id}) RETURN s.submittedAt AS at`, {
+      id: sessionId,
+    });
     expect((row as { at: unknown }).at).toBeNull();
   };
 
   it('rejects an over-long word, too many answers, duplicates, out-of-range blank, and extra keys', async () => {
     await rejected({ answers: [{ questionId: 'q1', blank: 0, word: 'x'.repeat(101) }] });
-    await rejected({ answers: Array.from({ length: 501 }, () => ({ questionId: 'q1', blank: 0, word: 'a' })) });
+    await rejected({
+      answers: Array.from({ length: 501 }, () => ({ questionId: 'q1', blank: 0, word: 'a' })),
+    });
     await rejected({
       answers: [
         { questionId: 'q1', blank: 0, word: 'a' },
@@ -619,34 +759,39 @@ describe('input hardening', () => {
 
   it('a 65-character path id is 422', async () => {
     expect((await app.http.get(`/sessions/${'x'.repeat(65)}`).set(c.auth)).status).toBe(422);
-    expect((await app.http.post(`/puzzles/${'x'.repeat(65)}/sessions`).set(c.auth)).status).toBe(422);
+    expect((await app.http.post(`/puzzles/${'x'.repeat(65)}/sessions`).set(c.auth)).status).toBe(
+      422,
+    );
   });
 });
 
 // SC-G03: submitting a 10-question puzzle takes under 500 ms (median of 5). Opt-in: set RUN_PERF=1 in the environment.
 describe('SC-G03: submit latency', () => {
-  it.skipIf(!process.env.RUN_PERF)('median of 5 submit round trips on a 10-question puzzle is under 500 ms', async () => {
-    const words = Array.from({ length: 10 }, (_, i) => `term${i}`);
-    await run(
-      `MATCH (m:Learner {id: $M})
+  it.skipIf(!process.env.RUN_PERF)(
+    'median of 5 submit round trips on a 10-question puzzle is under 500 ms',
+    async () => {
+      const words = Array.from({ length: 10 }, (_, i) => `term${i}`);
+      await run(
+        `MATCH (m:Learner {id: $M})
        CREATE (m)-[:OWNS]->(p:Puzzle {id: 'PPERF', name: 'Perf', status: 'published', visibility: 'public', origin: 'seed'})
        WITH p
        UNWIND range(0, 9) AS i
        CREATE (p)-[:CONTAINS {order: i + 1}]->(:Question {id: 'pq' + toString(i), sentence: 'Fill ___ ' + toString(i) + '.',
                                     status: 'approved', answers: [$words[i]]})`,
-      { M: m.id, words },
-    );
-    const times: number[] = [];
-    for (let i = 0; i < 5; i += 1) {
-      const sessionId = await start(a, 'PPERF');
-      const answers = words.map((word, q) => ({ questionId: `pq${q}`, blank: 0, word }));
-      const t0 = performance.now();
-      const res = await submit(a, sessionId, answers);
-      times.push(performance.now() - t0);
-      expect(res.status).toBe(200);
-      expect(res.body.score).toBe(100);
-    }
-    const median = [...times].sort((x, y) => x - y)[2]!;
-    expect(median).toBeLessThan(500);
-  });
+        { M: m.id, words },
+      );
+      const times: number[] = [];
+      for (let i = 0; i < 5; i += 1) {
+        const sessionId = await start(a, 'PPERF');
+        const answers = words.map((word, q) => ({ questionId: `pq${q}`, blank: 0, word }));
+        const t0 = performance.now();
+        const res = await submit(a, sessionId, answers);
+        times.push(performance.now() - t0);
+        expect(res.status).toBe(200);
+        expect(res.body.score).toBe(100);
+      }
+      const median = [...times].sort((x, y) => x - y)[2]!;
+      expect(median).toBeLessThan(500);
+    },
+  );
 });

@@ -45,20 +45,26 @@ function CoachPage() {
   return (
     <div className="flex flex-col gap-4">
       <RouteFocus title="What next?" />
-      <h1 className="text-2xl leading-[30px] font-bold tracking-tight sm:text-[30px] sm:leading-9">What next?</h1>
+      <h1 className="text-2xl leading-[30px] font-bold tracking-tight sm:text-[30px] sm:leading-9">
+        What next?
+      </h1>
       <LiveRegion message={announcement.message} seq={announcement.seq} />
 
       {!recommendation && !ask.isPending && !ask.isError && (
         <p>
-          The Coach looks at what you have practised, finds the concept that needs work most, and recommends a puzzle
-          for it. It also shows the evidence behind its choice.
+          The Coach looks at what you have practised, finds the concept that needs work most, and
+          recommends a puzzle for it. It also shows the evidence behind its choice.
         </p>
       )}
 
       <GoalInput value={goal} onChange={setGoal} />
 
       <div>
-        <Button type="button" onClick={() => ask.mutate()} disabled={ask.isPending || goalProblem(goal) !== null}>
+        <Button
+          type="button"
+          onClick={() => ask.mutate()}
+          disabled={ask.isPending || goalProblem(goal) !== null}
+        >
           {ask.isPending ? 'Thinking…' : 'What next?'}
         </Button>
       </div>

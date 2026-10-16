@@ -4,7 +4,10 @@ import { getRecord, listModels, listRecords, updateRecord } from './admin';
 const fetchMock = vi.fn();
 function respond(status: number, body?: unknown) {
   fetchMock.mockResolvedValueOnce(
-    new Response(body === undefined ? null : JSON.stringify(body), { status, headers: { 'Content-Type': 'application/json' } }),
+    new Response(body === undefined ? null : JSON.stringify(body), {
+      status,
+      headers: { 'Content-Type': 'application/json' },
+    }),
   );
 }
 function lastCall() {

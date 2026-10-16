@@ -32,13 +32,17 @@ describe('DevTokenVerifier', () => {
     clock.advance(3_599_000);
     await expect(verifier.verifyAccessToken(accessToken)).resolves.toBeDefined();
     clock.advance(2_000);
-    await expect(verifier.verifyAccessToken(accessToken)).rejects.toBeInstanceOf(UnauthenticatedError);
+    await expect(verifier.verifyAccessToken(accessToken)).rejects.toBeInstanceOf(
+      UnauthenticatedError,
+    );
   });
 
   it('a token signed with expiresInSeconds -1 is already expired', async () => {
     const verifier = new DevTokenVerifier({ secret: SECRET, clock: new FakeClock() });
     const { accessToken } = await verifier.sign(USER_ID, { expiresInSeconds: -1 });
-    await expect(verifier.verifyAccessToken(accessToken)).rejects.toBeInstanceOf(UnauthenticatedError);
+    await expect(verifier.verifyAccessToken(accessToken)).rejects.toBeInstanceOf(
+      UnauthenticatedError,
+    );
   });
 
   it('refuses a token signed with another secret and malformed input', async () => {

@@ -1,4 +1,9 @@
-import { ShareDto, VisibilityResponse, type ShareRequest, type VisibilityRequest } from '@coach/types';
+import {
+  ShareDto,
+  VisibilityResponse,
+  type ShareRequest,
+  type VisibilityRequest,
+} from '@coach/types';
 import { queryOptions } from '@tanstack/react-query';
 import { z } from 'zod';
 import { keys } from '~/lib/query/keys';
@@ -9,7 +14,10 @@ const ShareList = z.array(ShareDto);
 
 /** `GET /puzzles/:id/shares`: owner only. */
 export function listShares(puzzleId: string, signal?: AbortSignal) {
-  return apiFetch(`/puzzles/${id(puzzleId)}/shares`, { schema: ShareList, ...(signal ? { signal } : {}) });
+  return apiFetch(`/puzzles/${id(puzzleId)}/shares`, {
+    schema: ShareList,
+    ...(signal ? { signal } : {}),
+  });
 }
 
 /** `PUT /puzzles/:id/shares`: adds a share, or changes the source option of an existing one. */

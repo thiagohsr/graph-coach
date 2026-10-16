@@ -2,7 +2,9 @@ import { PROMPT_ORIGIN_NOTICE } from '@coach/types';
 import { render, screen } from '@testing-library/react';
 import { describe, expect, it, vi } from 'vitest';
 
-vi.mock('@tanstack/react-router', async (orig) => (await import('~/test/router-mock')).routerMock(await orig()));
+vi.mock('@tanstack/react-router', async (orig) =>
+  (await import('~/test/router-mock')).routerMock(await orig()),
+);
 
 import { PlayHeader } from '~/features/play/PlayBoard';
 import { OriginLabel } from './OriginLabel';

@@ -14,7 +14,13 @@ import { CodesService } from '../src/apps/allowance/codes.service';
 import { RunOrchestrator } from '../src/apps/curator/run-orchestrator.service';
 import { SettingsService } from '../src/common/settings/settings.service';
 import { addAgents, addMastery } from './support/coach-fixture';
-import { PASSAGE, draftSentence, publishDirectly, seedRun, type SeededRun } from './support/review-fixture';
+import {
+  PASSAGE,
+  draftSentence,
+  publishDirectly,
+  seedRun,
+  type SeededRun,
+} from './support/review-fixture';
 import { createTestApp, type TestApp, type TestUser } from './support/test-app';
 
 const { LONG_TEXT, scriptCurator, scriptPrompt } = fixtures;
@@ -107,7 +113,10 @@ describe('security probes: ownership and sharing', () => {
 
   it('preparation: the puzzle was published by the third approval and one draft is left', async () => {
     const mine = await getAs(A, '/puzzles');
-    expect(mine.body.find((p: any) => p.id === runA.puzzleId)).toMatchObject({ access: 'owner', questionCount: 3 });
+    expect(mine.body.find((p: any) => p.id === runA.puzzleId)).toMatchObject({
+      access: 'owner',
+      questionCount: 3,
+    });
     const drafts = await getAs(A, `/review/questions?taskId=${runA.taskId}`);
     expect(ids(drafts.body)).toEqual([runA.questionIds[3]]);
   });
@@ -116,12 +125,14 @@ describe('security probes: ownership and sharing', () => {
     it('GET /puzzles and GET /puzzles/:id/play carry none of answers/expected/correct; the word bank is deduplicated and reshuffled', async () => {
       const list = await getAs(A, '/puzzles');
       expect(list.status).toBe(200);
-      for (const key of FORBIDDEN_KEYS) expect(keysOf(list.body).has(key), `list key ${key}`).toBe(false);
+      for (const key of FORBIDDEN_KEYS)
+        expect(keysOf(list.body).has(key), `list key ${key}`).toBe(false);
       const orders = new Set<string>();
       for (let i = 0; i < 25; i += 1) {
         const play = await getAs(A, `/puzzles/${runA.puzzleId}/play`);
         expect(play.status).toBe(200);
-        for (const key of FORBIDDEN_KEYS) expect(keysOf(play.body).has(key), `play key ${key}`).toBe(false);
+        for (const key of FORBIDDEN_KEYS)
+          expect(keysOf(play.body).has(key), `play key ${key}`).toBe(false);
         const bank = play.body.wordBank as string[];
         expect(new Set(bank).size).toBe(bank.length);
         expect([...bank].sort()).toEqual(['index', 'queue', 'stack']);
@@ -150,13 +161,26 @@ describe('security probes: ownership and sharing', () => {
       }
       return routes;
     }
-    const PUBLIC = new Set(['GET /api/health', 'GET /api/auth/dev-users', 'POST /api/auth/dev-login']);
+    const PUBLIC = new Set([
+      'GET /api/health',
+      'GET /api/auth/dev-users',
+      'POST /api/auth/dev-login',
+    ]);
 
     it('every registered route is in the canonical contract, and the only public ones are /health and the two development routes', async () => {
       const routes = registered();
       expect(routes.length).toBeGreaterThan(30);
       const contract = readFileSync(
-        join(__dirname, '..', '..', '..', 'specs', '001-graph-study-coach', 'contracts', 'api-endpoints.md'),
+        join(
+          __dirname,
+          '..',
+          '..',
+          '..',
+          'specs',
+          '001-graph-study-coach',
+          'contracts',
+          'api-endpoints.md',
+        ),
         'utf8',
       );
       const documented = new Set<string>();
@@ -169,7 +193,9 @@ describe('security probes: ownership and sharing', () => {
       expect(missing, 'registered but not in contracts/api-endpoints.md').toEqual([]);
       // Nothing that looks like a register or login endpoint other than the development sign-in.
       const paths = routes.map((r) => r.path);
-      expect(paths.filter((p) => /register|signup|sign-up|login|password/i.test(p))).toEqual(['/api/auth/dev-login']);
+      expect(paths.filter((p) => /register|signup|sign-up|login|password/i.test(p))).toEqual([
+        '/api/auth/dev-login',
+      ]);
     });
 
     it('every non-public route answers 401 with no token, an expired token, and a malformed token', async () => {
@@ -179,7 +205,9 @@ describe('security probes: ownership and sharing', () => {
       for (const route of protectedRoutes) {
         const path = route.path.replace(/:\w+/g, 'x');
         const call = (headers: Record<string, string>) => {
-          const req = (app.http as any)[route.method.toLowerCase()](path) as import('supertest').Test;
+          const req = (app.http as any)[route.method.toLowerCase()](
+            path,
+          ) as import('supertest').Test;
           for (const [k, v] of Object.entries(headers)) req.set(k, v);
           return req.send({});
         };
@@ -203,7 +231,10 @@ describe('security probes: ownership and sharing', () => {
           ['get', '/admin/concept/c-indexes'],
           ['patch', '/admin/concept/c-indexes'],
         ] as const) {
-          const res = await (app.http as any)[verb](path).set(user.auth).send({ values: { name: 'x' } });
+          const res = await (app.http as any)
+            [verb](path)
+            .set(user.auth)
+            .send({ values: { name: 'x' } });
           expect(res.status, `${verb} ${path} as ${user.name}`).toBe(403);
           expect(res.body.error.code).toBe('FORBIDDEN');
         }
@@ -244,15 +275,26 @@ describe('security probes: ownership and sharing', () => {
       expect(mine.body[0].passage?.text).toBe(PASSAGE);
       for (const user of [B, S, R, X]) {
         // The filtered read is 404 (as if the task did not exist); without a filter the list is empty.
-        expect((await getAs(user, `/review/questions?taskId=${runA.taskId}`)).status, user.name).toBe(404);
+        expect(
+          (await getAs(user, `/review/questions?taskId=${runA.taskId}`)).status,
+          user.name,
+        ).toBe(404);
         // Without the filter the list holds the caller's own drafts only (R owns some): never one of A's.
         const own = ids((await getAs(user, '/review/questions')).body);
-        for (const q of runA.questionIds) expect(own, `${user.name} sees a draft of A`).not.toContain(q);
+        for (const q of runA.questionIds)
+          expect(own, `${user.name} sees a draft of A`).not.toContain(q);
         expect(
-          (await app.http.patch(`/review/questions/${draft}`).set(user.auth).send({ distractors: ['x1', 'y1'] })).status,
+          (
+            await app.http
+              .patch(`/review/questions/${draft}`)
+              .set(user.auth)
+              .send({ distractors: ['x1', 'y1'] })
+          ).status,
         ).toBe(404);
         expect((await approve(user, draft)).status).toBe(404);
-        expect((await app.http.post(`/review/questions/${draft}/reject`).set(user.auth).send({})).status).toBe(404);
+        expect(
+          (await app.http.post(`/review/questions/${draft}/reject`).set(user.auth).send({})).status,
+        ).toBe(404);
       }
       const after = await getAs(A, `/review/questions?taskId=${runA.taskId}`);
       expect(after.body).toEqual(mine.body);
@@ -262,13 +304,18 @@ describe('security probes: ownership and sharing', () => {
 
   describe('SEC-05 private puzzles', () => {
     it('A lists, plays, and starts a session; everyone else: not listed, 404, 404', async () => {
-      expect((await getAs(A, '/puzzles')).body.find((p: any) => p.id === runA.puzzleId)).toMatchObject({ access: 'owner' });
+      expect(
+        (await getAs(A, '/puzzles')).body.find((p: any) => p.id === runA.puzzleId),
+      ).toMatchObject({ access: 'owner' });
       expect((await getAs(A, `/puzzles/${runA.puzzleId}/play`)).status).toBe(200);
       sessionA = await startSession(A, runA.puzzleId);
       for (const user of [B, S, R, X]) {
         expect(await listIds(user), user.name).not.toContain(runA.puzzleId);
         expect((await getAs(user, `/puzzles/${runA.puzzleId}/play`)).status, user.name).toBe(404);
-        expect((await app.http.post(`/puzzles/${runA.puzzleId}/sessions`).set(user.auth)).status, user.name).toBe(404);
+        expect(
+          (await app.http.post(`/puzzles/${runA.puzzleId}/sessions`).set(user.auth)).status,
+          user.name,
+        ).toBe(404);
       }
     });
   });
@@ -284,7 +331,8 @@ describe('security probes: ownership and sharing', () => {
       expect(passages(done.body).length).toBeGreaterThan(0); // the owner sees passages
       const mine = await getAs(A, '/me/mastery');
       expect(mine.body.length).toBeGreaterThan(0);
-      for (const user of [B, S, R, X]) expect((await getAs(user, '/me/mastery')).body, user.name).toEqual([]);
+      for (const user of [B, S, R, X])
+        expect((await getAs(user, '/me/mastery')).body, user.name).toEqual([]);
     });
   });
 
@@ -327,7 +375,10 @@ describe('security probes: ownership and sharing', () => {
         const stream = await getAs(user, `/tasks/${runA.taskId}/events`);
         expect(stream.status, user.name).toBe(404);
         expect(String(stream.headers['content-type'])).not.toMatch(/event-stream/);
-        expect((await app.http.post(`/tasks/${runA.taskId}/retry`).set(user.auth)).status, user.name).toBe(404);
+        expect(
+          (await app.http.post(`/tasks/${runA.taskId}/retry`).set(user.auth)).status,
+          user.name,
+        ).toBe(404);
       }
       const noToken = await app.http.get(`/tasks/${runA.taskId}/events`);
       expect(noToken.status).toBe(401);
@@ -340,10 +391,19 @@ describe('security probes: ownership and sharing', () => {
     it('everyone else gets 404 on list, put, and delete; A gets 422 (unknown address), 422 (own address), 409 (unpublished)', async () => {
       for (const user of [B, S, R, X]) {
         expect((await getAs(user, `/puzzles/${runA.puzzleId}/shares`)).status, user.name).toBe(404);
-        expect((await putShare(user, runA.puzzleId, { email: S.email, withSource: false })).status, user.name).toBe(404);
-        expect((await app.http.delete(`/puzzles/${runA.puzzleId}/shares/${S.id}`).set(user.auth)).status, user.name).toBe(404);
+        expect(
+          (await putShare(user, runA.puzzleId, { email: S.email, withSource: false })).status,
+          user.name,
+        ).toBe(404);
+        expect(
+          (await app.http.delete(`/puzzles/${runA.puzzleId}/shares/${S.id}`).set(user.auth)).status,
+          user.name,
+        ).toBe(404);
       }
-      const unknown = await putShare(A, runA.puzzleId, { email: 'nobody-signed-in@example.test', withSource: false });
+      const unknown = await putShare(A, runA.puzzleId, {
+        email: 'nobody-signed-in@example.test',
+        withSource: false,
+      });
       expect(unknown.status).toBe(422);
       expect(unknown.body.error.details.issues[0].path).toBe('email');
       const own = await putShare(A, runA.puzzleId, { email: A.email, withSource: false });
@@ -360,7 +420,11 @@ describe('security probes: ownership and sharing', () => {
       const shared = await putShare(A, runA.puzzleId, { email: S.email, withSource: false });
       expect(shared.status).toBe(200);
       const item = (await getAs(S, '/puzzles')).body.find((p: any) => p.id === runA.puzzleId);
-      expect(item).toMatchObject({ access: 'shared', ownerName: 'Alice Owner', sourceShared: false });
+      expect(item).toMatchObject({
+        access: 'shared',
+        ownerName: 'Alice Owner',
+        sourceShared: false,
+      });
       expect('sourceId' in item).toBe(false);
       expect(JSON.stringify(item)).not.toContain(A.email);
       expect((await getAs(S, `/puzzles/${runA.puzzleId}/play`)).status).toBe(200);
@@ -379,7 +443,9 @@ describe('security probes: ownership and sharing', () => {
 
   describe('SEC-11 turning on source sharing gives access to the text', () => {
     it('S sees sourceShared true, passages, the source in the list and its content; B, R, X still nothing', async () => {
-      expect((await putShare(A, runA.puzzleId, { email: S.email, withSource: true })).status).toBe(200);
+      expect((await putShare(A, runA.puzzleId, { email: S.email, withSource: true })).status).toBe(
+        200,
+      );
       const item = (await getAs(S, '/puzzles')).body.find((p: any) => p.id === runA.puzzleId);
       expect(item).toMatchObject({ access: 'shared', sourceShared: true, sourceId: runA.sourceId });
       const done = await submitEmpty(S, await startSession(S, runA.puzzleId));
@@ -402,10 +468,14 @@ describe('security probes: ownership and sharing', () => {
       const submitted = await submitEmpty(S, await startSession(S, runA.puzzleId));
       expect(passages(submitted.body).length).toBeGreaterThan(0);
       startedByS = await startSession(S, runA.puzzleId);
-      expect((await app.http.delete(`/puzzles/${runA.puzzleId}/shares/${S.id}`).set(A.auth)).status).toBe(204);
+      expect(
+        (await app.http.delete(`/puzzles/${runA.puzzleId}/shares/${S.id}`).set(A.auth)).status,
+      ).toBe(204);
       expect(await listIds(S)).not.toContain(runA.puzzleId);
       expect((await getAs(S, `/puzzles/${runA.puzzleId}/play`)).status).toBe(404);
-      expect((await app.http.post(`/puzzles/${runA.puzzleId}/sessions`).set(S.auth)).status).toBe(404);
+      expect((await app.http.post(`/puzzles/${runA.puzzleId}/sessions`).set(S.auth)).status).toBe(
+        404,
+      );
       expect(await sourceIds(S)).not.toContain(runA.sourceId);
       expect((await getAs(S, `/sources/${runA.sourceId}`)).status).toBe(404);
       const old = await getAs(S, `/sessions/${submitted.body.sessionId}`);
@@ -421,42 +491,71 @@ describe('security probes: ownership and sharing', () => {
   describe('SEC-13 a shared user is read-only', () => {
     it('S (learner) and R (reviewer) with the share on, including the source, can read nothing of the owner side and change nothing', async () => {
       const draft = runA.questionIds[3]!;
-      expect((await putShare(A, runA.puzzleId, { email: S.email, withSource: true })).status).toBe(200);
-      expect((await putShare(A, runA.puzzleId, { email: R.email, withSource: true })).status).toBe(200);
+      expect((await putShare(A, runA.puzzleId, { email: S.email, withSource: true })).status).toBe(
+        200,
+      );
+      expect((await putShare(A, runA.puzzleId, { email: R.email, withSource: true })).status).toBe(
+        200,
+      );
       for (const user of [S, R]) {
-        expect((await getAs(user, `/review/questions?taskId=${runA.taskId}`)).status, user.name).toBe(404);
+        expect(
+          (await getAs(user, `/review/questions?taskId=${runA.taskId}`)).status,
+          user.name,
+        ).toBe(404);
         // The caller's own drafts (R owns some) never include one of A's.
         expect(ids((await getAs(user, '/review/questions')).body), user.name).not.toEqual(
           expect.arrayContaining([runA.questionIds[3]]),
         );
         expect(
-          (await app.http.patch(`/review/questions/${draft}`).set(user.auth).send({ distractors: ['x1', 'y1'] })).status,
+          (
+            await app.http
+              .patch(`/review/questions/${draft}`)
+              .set(user.auth)
+              .send({ distractors: ['x1', 'y1'] })
+          ).status,
         ).toBe(404);
         expect((await approve(user, draft)).status, user.name).toBe(404);
-        expect((await app.http.post(`/review/questions/${draft}/reject`).set(user.auth).send({})).status).toBe(404);
-        expect((await putShare(user, runA.puzzleId, { email: B.email, withSource: false })).status, user.name).toBe(404);
+        expect(
+          (await app.http.post(`/review/questions/${draft}/reject`).set(user.auth).send({})).status,
+        ).toBe(404);
+        expect(
+          (await putShare(user, runA.puzzleId, { email: B.email, withSource: false })).status,
+          user.name,
+        ).toBe(404);
         expect((await getAs(user, `/puzzles/${runA.puzzleId}/shares`)).status, user.name).toBe(404);
         expect((await getAs(user, `/tasks/${runA.taskId}`)).status, user.name).toBe(404);
       }
       const visibility = (user: TestUser) =>
-        app.http.post(`/puzzles/${runA.puzzleId}/visibility`).set(user.auth).send({ visibility: 'public' });
+        app.http
+          .post(`/puzzles/${runA.puzzleId}/visibility`)
+          .set(user.auth)
+          .send({ visibility: 'public' });
       expect((await visibility(S)).status).toBe(403); // the role guard runs first
       expect((await visibility(R)).status).toBe(404); // staff, shared, not the owner
       const state = await getAs(A, `/puzzles/${runA.puzzleId}/shares`);
       expect(state.body.map((s: any) => s.userId).sort()).toEqual([S.id, R.id].sort());
-      expect((await getAs(A, '/puzzles')).body.find((p: any) => p.id === runA.puzzleId).visibility).toBe('private');
-      expect((await getAs(A, `/review/questions?taskId=${runA.taskId}`)).body[0].sentence).toBe(draftSentence(4));
+      expect(
+        (await getAs(A, '/puzzles')).body.find((p: any) => p.id === runA.puzzleId).visibility,
+      ).toBe('private');
+      expect((await getAs(A, `/review/questions?taskId=${runA.taskId}`)).body[0].sentence).toBe(
+        draftSentence(4),
+      );
       // Clean up: revoke both.
       for (const user of [S, R]) {
-        expect((await app.http.delete(`/puzzles/${runA.puzzleId}/shares/${user.id}`).set(A.auth)).status).toBe(204);
+        expect(
+          (await app.http.delete(`/puzzles/${runA.puzzleId}/shares/${user.id}`).set(A.auth)).status,
+        ).toBe(204);
       }
     });
   });
 
   describe('SEC-14 only an owner who is a reviewer or admin can make a puzzle public', () => {
-    it('A 403, B 403, R 404, X 404 on A\'s puzzle; R 200 on R\'s published puzzle; R 409 on R\'s unpublished puzzle', async () => {
+    it("A 403, B 403, R 404, X 404 on A's puzzle; R 200 on R's published puzzle; R 409 on R's unpublished puzzle", async () => {
       const visibility = (user: TestUser, puzzleId: string) =>
-        app.http.post(`/puzzles/${puzzleId}/visibility`).set(user.auth).send({ visibility: 'public' });
+        app.http
+          .post(`/puzzles/${puzzleId}/visibility`)
+          .set(user.auth)
+          .send({ visibility: 'public' });
       expect((await visibility(A, runA.puzzleId)).status).toBe(403);
       expect((await visibility(B, runA.puzzleId)).status).toBe(403);
       expect((await visibility(R, runA.puzzleId)).status).toBe(404);
@@ -483,15 +582,35 @@ describe('security probes: ownership and sharing', () => {
 
   describe('SEC-16 the admin exposes no source text, passages, questions, or drafts', () => {
     const FORBIDDEN = [
-      'content', 'brief', 'outline', 'sentence', 'answers', 'distractors', 'embedding', 'password',
-      'token', 'accessToken', 'secret', 'codeHash', 'code_hash', 'text', 'excerpt',
+      'content',
+      'brief',
+      'outline',
+      'sentence',
+      'answers',
+      'distractors',
+      'embedding',
+      'password',
+      'token',
+      'accessToken',
+      'secret',
+      'codeHash',
+      'code_hash',
+      'text',
+      'excerpt',
     ];
     it('X sees the eight registered models, metadata-only list and detail records, and 404 for question/chunk/step', async () => {
       const models = await getAs(X, '/admin/models');
       expect(models.status).toBe(200);
-      expect((models.body as any[]).map((m) => m.name).sort()).toEqual(
-        ['access-code', 'admin-setting', 'concept', 'decision', 'puzzle', 'source', 'task', 'user'],
-      );
+      expect((models.body as any[]).map((m) => m.name).sort()).toEqual([
+        'access-code',
+        'admin-setting',
+        'concept',
+        'decision',
+        'puzzle',
+        'source',
+        'task',
+        'user',
+      ]);
       const seen: string[] = [models.text];
       for (const model of ['source', 'puzzle', 'user', 'task', 'decision']) {
         const list = await getAs(X, `/admin/${model}?pageSize=100`);
@@ -505,18 +624,32 @@ describe('security probes: ownership and sharing', () => {
       }
       const sources = (await getAs(X, '/admin/source?pageSize=100')).body.items as any[];
       expect(ids(sources)).toEqual(expect.arrayContaining([runA.sourceId, promptRun.sourceId]));
-      for (const source of sources.filter((s) => [runA.sourceId, promptRun.sourceId].includes(s.id))) {
+      for (const source of sources.filter((s) =>
+        [runA.sourceId, promptRun.sourceId].includes(s.id),
+      )) {
         const detail = await getAs(X, `/admin/source/${source.id}`);
-        expect(Object.keys(detail.body.record.values).sort()).toEqual(['createdAt', 'id', 'kind', 'title']);
+        expect(Object.keys(detail.body.record.values).sort()).toEqual([
+          'createdAt',
+          'id',
+          'kind',
+          'title',
+        ]);
       }
       const all = seen.join('\n');
       expect(all).not.toContain(PASSAGE);
       expect(all).not.toContain('indexes","difficulty"'); // the prompt brief
       for (const text of seen) {
         const keys = keysOf(JSON.parse(text));
-        for (const forbidden of FORBIDDEN) expect(keys.has(forbidden), `admin key ${forbidden}`).toBe(false);
+        for (const forbidden of FORBIDDEN)
+          expect(keys.has(forbidden), `admin key ${forbidden}`).toBe(false);
       }
-      for (const path of ['/admin/question', '/admin/chunk', '/admin/step', '/admin/question/x', '/admin/chunk/x']) {
+      for (const path of [
+        '/admin/question',
+        '/admin/chunk',
+        '/admin/step',
+        '/admin/question/x',
+        '/admin/chunk/x',
+      ]) {
         const res = await getAs(X, path);
         expect(res.status, path).toBe(404);
         expect(res.body.error.code).toBe('NOT_FOUND');
@@ -538,16 +671,22 @@ describe('security probes: ownership and sharing', () => {
 
   describe('SEC-19 drafts never reach play or the Coach', () => {
     it('the play payload of A and of S holds only approved questions; an unpublished puzzle is neither playable nor shareable', async () => {
-      expect((await putShare(A, runA.puzzleId, { email: S.email, withSource: false })).status).toBe(200);
+      expect((await putShare(A, runA.puzzleId, { email: S.email, withSource: false })).status).toBe(
+        200,
+      );
       for (const user of [A, S]) {
         const play = await getAs(user, `/puzzles/${runA.puzzleId}/play`);
         expect(play.status).toBe(200);
         expect(play.body.questions).toHaveLength(3);
         expect(play.text).not.toContain('Question 4:');
       }
-      expect((await app.http.delete(`/puzzles/${runA.puzzleId}/shares/${S.id}`).set(A.auth)).status).toBe(204);
+      expect(
+        (await app.http.delete(`/puzzles/${runA.puzzleId}/shares/${S.id}`).set(A.auth)).status,
+      ).toBe(204);
       expect((await getAs(A, `/puzzles/${runA2.puzzleId}/play`)).status).toBe(404);
-      expect((await putShare(A, runA2.puzzleId, { email: S.email, withSource: false })).status).toBe(409);
+      expect(
+        (await putShare(A, runA2.puzzleId, { email: S.email, withSource: false })).status,
+      ).toBe(409);
       const rec = await app.http.post('/coach/recommendations').set(A.auth).send({});
       expect(JSON.stringify(rec.body)).not.toContain(runA2.puzzleId);
     });
@@ -572,7 +711,8 @@ describe('security probes: ownership and sharing', () => {
       expect(okPre.headers['access-control-allow-origin']).toBe(WEB_ORIGIN);
       const okGet = await app.http.get('/health').set('Origin', WEB_ORIGIN);
       expect(okGet.headers['access-control-allow-origin']).toBe(WEB_ORIGIN);
-      for (const res of [evilPre, evilGet, okPre, okGet]) expect(res.headers['access-control-allow-origin']).not.toBe('*');
+      for (const res of [evilPre, evilGet, okPre, okGet])
+        expect(res.headers['access-control-allow-origin']).not.toBe('*');
     });
   });
 
@@ -604,21 +744,36 @@ describe('security probes: ownership and sharing', () => {
   describe('SEC-26 no request-supplied identifiers in generated Cypher (admin API)', () => {
     it('an undeclared field, a field name holding Cypher, and a crafted model segment are refused; the data is unchanged', async () => {
       const before = (await getAs(X, '/admin/concept/c-indexes')).body.record;
-      const undeclared = await app.http.patch('/admin/concept/c-indexes').set(X.auth).send({ values: { colour: 'red' } });
+      const undeclared = await app.http
+        .patch('/admin/concept/c-indexes')
+        .set(X.auth)
+        .send({ values: { colour: 'red' } });
       expect(undeclared.status).toBe(422);
-      expect(undeclared.body.error.details.issues[0]).toMatchObject({ path: 'values.colour', code: 'unknown_field' });
+      expect(undeclared.body.error.details.issues[0]).toMatchObject({
+        path: 'values.colour',
+        code: 'unknown_field',
+      });
       const cypher = await app.http
         .patch('/admin/concept/c-indexes')
         .set(X.auth)
         .send({ values: { 'name}) DETACH DELETE n //': 'x' } });
       expect(cypher.status).toBe(422);
       expect(cypher.body.error.details.issues[0].code).toBe('unknown_field');
-      for (const model of ['Concept', 'concept)-[', 'concept%27%20OR%201%3D1', '..%2f..%2fetc', 'user-identities']) {
+      for (const model of [
+        'Concept',
+        'concept)-[',
+        'concept%27%20OR%201%3D1',
+        '..%2f..%2fetc',
+        'user-identities',
+      ]) {
         const res = await getAs(X, `/admin/${model}`);
         expect(res.status, model).toBe(404);
         expect(res.body.error.code).toBe('NOT_FOUND');
       }
-      const hostileOrdering = await getAs(X, '/admin/concept?ordering=name%20DESC%20DELETE&search=%27%7D%29%20DETACH%20DELETE%20n%20%2F%2F');
+      const hostileOrdering = await getAs(
+        X,
+        '/admin/concept?ordering=name%20DESC%20DELETE&search=%27%7D%29%20DETACH%20DELETE%20n%20%2F%2F',
+      );
       expect([200, 422]).toContain(hostileOrdering.status);
       expect((await getAs(X, '/admin/concept/c-indexes')).body.record).toEqual(before);
     });
@@ -639,7 +794,8 @@ describe('security probes: ownership and sharing', () => {
   });
 
   describe('SEC-29 server-side input validation', () => {
-    const postBody = (user: TestUser, path: string, verb: 'post' | 'put' | 'patch') => (app.http as any)[verb](path).set(user.auth);
+    const postBody = (user: TestUser, path: string, verb: 'post' | 'put' | 'patch') =>
+      (app.http as any)[verb](path).set(user.auth);
 
     it('unparseable JSON is 400 VALIDATION_FAILED on every body route', async () => {
       const targets: Array<['post' | 'put' | 'patch', string]> = [
@@ -656,7 +812,9 @@ describe('security probes: ownership and sharing', () => {
       ];
       for (const [verb, path] of targets) {
         const user = path.startsWith('/admin') ? X : path.includes('visibility') ? R : A;
-        const res = await postBody(user, path, verb).set('Content-Type', 'application/json').send('{"broken": ');
+        const res = await postBody(user, path, verb)
+          .set('Content-Type', 'application/json')
+          .send('{"broken": ');
         expect(res.status, `${verb} ${path}`).toBe(400);
         expect(res.body.error.code).toBe('VALIDATION_FAILED');
       }
@@ -665,25 +823,85 @@ describe('security probes: ownership and sharing', () => {
     it('a wrong type, a missing field, and an oversized string are 422 VALIDATION_FAILED with details.issues; nothing is written', async () => {
       const sourcesBefore = (await getAs(A, '/sources')).body.length;
       const big = 'x'.repeat(100_000);
-      const cases: Array<{ verb: 'post' | 'put' | 'patch'; path: string; user: TestUser; bodies: unknown[] }> = [
+      const cases: Array<{
+        verb: 'post' | 'put' | 'patch';
+        path: string;
+        user: TestUser;
+        bodies: unknown[];
+      }> = [
         {
-          verb: 'post', path: '/sources', user: A,
-          bodies: [{}, { title: 5, kind: 'text', content: 'x' }, { title: 't'.repeat(10_000), kind: 'text', content: 'x' }, { title: 't', kind: 'prompt', brief: { subject: big, difficulty: 'easy', sentences: 4 } }],
+          verb: 'post',
+          path: '/sources',
+          user: A,
+          bodies: [
+            {},
+            { title: 5, kind: 'text', content: 'x' },
+            { title: 't'.repeat(10_000), kind: 'text', content: 'x' },
+            {
+              title: 't',
+              kind: 'prompt',
+              brief: { subject: big, difficulty: 'easy', sentences: 4 },
+            },
+          ],
         },
         {
-          verb: 'post', path: `/sessions/${sessionA}/submit`, user: A,
-          bodies: [{}, { answers: 'no' }, { answers: [{ questionId: 5, blank: 0, word: 'x' }] }, { answers: [{ questionId: 'q', blank: 0, word: big }] }],
+          verb: 'post',
+          path: `/sessions/${sessionA}/submit`,
+          user: A,
+          bodies: [
+            {},
+            { answers: 'no' },
+            { answers: [{ questionId: 5, blank: 0, word: 'x' }] },
+            { answers: [{ questionId: 'q', blank: 0, word: big }] },
+          ],
         },
         {
-          verb: 'patch', path: `/review/questions/${runA.questionIds[3]}`, user: A,
+          verb: 'patch',
+          path: `/review/questions/${runA.questionIds[3]}`,
+          user: A,
           bodies: [{ sentence: 5 }, { distractors: 'x' }, { sentence: big }, { unknown: true }],
         },
-        { verb: 'put', path: `/puzzles/${runA.puzzleId}/shares`, user: A, bodies: [{}, { email: 5, withSource: false }, { email: `${big}@example.test`, withSource: false }, { email: 'a@example.test', withSource: 'yes' }] },
-        { verb: 'post', path: `/puzzles/${runR.puzzleId}/visibility`, user: R, bodies: [{}, { visibility: 5 }, { visibility: 'secret' }] },
-        { verb: 'post', path: '/coach/recommendations', user: A, bodies: [{ goal: 5 }, { goal: big }, { goal: 'ab' }] },
-        { verb: 'post', path: '/me/codes/redeem', user: B, bodies: [{}, { code: 5 }, { code: big }] },
-        { verb: 'patch', path: '/admin/concept/c-indexes', user: X, bodies: [{}, { values: 5 }, { values: { name: 5 } }, { values: { name: big } }] },
-        { verb: 'post', path: '/auth/dev-login', user: A, bodies: [{}, { email: 5 }, { email: big }] },
+        {
+          verb: 'put',
+          path: `/puzzles/${runA.puzzleId}/shares`,
+          user: A,
+          bodies: [
+            {},
+            { email: 5, withSource: false },
+            { email: `${big}@example.test`, withSource: false },
+            { email: 'a@example.test', withSource: 'yes' },
+          ],
+        },
+        {
+          verb: 'post',
+          path: `/puzzles/${runR.puzzleId}/visibility`,
+          user: R,
+          bodies: [{}, { visibility: 5 }, { visibility: 'secret' }],
+        },
+        {
+          verb: 'post',
+          path: '/coach/recommendations',
+          user: A,
+          bodies: [{ goal: 5 }, { goal: big }, { goal: 'ab' }],
+        },
+        {
+          verb: 'post',
+          path: '/me/codes/redeem',
+          user: B,
+          bodies: [{}, { code: 5 }, { code: big }],
+        },
+        {
+          verb: 'patch',
+          path: '/admin/concept/c-indexes',
+          user: X,
+          bodies: [{}, { values: 5 }, { values: { name: 5 } }, { values: { name: big } }],
+        },
+        {
+          verb: 'post',
+          path: '/auth/dev-login',
+          user: A,
+          bodies: [{}, { email: 5 }, { email: big }],
+        },
       ];
       for (const c of cases) {
         for (const body of c.bodies) {
@@ -694,17 +912,22 @@ describe('security probes: ownership and sharing', () => {
         }
       }
       expect((await getAs(A, '/sources')).body.length).toBe(sourcesBefore);
-      expect((await getAs(A, '/review/questions?taskId=' + runA.taskId)).body[0].sentence).toBe(draftSentence(4));
+      expect((await getAs(A, '/review/questions?taskId=' + runA.taskId)).body[0].sentence).toBe(
+        draftSentence(4),
+      );
       expect((await getAs(X, '/admin/concept/c-indexes')).body.record.values.name).toBe('Indexes');
     });
   });
 
   describe('SEC-30 errors do not leak internals', () => {
-    const LEAK = /stack|\bat \S+\.(ts|js)|\/home\/|node_modules|MATCH \(|CALL db\.|SELECT |secretpath/i;
+    const LEAK =
+      /stack|\bat \S+\.(ts|js)|\/home\/|node_modules|MATCH \(|CALL db\.|SELECT |secretpath/i;
 
     it('a 500 and a 503 use the standard envelope with an UPPER_SNAKE code and no stack, query, or path', async () => {
       const graph = app.app.get(GraphKit);
-      const boom = new Error('failure at /home/secretpath/file.ts:12 while running MATCH (n:Secret) RETURN n');
+      const boom = new Error(
+        'failure at /home/secretpath/file.ts:12 while running MATCH (n:Secret) RETURN n',
+      );
       boom.stack = 'Error: boom\n    at /home/secretpath/file.ts:12:3';
       const spy = vi.spyOn(graph, 'query').mockRejectedValue(boom);
       try {
@@ -730,13 +953,16 @@ describe('security probes: ownership and sharing', () => {
 
     it('an unreachable SQL database is 503 SQL_UNAVAILABLE without a connection string or path', async () => {
       const fresh = await app.createUser({ role: 'learner' });
-      const connection = Object.assign(new Error('connect ECONNREFUSED 127.0.0.1:5432 (postgres://coach:coach@localhost/coach)'), {
-        code: 'ECONNREFUSED',
-        errno: -111,
-        syscall: 'connect',
-        address: '127.0.0.1',
-        port: 5432,
-      });
+      const connection = Object.assign(
+        new Error('connect ECONNREFUSED 127.0.0.1:5432 (postgres://coach:coach@localhost/coach)'),
+        {
+          code: 'ECONNREFUSED',
+          errno: -111,
+          syscall: 'connect',
+          address: '127.0.0.1',
+          port: 5432,
+        },
+      );
       const spy = vi.spyOn(app.db, 'select').mockImplementation((() => {
         throw connection;
       }) as never);
@@ -755,13 +981,19 @@ describe('security probes: ownership and sharing', () => {
     it('after the admin blocks B, one request per endpoint group answers 403 ACCOUNT_BLOCKED; unblocking restores access', async () => {
       const victim = await app.createUser({ role: 'learner', name: 'Victim' });
       expect((await getAs(victim, '/auth/me')).status).toBe(200);
-      const block = await app.http.patch(`/admin/user/${victim.id}`).set(X.auth).send({ values: { status: 'blocked' } });
+      const block = await app.http
+        .patch(`/admin/user/${victim.id}`)
+        .set(X.auth)
+        .send({ values: { status: 'blocked' } });
       expect(block.status).toBe(200);
       const requests: Array<[string, () => import('supertest').Test]> = [
         ['puzzles', () => app.http.get('/puzzles')],
         ['play', () => app.http.get(`/puzzles/${runR.puzzleId}/play`)],
         ['sessions', () => app.http.get(`/sessions/${sessionA}`)],
-        ['sessions submit', () => app.http.post(`/sessions/${sessionA}/submit`).send({ answers: [] })],
+        [
+          'sessions submit',
+          () => app.http.post(`/sessions/${sessionA}/submit`).send({ answers: [] }),
+        ],
         ['mastery', () => app.http.get('/me/mastery')],
         ['allowance', () => app.http.get('/me/allowance')],
         ['coach', () => app.http.post('/coach/recommendations').send({})],
@@ -778,7 +1010,14 @@ describe('security probes: ownership and sharing', () => {
         expect(res.status, label).toBe(403);
         expect(res.body.error.code, label).toBe('ACCOUNT_BLOCKED');
       }
-      expect((await app.http.patch(`/admin/user/${victim.id}`).set(X.auth).send({ values: { status: 'active' } })).status).toBe(200);
+      expect(
+        (
+          await app.http
+            .patch(`/admin/user/${victim.id}`)
+            .set(X.auth)
+            .send({ values: { status: 'active' } })
+        ).status,
+      ).toBe(200);
       expect((await getAs(victim, '/puzzles')).status).toBe(200);
       expect((await getAs(victim, '/auth/me')).status).toBe(200);
     });
@@ -787,15 +1026,28 @@ describe('security probes: ownership and sharing', () => {
   describe('SEC-41 paused creation refuses both kinds while play works', () => {
     it('with creationEnabled false: upload and prompt are 503 CREATION_PAUSED, a run already started still finishes, everything else works; on again restores creation', async () => {
       const learner = await app.createUser({ role: 'learner', name: 'Creator' });
-      const body = (n: number) => ({ title: `Notes ${n}`, kind: 'text', content: `${LONG_TEXT}\n\nPause probe closing note ${n}.` });
+      const body = (n: number) => ({
+        title: `Notes ${n}`,
+        kind: 'text',
+        content: `${LONG_TEXT}\n\nPause probe closing note ${n}.`,
+      });
       const prompt = (n: number) => ({
-        title: `Prompt ${n}`, kind: 'prompt',
-        brief: { subject: `Pause probe ${n}`, focus: 'Call numbers', difficulty: 'easy', sentences: 4 },
+        title: `Prompt ${n}`,
+        kind: 'prompt',
+        brief: {
+          subject: `Pause probe ${n}`,
+          focus: 'Call numbers',
+          difficulty: 'easy',
+          sentences: 4,
+        },
       });
       const running = await app.http.post('/sources').set(learner.auth).send(body(1));
       expect(running.status).toBe(202);
       const setSwitch = (value: boolean) =>
-        app.http.patch('/admin/admin-setting/creationEnabled').set(X.auth).send({ values: { value } });
+        app.http
+          .patch('/admin/admin-setting/creationEnabled')
+          .set(X.auth)
+          .send({ values: { value } });
       expect((await setSwitch(false)).status).toBe(200);
       try {
         for (const payload of [body(2), prompt(2)]) {
@@ -807,8 +1059,12 @@ describe('security probes: ownership and sharing', () => {
         expect((await getAs(learner, `/puzzles/${runR.puzzleId}/play`)).status).toBe(200);
         const done = await submitEmpty(learner, await startSession(learner, runR.puzzleId));
         expect(done.status).toBe(200);
-        await addMastery(app, learner.id, [{ slug: 'indexes', score: 0.2, attempts: 3, daysAgo: 1 }]);
-        expect((await app.http.post('/coach/recommendations').set(learner.auth).send({})).status).toBe(201);
+        await addMastery(app, learner.id, [
+          { slug: 'indexes', score: 0.2, attempts: 3, daysAgo: 1 },
+        ]);
+        expect(
+          (await app.http.post('/coach/recommendations').set(learner.auth).send({})).status,
+        ).toBe(201);
         await app.app.get(RunOrchestrator).whenIdle(running.body.taskId);
         const task = await getAs(learner, `/tasks/${running.body.taskId}`);
         expect(task.status).toBe(200);
@@ -824,9 +1080,15 @@ describe('security probes: ownership and sharing', () => {
 
   describe('SEC-42 an admin cannot block themselves', () => {
     it('blocking one own account in the admin is refused (422) and the admin stays active', async () => {
-      const res = await app.http.patch(`/admin/user/${X.id}`).set(X.auth).send({ values: { status: 'blocked' } });
+      const res = await app.http
+        .patch(`/admin/user/${X.id}`)
+        .set(X.auth)
+        .send({ values: { status: 'blocked' } });
       expect(res.status).toBe(422);
-      expect(res.body.error.details.issues[0]).toMatchObject({ path: 'values.status', code: 'rejected' });
+      expect(res.body.error.details.issues[0]).toMatchObject({
+        path: 'values.status',
+        code: 'rejected',
+      });
       expect((await getAs(X, '/auth/me')).status).toBe(200);
       expect((await getAs(X, '/auth/me')).body.status).toBe('active');
     });
@@ -853,15 +1115,27 @@ describe('security probes: limits, bonus runs, and codes', () => {
   const settings = () => app.app.get(SettingsService);
   const accounts = () => app.app.get(AccountsService);
   const idle = (taskId: string) => app.app.get(RunOrchestrator).whenIdle(taskId);
-  const text = () => `${LONG_TEXT}\n\nA closing note, number ${(counter += 1)}, only for these probes.`;
+  const text = () =>
+    `${LONG_TEXT}\n\nA closing note, number ${(counter += 1)}, only for these probes.`;
   const upload = (user: TestUser) =>
-    app.http.post('/sources').set(user.auth).send({ title: 'Probe notes', kind: 'text', content: text() });
+    app.http
+      .post('/sources')
+      .set(user.auth)
+      .send({ title: 'Probe notes', kind: 'text', content: text() });
   const prompt = (user: TestUser) =>
-    app.http.post('/sources').set(user.auth).send({
-      title: 'Probe prompt',
-      kind: 'prompt',
-      brief: { subject: `Probe subject ${(counter += 1)}`, focus: 'Call numbers', difficulty: 'easy', sentences: 4 },
-    });
+    app.http
+      .post('/sources')
+      .set(user.auth)
+      .send({
+        title: 'Probe prompt',
+        kind: 'prompt',
+        brief: {
+          subject: `Probe subject ${(counter += 1)}`,
+          focus: 'Call numbers',
+          difficulty: 'easy',
+          sentences: 4,
+        },
+      });
   async function accept(res: import('supertest').Test | Awaited<import('supertest').Test>) {
     const r: any = await res;
     expect(r.status, JSON.stringify(r.body)).toBe(202);
@@ -886,7 +1160,11 @@ describe('security probes: limits, bonus runs, and codes', () => {
         const fourth: any = await upload(user);
         expect(fourth.status).toBe(429);
         expect(fourth.body.error.code).toBe('CREATION_LIMIT_REACHED');
-        expect(fourth.body.error.details).toMatchObject({ window: 'month', kind: 'upload', canRedeemCode: true });
+        expect(fourth.body.error.details).toMatchObject({
+          window: 'month',
+          kind: 'upload',
+          canRedeemCode: true,
+        });
         expect(fourth.body.error.details.resetAt).toMatch(/Z$/);
         expect(Number(fourth.headers['retry-after'])).toBeGreaterThan(0);
         expect(await sourceCount()).toBe(stored);
@@ -937,7 +1215,9 @@ describe('security probes: limits, bonus runs, and codes', () => {
         await accounts().setBonusRuns(null, user.id, { source: 1 });
         const results: any[] = await Promise.all([upload(user), upload(user)]);
         expect(results.map((r) => r.status).sort()).toEqual([202, 429]);
-        expect(results.find((r) => r.status === 429).body.error.code).toBe('CREATION_LIMIT_REACHED');
+        expect(results.find((r) => r.status === 429).body.error.code).toBe(
+          'CREATION_LIMIT_REACHED',
+        );
         await idle(results.find((r) => r.status === 202).body.taskId);
         expect((await app.http.get('/me/allowance').set(user.auth)).body.upload.bonus).toBe(0);
       } finally {
@@ -949,17 +1229,34 @@ describe('security probes: limits, bonus runs, and codes', () => {
   describe('SEC-46 a code is redeemable once per account, refused generically otherwise, and throttled', () => {
     it('the first redemption returns the grant and /me/allowance shows it; every refusal is the same 422 CODE_INVALID; the sixth attempt in ten minutes is 429', async () => {
       const codes = app.app.get(CodesService);
-      const grant = await codes.create({ label: 'probe', sourceRuns: 1, promptRuns: 2, liftDays: 2, maxRedemptions: 2 });
+      const grant = await codes.create({
+        label: 'probe',
+        sourceRuns: 1,
+        promptRuns: 2,
+        liftDays: 2,
+        maxRedemptions: 2,
+      });
       const expired = await codes.create({
-        label: 'probe-expired', sourceRuns: 1, promptRuns: 0, liftDays: 0, maxRedemptions: 5,
+        label: 'probe-expired',
+        sourceRuns: 1,
+        promptRuns: 0,
+        liftDays: 0,
+        maxRedemptions: 5,
         expiresAt: new Date(app.clock.now().getTime() - 1),
       });
-      const disabled = await codes.create({ label: 'probe-disabled', sourceRuns: 1, promptRuns: 0, liftDays: 0, maxRedemptions: 5 });
+      const disabled = await codes.create({
+        label: 'probe-disabled',
+        sourceRuns: 1,
+        promptRuns: 0,
+        liftDays: 0,
+        maxRedemptions: 5,
+      });
       await codes.disable(disabled.meta.id);
       const a = await app.createUser({ role: 'learner' });
       const s = await app.createUser({ role: 'learner' });
       const b = await app.createUser({ role: 'learner' });
-      const redeem = (user: TestUser, code: string) => app.http.post('/me/codes/redeem').set(user.auth).send({ code });
+      const redeem = (user: TestUser, code: string) =>
+        app.http.post('/me/codes/redeem').set(user.auth).send({ code });
 
       const first = await redeem(a, grant.code);
       expect(first.status).toBe(200);
@@ -982,7 +1279,9 @@ describe('security probes: limits, bonus runs, and codes', () => {
       refused.push(await redeem(b, disabled.code));
       for (const res of refused) {
         expect(res.status).toBe(422);
-        expect(res.body).toEqual({ error: { code: 'CODE_INVALID', message: 'This code is not valid' } });
+        expect(res.body).toEqual({
+          error: { code: 'CODE_INVALID', message: 'This code is not valid' },
+        });
       }
       expect((await redeem(b, 'GC-22222-22222-22222-22222')).status).toBe(422); // the fifth attempt of b
       const throttled: any = await redeem(b, 'GC-11111-11111-11111-11111');

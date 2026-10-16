@@ -1,13 +1,23 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { playPuzzle, submitResult, summaries } from '~/features/play/fixtures';
 import { ApiClientError } from './errors';
-import { createSession, getMastery, getPlay, getSessionResult, listPuzzles, submitSession } from './gameplay';
+import {
+  createSession,
+  getMastery,
+  getPlay,
+  getSessionResult,
+  listPuzzles,
+  submitSession,
+} from './gameplay';
 
 const fetchMock = vi.fn();
 
 function respond(status: number, body?: unknown) {
   fetchMock.mockResolvedValueOnce(
-    new Response(body === undefined ? null : JSON.stringify(body), { status, headers: { 'Content-Type': 'application/json' } }),
+    new Response(body === undefined ? null : JSON.stringify(body), {
+      status,
+      headers: { 'Content-Type': 'application/json' },
+    }),
   );
 }
 
@@ -39,7 +49,11 @@ describe('gameplay api', () => {
   it('createSession: POST /api/puzzles/:id/sessions with no body', async () => {
     respond(201, { sessionId: 's-1' });
     await expect(createSession('pz-1')).resolves.toEqual({ sessionId: 's-1' });
-    expect(lastCall()).toEqual({ url: '/api/puzzles/pz-1/sessions', method: 'POST', body: undefined });
+    expect(lastCall()).toEqual({
+      url: '/api/puzzles/pz-1/sessions',
+      method: 'POST',
+      body: undefined,
+    });
   });
 
   it('submitSession: POST /api/sessions/:id/submit with the answers, parsed as a SubmitResult', async () => {
@@ -57,7 +71,9 @@ describe('gameplay api', () => {
   it('a malformed submit result throws CONTRACT_MISMATCH', async () => {
     const { questions: _dropped, ...withoutQuestions } = submitResult;
     respond(200, withoutQuestions);
-    await expect(submitSession('s-1', { answers: [] })).rejects.toMatchObject({ code: 'CONTRACT_MISMATCH' });
+    await expect(submitSession('s-1', { answers: [] })).rejects.toMatchObject({
+      code: 'CONTRACT_MISMATCH',
+    });
     respond(200, { ...submitResult, score: 'ten' });
     const error = await submitSession('s-1', { answers: [] }).catch((e: unknown) => e);
     expect(error).toBeInstanceOf(ApiClientError);
@@ -72,11 +88,22 @@ describe('gameplay api', () => {
 
   it('getSessionResult surfaces 409 SESSION_NOT_SUBMITTED', async () => {
     respond(409, { error: { code: 'SESSION_NOT_SUBMITTED', message: 'not yet' } });
-    await expect(getSessionResult('s-1')).rejects.toMatchObject({ status: 409, code: 'SESSION_NOT_SUBMITTED' });
+    await expect(getSessionResult('s-1')).rejects.toMatchObject({
+      status: 409,
+      code: 'SESSION_NOT_SUBMITTED',
+    });
   });
 
   it('getMastery: GET /api/me/mastery', async () => {
-    const mastery = [{ conceptId: 'c-index', name: 'Indexes', score: 0.455, attempts: 2, lastSeen: '2026-10-11T14:03:22.000Z' }];
+    const mastery = [
+      {
+        conceptId: 'c-index',
+        name: 'Indexes',
+        score: 0.455,
+        attempts: 2,
+        lastSeen: '2026-10-11T14:03:22.000Z',
+      },
+    ];
     respond(200, mastery);
     await expect(getMastery()).resolves.toEqual(mastery);
     expect(lastCall()).toMatchObject({ url: '/api/me/mastery', method: 'GET' });

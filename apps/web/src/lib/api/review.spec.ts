@@ -6,7 +6,10 @@ const fetchMock = vi.fn();
 
 function respond(status: number, body?: unknown) {
   fetchMock.mockResolvedValueOnce(
-    new Response(body === undefined ? null : JSON.stringify(body), { status, headers: { 'Content-Type': 'application/json' } }),
+    new Response(body === undefined ? null : JSON.stringify(body), {
+      status,
+      headers: { 'Content-Type': 'application/json' },
+    }),
   );
 }
 
@@ -33,10 +36,16 @@ describe('review api', () => {
 
   it('updateDraft: PATCH with only the three editable fields, returns the draft', async () => {
     respond(200, drafts[0]);
-    const changes = { sentence: 'A new ___ sentence for the question.', id: 'x', concepts: [] } as never;
+    const changes = {
+      sentence: 'A new ___ sentence for the question.',
+      id: 'x',
+      concepts: [],
+    } as never;
     await expect(updateDraft('d-1', changes)).resolves.toEqual(drafts[0]);
     expect(lastCall()).toMatchObject({ url: '/api/review/questions/d-1', method: 'PATCH' });
-    expect(JSON.parse(lastCall().body ?? '')).toEqual({ sentence: 'A new ___ sentence for the question.' });
+    expect(JSON.parse(lastCall().body ?? '')).toEqual({
+      sentence: 'A new ___ sentence for the question.',
+    });
 
     respond(200, drafts[0]);
     await updateDraft('d-1', { answers: ['a'], distractors: ['b', 'c'] });
@@ -46,7 +55,11 @@ describe('review api', () => {
   it('approveDraft: POST /approve parsed as ReviewOutcome', async () => {
     respond(200, outcome());
     await expect(approveDraft('d-1')).resolves.toEqual(outcome());
-    expect(lastCall()).toMatchObject({ url: '/api/review/questions/d-1/approve', method: 'POST', body: undefined });
+    expect(lastCall()).toMatchObject({
+      url: '/api/review/questions/d-1/approve',
+      method: 'POST',
+      body: undefined,
+    });
   });
 
   it('rejectDraft: POST /reject with the trimmed reason, or an empty body; parsed as ReviewOutcome', async () => {

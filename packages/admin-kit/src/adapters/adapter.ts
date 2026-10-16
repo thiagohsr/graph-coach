@@ -13,9 +13,16 @@ export interface AdminListParams {
 }
 
 export interface AdminAdapter {
-  list(model: ResolvedAdminModel, params: AdminListParams): Promise<{ rows: AdminRow[]; total: number }>;
+  list(
+    model: ResolvedAdminModel,
+    params: AdminListParams,
+  ): Promise<{ rows: AdminRow[]; total: number }>;
   get(model: ResolvedAdminModel, id: string): Promise<AdminRow | null>;
-  update(model: ResolvedAdminModel, id: string, changes: Record<string, AdminValue>): Promise<AdminRow | null>;
+  update(
+    model: ResolvedAdminModel,
+    id: string,
+    changes: Record<string, AdminValue>,
+  ): Promise<AdminRow | null>;
   /** [] for sql models. */
   links(model: ResolvedAdminModel, id: string): Promise<AdminLink[]>;
 }

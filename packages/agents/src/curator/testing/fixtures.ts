@@ -242,7 +242,10 @@ export type PromptVerdict = 'pass' | 'rewrite' | 'reject';
 export function answerOf(fact: string): string {
   const words = fact.match(/[A-Za-z]{6,}/g) ?? [];
   const once = words.filter((w) => countOccurrences(fact, w) === 1);
-  return once.reduce((best, w) => (w.length > best.length ? w : best), once[0] ?? words[0] ?? 'books');
+  return once.reduce(
+    (best, w) => (w.length > best.length ? w : best),
+    once[0] ?? words[0] ?? 'books',
+  );
 }
 
 /** Sentences of the first two topics, alternating: the planner's facts. */
@@ -263,7 +266,9 @@ export function plannedCountOf(call: StubCall): number {
 }
 
 /** The planned facts of a writer or rewrite prompt: `index | concept slug | fact`. */
-export function plannedFactsOf(call: StubCall): Array<{ index: number; slug: string; fact: string }> {
+export function plannedFactsOf(
+  call: StubCall,
+): Array<{ index: number; slug: string; fact: string }> {
   const out: Array<{ index: number; slug: string; fact: string }> = [];
   for (const match of userMessage(call).matchAll(/<<<FACT:(\w+)>>>\n([\s\S]*?)\n<<<END:\1>>>/g)) {
     const [index, slug, ...rest] = (match[2] ?? '').split(' | ');

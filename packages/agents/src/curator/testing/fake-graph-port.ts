@@ -160,7 +160,12 @@ export class FakeCuratorGraph implements CuratorGraphPort, StepRecorder {
   }
 
   /** A prompt source: a brief and no text. */
-  addPromptSource(input: { id: string; ownerId: string; title?: string; brief: PromptBrief }): void {
+  addPromptSource(input: {
+    id: string;
+    ownerId: string;
+    title?: string;
+    brief: PromptBrief;
+  }): void {
     this.sources.set(input.id, {
       id: input.id,
       ownerId: input.ownerId,

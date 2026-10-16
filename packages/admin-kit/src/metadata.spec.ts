@@ -43,13 +43,23 @@ describe('buildModelMeta', () => {
     for (const model of registry.list()) {
       const meta = buildModelMeta(model);
       expect(AdminModelMeta.parse(meta)).toEqual(meta);
-      expect(meta.fields.map((f) => f.name)).toEqual(Object.keys((model.fields)));
+      expect(meta.fields.map((f) => f.name)).toEqual(Object.keys(model.fields));
     }
   });
 
   it('leaves out entity, columns, relationships, providers, and hooks', () => {
     const text = JSON.stringify(registry.list().map(buildModelMeta));
-    for (const hidden of ['entity', 'column', '"rel"', 'targetLabel', 'computeProvider', 'updateProvider', 'validate', 'titleProperty', 'href']) {
+    for (const hidden of [
+      'entity',
+      'column',
+      '"rel"',
+      'targetLabel',
+      'computeProvider',
+      'updateProvider',
+      'validate',
+      'titleProperty',
+      'href',
+    ]) {
       expect(text).not.toContain(hidden);
     }
   });
@@ -62,7 +72,12 @@ describe('buildModelMeta', () => {
       { value: 'blocked', label: 'Block' },
       { value: 'active', label: 'Unblock' },
     ]);
-    expect(meta.fields.find((f) => f.name === 'bonusRuns')).toMatchObject({ min: 0, max: 1000, required: true, readonly: false });
+    expect(meta.fields.find((f) => f.name === 'bonusRuns')).toMatchObject({
+      min: 0,
+      max: 1000,
+      required: true,
+      readonly: false,
+    });
     expect(meta.fields.find((f) => f.name === 'id')!.readonly).toBe(true);
     expect(meta.maxPageSize).toBe(100);
     expect(meta.maxSearchLength).toBe(100);
@@ -76,7 +91,12 @@ describe('buildModelMeta', () => {
   });
 
   it('marks every field read-only for a read-only model', () => {
-    const readOnly = resolve({ ...sampleGraphDeclaration, name: 'ro', readOnly: true, links: [] }).get('ro')!;
+    const readOnly = resolve({
+      ...sampleGraphDeclaration,
+      name: 'ro',
+      readOnly: true,
+      links: [],
+    }).get('ro')!;
     const meta = buildModelMeta(readOnly);
     expect(meta.readOnly).toBe(true);
     expect(meta.fields.every((f) => f.readonly)).toBe(true);
@@ -104,11 +124,17 @@ describe('computedFieldKeys and buildActions', () => {
   it('returns only the actions whose value differs from the current one', () => {
     const model = registry.get('user')!;
     const record = (status: string) => ({ id: 'u1', title: 'u1', values: { status } });
-    expect(buildActions(model, record('active'))).toEqual([{ field: 'status', value: 'blocked', label: 'Block' }]);
-    expect(buildActions(model, record('blocked'))).toEqual([{ field: 'status', value: 'active', label: 'Unblock' }]);
+    expect(buildActions(model, record('active'))).toEqual([
+      { field: 'status', value: 'blocked', label: 'Block' },
+    ]);
+    expect(buildActions(model, record('blocked'))).toEqual([
+      { field: 'status', value: 'active', label: 'Unblock' },
+    ]);
   });
 
   it('returns [] for a read-only model', () => {
-    expect(buildActions(registry.get('sample-concept')!, { id: 'x', title: 'x', values: {} })).toEqual([]);
+    expect(
+      buildActions(registry.get('sample-concept')!, { id: 'x', title: 'x', values: {} }),
+    ).toEqual([]);
   });
 });

@@ -71,12 +71,18 @@ export const userAdmin = registerAdmin({
  */
 export function validateSetting(ctx: AdminHookContext): AdminHookResult {
   if (ctx.id === 'embeddingDim') {
-    return { fields: { value: 'embeddingDim is written by setup-graph and cannot be edited here' } };
+    return {
+      fields: { value: 'embeddingDim is written by setup-graph and cannot be edited here' },
+    };
   }
   if (!isSettingKey(ctx.id)) return { fields: { value: 'This is not a setting key' } };
   const parsed = SettingsSchema.shape[ctx.id].safeParse(ctx.changes.value);
   if (!parsed.success) {
-    return { fields: { value: parsed.error.issues[0]?.message ?? 'This value is not valid for this setting' } };
+    return {
+      fields: {
+        value: parsed.error.issues[0]?.message ?? 'This value is not valid for this setting',
+      },
+    };
   }
 }
 
@@ -124,9 +130,19 @@ export const accessCodeAdmin = registerAdmin({
     label: { readonly: true },
     sourceRuns: { type: 'integer', label: 'Upload runs', column: 'source_runs', readonly: true },
     promptRuns: { type: 'integer', label: 'Prompt runs', column: 'prompt_runs', readonly: true },
-    liftDays: { type: 'integer', label: 'Days the hourly limit is lifted', column: 'lift_days', readonly: true },
+    liftDays: {
+      type: 'integer',
+      label: 'Days the hourly limit is lifted',
+      column: 'lift_days',
+      readonly: true,
+    },
     redeemedCount: { type: 'integer', label: 'Redeemed', column: 'redeemed_count', readonly: true },
-    maxRedemptions: { type: 'integer', label: 'Max redemptions', column: 'max_redemptions', readonly: true },
+    maxRedemptions: {
+      type: 'integer',
+      label: 'Max redemptions',
+      column: 'max_redemptions',
+      readonly: true,
+    },
     expiresAt: { type: 'datetime', label: 'Expires at', column: 'expires_at', readonly: true },
     disabled: {
       type: 'boolean',

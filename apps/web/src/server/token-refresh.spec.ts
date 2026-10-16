@@ -10,7 +10,9 @@ const fresh: Session = { accessToken: 'a1', refreshToken: 'r1', expiresAt: NOW +
 const nearExpiry: Session = { accessToken: 'a1', refreshToken: 'r1', expiresAt: NOW + 30_000 };
 const expired: Session = { accessToken: 'a1', refreshToken: 'r1', expiresAt: NOW - 1000 };
 
-function refresher(result: TokenResult | null = { accessToken: 'a2', refreshToken: 'r2', expiresIn: 3600 }) {
+function refresher(
+  result: TokenResult | null = { accessToken: 'a2', refreshToken: 'r2', expiresIn: 3600 },
+) {
   return vi.fn(async (_refreshToken: string) => result);
 }
 
@@ -71,9 +73,15 @@ describe('ensureFresh', () => {
   });
 
   it('replaces a rotated refresh token and keeps the old one when none is returned', async () => {
-    const rotated = await ensureFresh(nearExpiry, { refresh: refresher({ accessToken: 'a2', refreshToken: 'r2', expiresIn: 60 }), now });
+    const rotated = await ensureFresh(nearExpiry, {
+      refresh: refresher({ accessToken: 'a2', refreshToken: 'r2', expiresIn: 60 }),
+      now,
+    });
     expect(rotated?.session.refreshToken).toBe('r2');
-    const kept = await ensureFresh(nearExpiry, { refresh: refresher({ accessToken: 'a2', expiresIn: 60 }), now });
+    const kept = await ensureFresh(nearExpiry, {
+      refresh: refresher({ accessToken: 'a2', expiresIn: 60 }),
+      now,
+    });
     expect(kept?.session.refreshToken).toBe('r1');
   });
 
@@ -81,7 +89,9 @@ describe('ensureFresh', () => {
     const refresh = refresher();
     const dev: Session = { accessToken: 'dev', expiresAt: NOW + 10_000 };
     expect(await ensureFresh(dev, { refresh, now })).toEqual({ session: dev, refreshed: false });
-    expect(await ensureFresh({ accessToken: 'dev', expiresAt: NOW - 1 }, { refresh, now })).toBeNull();
+    expect(
+      await ensureFresh({ accessToken: 'dev', expiresAt: NOW - 1 }, { refresh, now }),
+    ).toBeNull();
     expect(refresh).not.toHaveBeenCalled();
   });
 
@@ -94,7 +104,13 @@ describe('ensureFresh', () => {
 
   it('force without a refresh token returns null', async () => {
     const refresh = refresher();
-    expect(await ensureFresh({ accessToken: 'dev', expiresAt: NOW + 10_000 }, { refresh, now }, { force: true })).toBeNull();
+    expect(
+      await ensureFresh(
+        { accessToken: 'dev', expiresAt: NOW + 10_000 },
+        { refresh, now },
+        { force: true },
+      ),
+    ).toBeNull();
     expect(refresh).not.toHaveBeenCalled();
   });
 });

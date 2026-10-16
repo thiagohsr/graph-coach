@@ -1,11 +1,24 @@
 import { ZERO_USAGE, addUsage, type Usage } from './usage';
-import type { CallRecord, ContentCapture, RunHandle, RunKind, StepHandle, UsageTracer } from './usage-tracer';
+import type {
+  CallRecord,
+  ContentCapture,
+  RunHandle,
+  RunKind,
+  StepHandle,
+  UsageTracer,
+} from './usage-tracer';
 
 /** Test double: keeps everything it is told, in order. */
 export class RecordingUsageTracer implements UsageTracer {
   readonly enabled = true as const;
   readonly content?: ContentCapture;
-  readonly runs: Array<{ id: string; kind: RunKind; userId: string; ok?: boolean; ended: boolean }> = [];
+  readonly runs: Array<{
+    id: string;
+    kind: RunKind;
+    userId: string;
+    ok?: boolean;
+    ended: boolean;
+  }> = [];
   readonly steps: Array<{ runId: string; node: string; ok?: boolean; ended: boolean }> = [];
   readonly calls: Array<{
     runId: string;
@@ -38,7 +51,9 @@ export class RecordingUsageTracer implements UsageTracer {
   }
 
   endStep(step: StepHandle, result?: { ok: boolean }): void {
-    const rec = [...this.steps].reverse().find((s) => s.runId === step.runId && s.node === step.node && !s.ended);
+    const rec = [...this.steps]
+      .reverse()
+      .find((s) => s.runId === step.runId && s.node === step.node && !s.ended);
     if (!rec) return;
     rec.ended = true;
     if (result) rec.ok = result.ok;

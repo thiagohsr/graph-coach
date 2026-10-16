@@ -21,7 +21,11 @@ const secret = 'a'.repeat(32);
 const otherSecret = 'b'.repeat(32);
 const opts = { secret, secure: false };
 
-const small: Session = { accessToken: 'access', refreshToken: 'refresh', expiresAt: 1_800_000_000_000 };
+const small: Session = {
+  accessToken: 'access',
+  refreshToken: 'refresh',
+  expiresAt: 1_800_000_000_000,
+};
 
 /** A token-like string that does not compress, so that the sealed value is large. */
 const big = (n: number) => randomBytes(n).toString('base64url');
@@ -73,7 +77,11 @@ describe('session cookies', () => {
   });
 
   it('splits a large payload into numbered cookies within the size limit and reassembles them in order', () => {
-    const large: Session = { accessToken: big(2600), refreshToken: big(2600), expiresAt: small.expiresAt };
+    const large: Session = {
+      accessToken: big(2600),
+      refreshToken: big(2600),
+      expiresAt: small.expiresAt,
+    };
     const headers = writeSession(large, opts);
     expect(headers.length).toBeGreaterThan(1);
     const jar = apply({}, headers);
@@ -85,23 +93,36 @@ describe('session cookies', () => {
   });
 
   it('reads nothing when a chunk is missing, a chunk is altered, or the secret differs', () => {
-    const large: Session = { accessToken: big(2600), refreshToken: big(2600), expiresAt: small.expiresAt };
+    const large: Session = {
+      accessToken: big(2600),
+      refreshToken: big(2600),
+      expiresAt: small.expiresAt,
+    };
     const jar = apply({}, writeSession(large, opts));
     const { 'gc_session.1': _dropped, ...missing } = jar;
     expect(readSession(missing, secret)).toBeNull();
-    expect(readSession({ ...jar, 'gc_session.1': jar['gc_session.1']!.slice(0, -4) + 'AAAA' }, secret)).toBeNull();
+    expect(
+      readSession({ ...jar, 'gc_session.1': jar['gc_session.1']!.slice(0, -4) + 'AAAA' }, secret),
+    ).toBeNull();
     expect(readSession(jar, otherSecret)).toBeNull();
     expect(readSession({}, secret)).toBeNull();
   });
 
   it('expires leftover chunks when a shorter session is written', () => {
-    const large: Session = { accessToken: big(2600), refreshToken: big(2600), expiresAt: small.expiresAt };
+    const large: Session = {
+      accessToken: big(2600),
+      refreshToken: big(2600),
+      expiresAt: small.expiresAt,
+    };
     const first = apply({}, writeSession(large, opts));
     const count = Object.keys(first).length;
     expect(count).toBeGreaterThan(1);
 
     const second = writeSession(small, { ...opts, existing: sessionCookieNames(first) });
-    const expired = second.map(parseSetCookie).filter((c) => c.maxAge === 0).map((c) => c.name);
+    const expired = second
+      .map(parseSetCookie)
+      .filter((c) => c.maxAge === 0)
+      .map((c) => c.name);
     expect(expired).toEqual(Array.from({ length: count - 1 }, (_, i) => `gc_session.${i + 1}`));
     const jar = apply(first, second);
     expect(Object.keys(jar)).toEqual(['gc_session.0']);
@@ -109,7 +130,11 @@ describe('session cookies', () => {
   });
 
   it('clear expires every chunk', () => {
-    const large: Session = { accessToken: big(2600), refreshToken: big(2600), expiresAt: small.expiresAt };
+    const large: Session = {
+      accessToken: big(2600),
+      refreshToken: big(2600),
+      expiresAt: small.expiresAt,
+    };
     const jar = apply({}, writeSession(large, opts));
     const cleared = clearSession({ ...opts, existing: sessionCookieNames(jar) });
     expect(cleared.map((h) => parseSetCookie(h).name)).toEqual(Object.keys(jar));
@@ -145,7 +170,13 @@ describe('transaction cookie', () => {
   it('round-trips and lives 10 minutes with the same attributes', () => {
     const header = writeTransaction(tx, opts);
     const parsed = parseSetCookie(header);
-    expect(parsed).toMatchObject({ name: 'gc_auth_tx', maxAge: 600, httpOnly: true, sameSite: 'Lax', path: '/' });
+    expect(parsed).toMatchObject({
+      name: 'gc_auth_tx',
+      maxAge: 600,
+      httpOnly: true,
+      sameSite: 'Lax',
+      path: '/',
+    });
     expect(readTransaction({ gc_auth_tx: parsed.value }, secret)).toEqual(tx);
   });
 

@@ -15,9 +15,19 @@ describe('evidence passed to record_decision', () => {
     const evidence = await run();
     const answers = evidence.filter((e) => e.role === 'answer');
     const sessions = evidence.filter((e) => e.role === 'session');
-    expect(answers.map((e) => e.reason)).toEqual(['missed 2 times', 'missed 2 times', 'missed 1 time', 'missed 1 time', 'missed 1 time']);
+    expect(answers.map((e) => e.reason)).toEqual([
+      'missed 2 times',
+      'missed 2 times',
+      'missed 1 time',
+      'missed 1 time',
+      'missed 1 time',
+    ]);
     expect(answers.every((e) => e.label === 'Question')).toBe(true);
-    expect(sessions.map((e) => e.nodeId)).toEqual([WORKED_IDS.sessionC, WORKED_IDS.sessionB, WORKED_IDS.sessionA]);
+    expect(sessions.map((e) => e.nodeId)).toEqual([
+      WORKED_IDS.sessionC,
+      WORKED_IDS.sessionB,
+      WORKED_IDS.sessionA,
+    ]);
     expect(sessions.every((e) => e.label === 'Session')).toBe(true);
   });
 
@@ -37,7 +47,9 @@ describe('evidence passed to record_decision', () => {
   it('is ordered deterministically whatever the order of the rows', async () => {
     const rows = workedExampleRows().answers;
     const a = await run(createStubCoachQueries({ conceptAnswerEvidence: async () => rows }));
-    const b = await run(createStubCoachQueries({ conceptAnswerEvidence: async () => [...rows].reverse() }));
+    const b = await run(
+      createStubCoachQueries({ conceptAnswerEvidence: async () => [...rows].reverse() }),
+    );
     expect(JSON.stringify(b)).toBe(JSON.stringify(a));
   });
 

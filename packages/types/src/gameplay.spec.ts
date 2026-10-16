@@ -20,24 +20,39 @@ describe('normaliseWord', () => {
 
 describe('SubmitRequest', () => {
   it('accepts word null and an empty answers list', () => {
-    expect(SubmitRequest.safeParse({ answers: [{ questionId: 'q1', blank: 0, word: null }] }).success).toBe(true);
+    expect(
+      SubmitRequest.safeParse({ answers: [{ questionId: 'q1', blank: 0, word: null }] }).success,
+    ).toBe(true);
     expect(SubmitRequest.safeParse({ answers: [] }).success).toBe(true);
   });
   it('rejects a 101-character word', () => {
-    expect(SubmitRequest.safeParse({ answers: [{ questionId: 'q1', blank: 0, word: 'a'.repeat(101) }] }).success).toBe(false);
+    expect(
+      SubmitRequest.safeParse({ answers: [{ questionId: 'q1', blank: 0, word: 'a'.repeat(101) }] })
+        .success,
+    ).toBe(false);
   });
   it('rejects 501 answers', () => {
-    const answers = Array.from({ length: 501 }, (_, i) => ({ questionId: 'q1', blank: i, word: 'x' }));
+    const answers = Array.from({ length: 501 }, (_, i) => ({
+      questionId: 'q1',
+      blank: i,
+      word: 'x',
+    }));
     expect(SubmitRequest.safeParse({ answers }).success).toBe(false);
   });
   it('rejects a negative or fractional blank', () => {
-    expect(SubmitRequest.safeParse({ answers: [{ questionId: 'q1', blank: -1, word: 'x' }] }).success).toBe(false);
-    expect(SubmitRequest.safeParse({ answers: [{ questionId: 'q1', blank: 0.5, word: 'x' }] }).success).toBe(false);
+    expect(
+      SubmitRequest.safeParse({ answers: [{ questionId: 'q1', blank: -1, word: 'x' }] }).success,
+    ).toBe(false);
+    expect(
+      SubmitRequest.safeParse({ answers: [{ questionId: 'q1', blank: 0.5, word: 'x' }] }).success,
+    ).toBe(false);
   });
   it('rejects unknown keys', () => {
     expect(SubmitRequest.safeParse({ answers: [], extra: 1 }).success).toBe(false);
     expect(
-      SubmitRequest.safeParse({ answers: [{ questionId: 'q1', blank: 0, word: 'x', correct: true }] }).success,
+      SubmitRequest.safeParse({
+        answers: [{ questionId: 'q1', blank: 0, word: 'x', correct: true }],
+      }).success,
     ).toBe(false);
   });
 });
@@ -50,7 +65,9 @@ describe('result schemas', () => {
       submittedAt: '2026-10-11T14:03:22.000Z',
       score: 10,
       maxScore: 20,
-      questions: [{ id: 'q-1', order: 1, sentence: 'A ___ speeds up lookups at the cost of slower ___.' }],
+      questions: [
+        { id: 'q-1', order: 1, sentence: 'A ___ speeds up lookups at the cost of slower ___.' },
+      ],
       review: [
         { questionId: 'q-1', blank: 0, submitted: 'Index', expected: 'index', correct: true },
         {
@@ -59,7 +76,11 @@ describe('result schemas', () => {
           submitted: null,
           expected: 'writes',
           correct: false,
-          passage: { chunkId: 'ch-7', sourceId: 'src-3', excerpt: 'Every index must be updated on insert…' },
+          passage: {
+            chunkId: 'ch-7',
+            sourceId: 'src-3',
+            excerpt: 'Every index must be updated on insert…',
+          },
         },
       ],
       mastery: [{ conceptId: 'c-index', name: 'Indexes', before: 0.5, after: 0.455 }],
@@ -78,8 +99,12 @@ describe('result schemas', () => {
     ).toBe(true);
   });
   it('MasteryChangeDto rejects values outside [0, 1]', () => {
-    expect(MasteryChangeDto.safeParse({ conceptId: 'c', name: 'n', before: 1.1, after: 0.5 }).success).toBe(false);
-    expect(MasteryChangeDto.safeParse({ conceptId: 'c', name: 'n', before: 0.5, after: -0.1 }).success).toBe(false);
+    expect(
+      MasteryChangeDto.safeParse({ conceptId: 'c', name: 'n', before: 1.1, after: 0.5 }).success,
+    ).toBe(false);
+    expect(
+      MasteryChangeDto.safeParse({ conceptId: 'c', name: 'n', before: 0.5, after: -0.1 }).success,
+    ).toBe(false);
   });
   it('PlayPuzzleDto is strict', () => {
     const ok = {

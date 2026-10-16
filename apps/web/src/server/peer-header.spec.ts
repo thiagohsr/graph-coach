@@ -19,11 +19,16 @@ const app = {
   fetch(request: Request): Response {
     const url = new URL(request.url);
     const peer = peerAddress(request);
-    seen.push({ path: url.pathname, peer, xff: forwardedFor(peer, request.headers.get('x-forwarded-for'), undefined) });
+    seen.push({
+      path: url.pathname,
+      peer,
+      xff: forwardedFor(peer, request.headers.get('x-forwarded-for'), undefined),
+    });
     if (url.pathname === '/healthz') return Response.json({ ok: true });
     if (url.pathname.startsWith('/api/')) return Response.json({ api: true });
     if (url.pathname.startsWith('/_serverFn/')) return Response.json({ fn: true });
-    if (url.pathname === '/puzzles' || url.pathname === '/') return new Response('<html></html>', { headers: { 'content-type': 'text/html' } });
+    if (url.pathname === '/puzzles' || url.pathname === '/')
+      return new Response('<html></html>', { headers: { 'content-type': 'text/html' } });
     return new Response('nope', { status: 404 });
   },
 };
@@ -65,7 +70,8 @@ function get(path: string, headers: http.OutgoingHttpHeaders, method = 'GET'): P
   });
 }
 
-const isLoopback = (peer: string | undefined) => peer === '127.0.0.1' || peer === '::ffff:127.0.0.1' || peer === '::1';
+const isLoopback = (peer: string | undefined) =>
+  peer === '127.0.0.1' || peer === '::ffff:127.0.0.1' || peer === '::1';
 
 describe('x-coach-peer is replaced by the real socket peer on every request path', () => {
   const dynamicPaths: [string, string, string][] = [
@@ -116,14 +122,20 @@ describe('x-coach-peer is replaced by the real socket peer on every request path
 
 describe('preparePeer', () => {
   it('removes a supplied header and leaves none when the socket has no address', () => {
-    const req = { headers: { 'x-coach-peer': SPOOF, host: 'a' } as Record<string, string>, socket: {} };
+    const req = {
+      headers: { 'x-coach-peer': SPOOF, host: 'a' } as Record<string, string>,
+      socket: {},
+    };
     preparePeer(req);
     expect(req.headers[PEER_HEADER]).toBeUndefined();
     expect(req.headers.host).toBe('a');
   });
 
   it('overwrites with the socket address', () => {
-    const req = { headers: { 'X-Coach-Peer': SPOOF } as Record<string, string>, socket: { remoteAddress: '192.0.2.7' } };
+    const req = {
+      headers: { 'X-Coach-Peer': SPOOF } as Record<string, string>,
+      socket: { remoteAddress: '192.0.2.7' },
+    };
     preparePeer(req);
     expect(req.headers[PEER_HEADER]).toBe('192.0.2.7');
     expect(Object.keys(req.headers)).toEqual([PEER_HEADER]);

@@ -14,7 +14,9 @@ const script = resolve(apiRoot, 'test/support/module-identity.cjs');
 const built = existsSync(resolve(apiRoot, '../../packages/agents/dist/llm/index.js'));
 
 describe.skipIf(!built)('built workspace packages resolve to a single module format', () => {
-  const output = built ? execFileSync(process.execPath, [script], { cwd: apiRoot, encoding: 'utf8' }) : '{}';
+  const output = built
+    ? execFileSync(process.execPath, [script], { cwd: apiRoot, encoding: 'utf8' })
+    : '{}';
   const result = JSON.parse(output) as {
     resolved: Record<string, string>;
     shared: { name: string; entries: string[]; identical: boolean }[];
@@ -43,7 +45,8 @@ describe.skipIf(!built)('built workspace packages resolve to a single module for
 
 describe('build prerequisite', () => {
   it('reports when the packages are not built (the checks above are then skipped)', () => {
-    if (!built) console.warn('module-format.spec.ts skipped: run `pnpm --filter "./packages/*" run build`');
+    if (!built)
+      console.warn('module-format.spec.ts skipped: run `pnpm --filter "./packages/*" run build`');
     expect(true).toBe(true);
   });
 });

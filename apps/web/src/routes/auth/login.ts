@@ -4,7 +4,8 @@ import { createFileRoute } from '@tanstack/react-router';
 export const Route = createFileRoute('/auth/login')({
   server: {
     handlers: {
-      GET: async ({ request }: { request: Request }) => (await import('~/server/handlers')).handleLogin(request),
+      GET: async ({ request }: { request: Request }) =>
+        (await import('~/server/handlers')).handleLogin(request),
     },
   },
 });

@@ -17,7 +17,10 @@ export function getRouter() {
     onUnauthenticated: () => {
       const router = ref.router;
       if (!router || router.state.location.pathname.startsWith('/login')) return;
-      void router.navigate({ to: '/login', search: { redirect: safeRedirect(router.state.location.href) } });
+      void router.navigate({
+        to: '/login',
+        search: { redirect: safeRedirect(router.state.location.href) },
+      });
     },
     // A 403 ACCOUNT_BLOCKED from any call (FR-W25).
     onBlocked: () => {
@@ -35,7 +38,9 @@ export function getRouter() {
     defaultPendingComponent: () => <LoadingState />,
     defaultNotFoundComponent: () => <NotFoundPage />,
     defaultErrorComponent: ErrorBoundaryPage,
-    Wrap: ({ children }: { children: ReactNode }) => <QueryClientProvider client={queryClient}>{children}</QueryClientProvider>,
+    Wrap: ({ children }: { children: ReactNode }) => (
+      <QueryClientProvider client={queryClient}>{children}</QueryClientProvider>
+    ),
   });
   ref.router = router;
   return router;

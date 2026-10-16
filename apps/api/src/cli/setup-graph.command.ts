@@ -11,7 +11,8 @@ const REBUILD_COMMAND = 'pnpm --filter @coach/api cli setup-graph --rebuild-vect
 /** Prints a setup report line by line (shared with `seed`). */
 export function printSetupReport(out: CliOutput, report: SetupReport): void {
   out.line(`created: ${report.created.length}`);
-  for (const item of report.created) out.line(`  created ${item.kind} index ${item.label}.${item.property}`);
+  for (const item of report.created)
+    out.line(`  created ${item.kind} index ${item.label}.${item.property}`);
   out.line(`existing: ${report.existing.length}`);
   for (const item of report.skipped) {
     out.line(`  skipped ${item.kind} ${item.label}.${item.property}: ${item.reason}`);
@@ -24,7 +25,8 @@ export function printSetupReport(out: CliOutput, report: SetupReport): void {
 
 @Command({
   name: 'setup-graph',
-  description: 'Create the graph indexes, constraints, and vector index; store the embedding dimension',
+  description:
+    'Create the graph indexes, constraints, and vector index; store the embedding dimension',
 })
 export class SetupGraphCommand extends CommandRunner {
   constructor(
@@ -58,7 +60,10 @@ export class SetupGraphCommand extends CommandRunner {
       );
     }
 
-    const report = await setupGraph(this.graph, { embeddingDim: dimension, rebuildVector: rebuild });
+    const report = await setupGraph(this.graph, {
+      embeddingDim: dimension,
+      rebuildVector: rebuild,
+    });
     printSetupReport(this.out, report);
 
     try {

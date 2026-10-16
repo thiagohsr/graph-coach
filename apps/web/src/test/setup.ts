@@ -32,7 +32,9 @@ export class FakeEventSource {
     this.onopen?.(new Event('open'));
   }
   emitMessage(data: unknown) {
-    this.onmessage?.(new MessageEvent('message', { data: typeof data === 'string' ? data : JSON.stringify(data) }));
+    this.onmessage?.(
+      new MessageEvent('message', { data: typeof data === 'string' ? data : JSON.stringify(data) }),
+    );
   }
   emitError() {
     this.onerror?.(new Event('error'));
@@ -63,9 +65,12 @@ if (typeof window !== 'undefined' && typeof window.matchMedia !== 'function') {
 beforeEach(() => {
   FakeEventSource.reset();
   vi.stubGlobal('EventSource', FakeEventSource);
-  vi.stubGlobal('fetch', vi.fn(async () => {
-    throw new Error('fetch was called without a test double');
-  }));
+  vi.stubGlobal(
+    'fetch',
+    vi.fn(async () => {
+      throw new Error('fetch was called without a test double');
+    }),
+  );
 });
 
 afterEach(() => {

@@ -35,7 +35,9 @@ class LlmLifecycle implements OnApplicationBootstrap, OnApplicationShutdown {
     if (env.NODE_ENV !== 'test') {
       const stubs = [
         env.llm.provider === 'stub' ? 'LLM_PROVIDER (chat: puzzle generation, coaching)' : null,
-        env.embeddings.provider === 'stub' ? 'EMBEDDING_PROVIDER (embeddings: source search)' : null,
+        env.embeddings.provider === 'stub'
+          ? 'EMBEDDING_PROVIDER (embeddings: source search)'
+          : null,
       ].filter((entry): entry is string => entry !== null);
       if (stubs.length > 0) {
         const text = `Stub provider in use for ${stubs.join(' and ')}: features that need a real model return canned or empty answers.`;
@@ -45,7 +47,9 @@ class LlmLifecycle implements OnApplicationBootstrap, OnApplicationShutdown {
     }
 
     if (env.llm.provider === 'ollama-with-fallback' && !env.llm.fallback) {
-      this.logger.warn('LLM_PROVIDER=ollama-with-fallback without OPENROUTER_API_KEY: there is no fallback if Ollama is down');
+      this.logger.warn(
+        'LLM_PROVIDER=ollama-with-fallback without OPENROUTER_API_KEY: there is no fallback if Ollama is down',
+      );
     }
 
     const { publicKey, secretKey, host } = env.tracer;

@@ -30,7 +30,10 @@ function key(refreshToken: string): string {
   return createHash('sha256').update(refreshToken).digest('hex');
 }
 
-function singleFlight(refreshToken: string, call: () => Promise<TokenResult | null>): Promise<TokenResult | null> {
+function singleFlight(
+  refreshToken: string,
+  call: () => Promise<TokenResult | null>,
+): Promise<TokenResult | null> {
   const k = key(refreshToken);
   const existing = inFlight.get(k);
   if (existing) return existing;

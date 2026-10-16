@@ -26,13 +26,17 @@ function PlayPage() {
       <RouteFocus title={play.data ? `Play ${play.data.name}` : 'Play'} />
       {play.isPending && (
         <>
-          <h1 className="text-2xl leading-[30px] font-bold tracking-tight sm:text-[30px] sm:leading-9">Play</h1>
+          <h1 className="text-2xl leading-[30px] font-bold tracking-tight sm:text-[30px] sm:leading-9">
+            Play
+          </h1>
           <LoadingState label="Loading puzzle" rows={4} />
         </>
       )}
       {play.isError && (
         <>
-          <h1 className="text-2xl leading-[30px] font-bold tracking-tight sm:text-[30px] sm:leading-9">Play</h1>
+          <h1 className="text-2xl leading-[30px] font-bold tracking-tight sm:text-[30px] sm:leading-9">
+            Play
+          </h1>
           <ErrorState error={play.error} onRetry={() => void play.refetch()} />
         </>
       )}

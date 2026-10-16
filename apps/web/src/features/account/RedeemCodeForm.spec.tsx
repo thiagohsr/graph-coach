@@ -7,7 +7,9 @@ import { RedeemCodeForm } from './RedeemCodeForm';
 
 const fetchMock = vi.fn();
 const json = (status: number, body?: unknown) => new Response(JSON.stringify(body), { status });
-const apiError = (code: string, message: string, details?: unknown) => ({ error: { code, message, ...(details ? { details } : {}) } });
+const apiError = (code: string, message: string, details?: unknown) => ({
+  error: { code, message, ...(details ? { details } : {}) },
+});
 
 beforeEach(() => {
   fetchMock.mockReset();
@@ -26,7 +28,9 @@ describe('RedeemCodeForm', () => {
   });
 
   it('posts the trimmed code, lists only what was granted, clears the field, and invalidates the allowance', async () => {
-    fetchMock.mockResolvedValue(json(200, { sourceRuns: 2, promptRuns: 0, limitsLiftedUntil: '2026-10-16T00:00:00.000Z' }));
+    fetchMock.mockResolvedValue(
+      json(200, { sourceRuns: 2, promptRuns: 0, limitsLiftedUntil: '2026-10-16T00:00:00.000Z' }),
+    );
     const onGranted = vi.fn();
     const { queryClient } = renderWithQuery(<RedeemCodeForm onGranted={onGranted} />);
     queryClient.setQueryData(keys.me.allowance, {});
@@ -35,7 +39,9 @@ describe('RedeemCodeForm', () => {
     await waitFor(() => expect(status).toHaveTextContent('+2 uploads'));
     expect(status).toHaveTextContent(/Hourly limit lifted until/);
     expect(status).not.toHaveTextContent('prompt puzzles');
-    expect(JSON.parse((fetchMock.mock.calls[0]![1] as RequestInit).body as string)).toEqual({ code: 'ABC-123' });
+    expect(JSON.parse((fetchMock.mock.calls[0]![1] as RequestInit).body as string)).toEqual({
+      code: 'ABC-123',
+    });
     expect(screen.getByLabelText('Code')).toHaveValue('');
     expect(queryClient.getQueryState(keys.me.allowance)?.isInvalidated).toBe(true);
     expect(onGranted).toHaveBeenCalledTimes(1);
@@ -60,7 +66,13 @@ describe('RedeemCodeForm', () => {
 
   it('shows the time to try again for a 429', async () => {
     fetchMock.mockResolvedValue(
-      json(429, apiError('RATE_LIMITED', 'Too many attempts.', { retryAfterSeconds: 60, resetAt: '2026-10-15T12:30:00.000Z' })),
+      json(
+        429,
+        apiError('RATE_LIMITED', 'Too many attempts.', {
+          retryAfterSeconds: 60,
+          resetAt: '2026-10-15T12:30:00.000Z',
+        }),
+      ),
     );
     renderWithQuery(<RedeemCodeForm />);
     await redeem('ABC');

@@ -2,7 +2,13 @@ import { cn } from '~/lib/utils';
 
 export type MasteryStep = 1 | 2 | 3 | 4 | 5;
 
-export const MASTERY_LABELS: Record<MasteryStep, string> = { 1: 'Weak', 2: 'Shaky', 3: 'Developing', 4: 'Good', 5: 'Strong' };
+export const MASTERY_LABELS: Record<MasteryStep, string> = {
+  1: 'Weak',
+  2: 'Shaky',
+  3: 'Developing',
+  4: 'Good',
+  5: 'Strong',
+};
 
 /**
  * Display band of a score the server sent (design-system "Concept chip"). This only picks a colour and a label;
@@ -29,22 +35,46 @@ export function MasteryPips({ step, className }: { step: MasteryStep; className?
   return (
     <span aria-hidden="true" className={cn('inline-flex gap-0.5', className)}>
       {[1, 2, 3, 4, 5].map((n) => (
-        <i key={n} className={cn('h-3 w-[5px] rounded-[2px] bg-current', n <= step ? 'opacity-100' : 'opacity-[0.22]')} />
+        <i
+          key={n}
+          className={cn(
+            'h-3 w-[5px] rounded-[2px] bg-current',
+            n <= step ? 'opacity-100' : 'opacity-[0.22]',
+          )}
+        />
       ))}
     </span>
   );
 }
 
 /** Pips, optional name, and level label on the step's colours. `name` is shown before the label. */
-export function ConceptChip({ step, name, showLabel = true, className }: { step: MasteryStep; name?: string; showLabel?: boolean; className?: string }) {
+export function ConceptChip({
+  step,
+  name,
+  showLabel = true,
+  className,
+}: {
+  step: MasteryStep;
+  name?: string;
+  showLabel?: boolean;
+  className?: string;
+}) {
   return (
     <span
       data-mastery-step={step}
-      className={cn('inline-flex items-center gap-2 rounded-full py-1.5 pr-3 pl-2 text-[13px] leading-[18px] font-semibold', CHIP_COLORS[step], className)}
+      className={cn(
+        'inline-flex items-center gap-2 rounded-full py-1.5 pr-3 pl-2 text-[13px] leading-[18px] font-semibold',
+        CHIP_COLORS[step],
+        className,
+      )}
     >
       <MasteryPips step={step} />
       {name}
-      {showLabel && <span className={cn('font-medium', name && 'before:content-["·_"]')}>{MASTERY_LABELS[step]}</span>}
+      {showLabel && (
+        <span className={cn('font-medium', name && 'before:content-["·_"]')}>
+          {MASTERY_LABELS[step]}
+        </span>
+      )}
     </span>
   );
 }

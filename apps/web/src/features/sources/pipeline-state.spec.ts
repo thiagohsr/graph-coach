@@ -23,7 +23,13 @@ function step(
     node,
     status,
     ...(log ? { log } : {}),
-    payload: { stepId, order, attempt, startedAt: T0, ...(status !== 'active' ? { finishedAt: T0 } : {}) },
+    payload: {
+      stepId,
+      order,
+      attempt,
+      startedAt: T0,
+      ...(status !== 'active' ? { finishedAt: T0 } : {}),
+    },
   };
 }
 
@@ -64,7 +70,13 @@ describe('pipelineReducer', () => {
       stepEvent(step('embed', 's2', 2, 'active', 'embedding')),
     ];
     const once = run([{ type: 'OPENED' }, ...events]);
-    const twice = run([{ type: 'OPENED' }, ...events, { type: 'DROPPED' }, { type: 'OPENED' }, ...events]);
+    const twice = run([
+      { type: 'OPENED' },
+      ...events,
+      { type: 'DROPPED' },
+      { type: 'OPENED' },
+      ...events,
+    ]);
     expect(twice).toEqual(once);
   });
 
@@ -84,19 +96,28 @@ describe('pipelineReducer', () => {
 
   it('ignores a step event without a stepId', () => {
     const spy = vi.spyOn(console, 'error').mockImplementation(() => {});
-    const state = pipelineReducer(initialPipelineState, stepEvent({ node: 'chunk', status: 'active', payload: {} }));
+    const state = pipelineReducer(
+      initialPipelineState,
+      stepEvent({ node: 'chunk', status: 'active', payload: {} }),
+    );
     expect(state).toBe(initialPipelineState);
     expect(spy).toHaveBeenCalled();
     spy.mockRestore();
   });
 
   it('does not let a late active event undo a finished step', () => {
-    const state = run([stepEvent(step('chunk', 's1', 1, 'complete')), stepEvent(step('chunk', 's1', 1, 'active'))]);
+    const state = run([
+      stepEvent(step('chunk', 's1', 1, 'complete')),
+      stepEvent(step('chunk', 's1', 1, 'active')),
+    ]);
     expect(state.steps.s1?.status).toBe('complete');
   });
 
   it('lists the seven ingest steps with unseen ones pending', () => {
-    const state = run([stepEvent(step('chunk', 's1', 1, 'complete')), stepEvent(step('embed', 's2', 2, 'active'))]);
+    const state = run([
+      stepEvent(step('chunk', 's1', 1, 'complete')),
+      stepEvent(step('embed', 's2', 2, 'active')),
+    ]);
     expect(diagramSteps('ingest', state).map((s) => `${s.node}:${s.status}`)).toEqual([
       'chunk:complete',
       'embed:active',
@@ -110,7 +131,14 @@ describe('pipelineReducer', () => {
 
   it('lists the six generate steps with their labels', () => {
     const items = diagramSteps('generate', initialPipelineState);
-    expect(items.map((s) => s.label)).toEqual(['Plan', 'Write', 'Critique', 'Rewrite', 'Validate', 'Publish']);
+    expect(items.map((s) => s.label)).toEqual([
+      'Plan',
+      'Write',
+      'Critique',
+      'Rewrite',
+      'Validate',
+      'Publish',
+    ]);
     expect(items.every((s) => s.status === 'pending')).toBe(true);
   });
 
@@ -129,14 +157,20 @@ describe('pipelineReducer', () => {
       'Validate:pending',
       'Publish:pending',
     ]);
-    expect(logLines('generate', state).map((l) => l.text)).toContain('Rewrite: no draft was sent back');
+    expect(logLines('generate', state).map((l) => l.text)).toContain(
+      'Rewrite: no draft was sent back',
+    );
   });
 
   it('chooses the list from the task kind, not from the events that arrived', () => {
     const state = run([stepEvent(step('chunk', 's1', 1, 'complete'))]);
     // A generate task shows its own six steps; the stray ingest node is added by its order with the raw name.
     const items = diagramSteps('generate', state);
-    expect(items.filter((s) => ['outline', 'draftQuestions', 'critique', 'refine', 'validate', 'publish'].includes(s.node))).toHaveLength(6);
+    expect(
+      items.filter((s) =>
+        ['outline', 'draftQuestions', 'critique', 'refine', 'validate', 'publish'].includes(s.node),
+      ),
+    ).toHaveLength(6);
     expect(items.find((s) => s.node === 'chunk')?.label).toBe('chunk');
     // An ingest task with no events shows its seven steps.
     expect(diagramSteps('ingest', initialPipelineState).map((s) => s.label)).toEqual([
@@ -175,7 +209,15 @@ describe('pipelineReducer', () => {
 
   it('upserts SNAPSHOT steps by stepId so a snapshot followed by a replay has no duplicates', () => {
     const dto: StepDto[] = [
-      { stepId: 's1', order: 1, node: 'chunk', status: 'complete', log: 'a\nb', startedAt: T0, finishedAt: T0 },
+      {
+        stepId: 's1',
+        order: 1,
+        node: 'chunk',
+        status: 'complete',
+        log: 'a\nb',
+        startedAt: T0,
+        finishedAt: T0,
+      },
       { stepId: 's2', order: 2, node: 'embed', status: 'active', startedAt: T0 },
     ];
     const state = run([
@@ -199,7 +241,11 @@ describe('pipelineReducer', () => {
   });
 
   it('RESET returns the initial state', () => {
-    const state = run([stepEvent(step('chunk', 's1', 1, 'active', 'x')), { type: 'DROPPED' }, { type: 'RESET' }]);
+    const state = run([
+      stepEvent(step('chunk', 's1', 1, 'active', 'x')),
+      { type: 'DROPPED' },
+      { type: 'RESET' },
+    ]);
     expect(state).toEqual(initialPipelineState);
   });
 });

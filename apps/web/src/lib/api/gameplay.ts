@@ -27,7 +27,11 @@ export function createSession(puzzleId: string) {
 }
 
 export function submitSession(sessionId: string, request: SubmitRequest) {
-  return apiFetch(`/sessions/${id(sessionId)}/submit`, { method: 'POST', body: request, schema: SubmitResult });
+  return apiFetch(`/sessions/${id(sessionId)}/submit`, {
+    method: 'POST',
+    body: request,
+    schema: SubmitResult,
+  });
 }
 
 export function getSessionResult(sessionId: string, signal?: AbortSignal) {

@@ -12,7 +12,12 @@ const base = (): GraphFixture => ({
     { label: 'Learner', key: 'l1', props: { displayName: 'L', createdAt: 1_760_000_000_000 } },
   ],
   edges: [
-    { type: 'PREREQUISITE_OF', from: { label: 'Concept', key: 'c1' }, to: { label: 'Concept', key: 'c2' }, props: { confidence: 1 } },
+    {
+      type: 'PREREQUISITE_OF',
+      from: { label: 'Concept', key: 'c1' },
+      to: { label: 'Concept', key: 'c2' },
+      props: { confidence: 1 },
+    },
   ],
 });
 
@@ -31,14 +36,29 @@ describe('importGraph', () => {
   it("onMatch 'keep' leaves changed properties alone and 'update' overwrites them", async () => {
     const tg = graph();
     await tg.clear();
-    await tg.load({ nodes: [{ label: 'Concept', key: 'k1', props: { slug: 'k', name: 'Original' } }], edges: [] });
+    await tg.load({
+      nodes: [{ label: 'Concept', key: 'k1', props: { slug: 'k', name: 'Original' } }],
+      edges: [],
+    });
     await tg.cypher("MATCH (c:Concept {id: 'k1'}) SET c.name = 'Edited'");
 
-    await tg.load({ nodes: [{ label: 'Concept', key: 'k1', props: { slug: 'k', name: 'Fixture' }, onMatch: 'keep' }], edges: [] });
-    expect((await tg.cypher<{ n: string }>("MATCH (c:Concept {id: 'k1'}) RETURN c.name AS n"))[0]?.n).toBe('Edited');
+    await tg.load({
+      nodes: [
+        { label: 'Concept', key: 'k1', props: { slug: 'k', name: 'Fixture' }, onMatch: 'keep' },
+      ],
+      edges: [],
+    });
+    expect(
+      (await tg.cypher<{ n: string }>("MATCH (c:Concept {id: 'k1'}) RETURN c.name AS n"))[0]?.n,
+    ).toBe('Edited');
 
-    await tg.load({ nodes: [{ label: 'Concept', key: 'k1', props: { slug: 'k', name: 'Fixture' } }], edges: [] });
-    expect((await tg.cypher<{ n: string }>("MATCH (c:Concept {id: 'k1'}) RETURN c.name AS n"))[0]?.n).toBe('Fixture');
+    await tg.load({
+      nodes: [{ label: 'Concept', key: 'k1', props: { slug: 'k', name: 'Fixture' } }],
+      edges: [],
+    });
+    expect(
+      (await tg.cypher<{ n: string }>("MATCH (c:Concept {id: 'k1'}) RETURN c.name AS n"))[0]?.n,
+    ).toBe('Fixture');
   });
 
   it("onMatch 'keep' on an edge leaves its properties alone", async () => {
@@ -50,12 +70,21 @@ describe('importGraph', () => {
         { label: 'Concept', key: 'b', props: { slug: 'b' } },
       ],
       edges: [
-        { type: 'PREREQUISITE_OF', from: { label: 'Concept', key: 'a' }, to: { label: 'Concept', key: 'b' }, props: { confidence }, onMatch },
+        {
+          type: 'PREREQUISITE_OF',
+          from: { label: 'Concept', key: 'a' },
+          to: { label: 'Concept', key: 'b' },
+          props: { confidence },
+          onMatch,
+        },
       ],
     });
     await tg.load(fixture(0.5, 'keep'));
     await tg.load(fixture(0.9, 'keep'));
-    const read = () => tg.cypher<{ c: number }>('MATCH (:Concept {id: "a"})-[r:PREREQUISITE_OF]->() RETURN r.confidence AS c');
+    const read = () =>
+      tg.cypher<{ c: number }>(
+        'MATCH (:Concept {id: "a"})-[r:PREREQUISITE_OF]->() RETURN r.confidence AS c',
+      );
     expect((await read())[0]?.c).toBe(0.5);
     await tg.load(fixture(0.9, 'update'));
     expect((await read())[0]?.c).toBe(0.9);
@@ -94,8 +123,18 @@ describe('importGraph', () => {
     await tg.clear();
     await tg.load({
       nodes: [
-        { label: 'Chunk', key: 'ch1', props: { text: 'one', position: 0 }, vectors: { embedding: [1, 0, 0, 0] } },
-        { label: 'Chunk', key: 'ch2', props: { text: 'two', position: 1 }, vectors: { embedding: [0, 1, 0, 0] } },
+        {
+          label: 'Chunk',
+          key: 'ch1',
+          props: { text: 'one', position: 0 },
+          vectors: { embedding: [1, 0, 0, 0] },
+        },
+        {
+          label: 'Chunk',
+          key: 'ch2',
+          props: { text: 'two', position: 1 },
+          vectors: { embedding: [0, 1, 0, 0] },
+        },
       ],
       edges: [],
     });
@@ -114,7 +153,12 @@ describe('importGraph', () => {
         {
           label: 'Question',
           key: 'ql',
-          props: { sentence: 'x', answers: ['a', 'b'], distractors: ['c', null as unknown as string], empty: [] },
+          props: {
+            sentence: 'x',
+            answers: ['a', 'b'],
+            distractors: ['c', null as unknown as string],
+            empty: [],
+          },
         },
       ],
       edges: [],
@@ -128,10 +172,14 @@ describe('importGraph', () => {
   it('throws INVALID_IDENTIFIER for an unknown label or relationship type', async () => {
     const tg = graph();
     const badLabel = { nodes: [{ label: 'Nope', key: 'x' }], edges: [] } as unknown as GraphFixture;
-    await expect(importGraph(tg.graph, badLabel)).rejects.toMatchObject({ code: 'INVALID_IDENTIFIER' });
+    await expect(importGraph(tg.graph, badLabel)).rejects.toMatchObject({
+      code: 'INVALID_IDENTIFIER',
+    });
     const badType = {
       nodes: [],
-      edges: [{ type: 'NOPE', from: { label: 'Concept', key: 'a' }, to: { label: 'Concept', key: 'b' } }],
+      edges: [
+        { type: 'NOPE', from: { label: 'Concept', key: 'a' }, to: { label: 'Concept', key: 'b' } },
+      ],
     } as unknown as GraphFixture;
     await expect(importGraph(tg.graph, badType)).rejects.toBeInstanceOf(GraphKitError);
   });
@@ -139,11 +187,20 @@ describe('importGraph', () => {
   it('fails when an edge endpoint is missing', async () => {
     const tg = graph();
     await tg.clear();
-    await tg.load({ nodes: [{ label: 'Concept', key: 'only', props: { slug: 'only' } }], edges: [] });
+    await tg.load({
+      nodes: [{ label: 'Concept', key: 'only', props: { slug: 'only' } }],
+      edges: [],
+    });
     await expect(
       tg.load({
         nodes: [],
-        edges: [{ type: 'PREREQUISITE_OF', from: { label: 'Concept', key: 'only' }, to: { label: 'Concept', key: 'ghost' } }],
+        edges: [
+          {
+            type: 'PREREQUISITE_OF',
+            from: { label: 'Concept', key: 'only' },
+            to: { label: 'Concept', key: 'ghost' },
+          },
+        ],
       }),
     ).rejects.toMatchObject({ code: 'QUERY_FAILED' });
   });

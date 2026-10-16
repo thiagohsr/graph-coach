@@ -3,7 +3,13 @@
 import type { RunHandle, RunKind, StepHandle, UsageTracer } from '../../llm/usage-tracer';
 import type { CoachQueries, RecordDecisionParams } from '../queries';
 import { computeRisk, round4 } from '../risk';
-import type { AnswerEvidenceRow, IntroPuzzleRow, PuzzleRow, RecentDecisionRow, WeakRow } from '../rows';
+import type {
+  AnswerEvidenceRow,
+  IntroPuzzleRow,
+  PuzzleRow,
+  RecentDecisionRow,
+  WeakRow,
+} from '../rows';
 
 const DAY = 86_400_000;
 
@@ -75,7 +81,13 @@ export function workedExampleRows(): WorkedExampleRows {
     risk: computeRisk(0.12005, 9, 14),
   });
   return {
-    recent: { masteryCount: 13, decisionId: null, createdAt: null, newAnswers: false, goalText: null },
+    recent: {
+      masteryCount: 13,
+      decisionId: null,
+      createdAt: null,
+      newAnswers: false,
+      goalText: null,
+    },
     weak: [btrees, indexes],
     puzzles: [
       {
@@ -99,20 +111,69 @@ export function workedExampleRows(): WorkedExampleRows {
     ],
     answers: [
       // Newest first, as the query orders them. Sessions B and C: questions 2 and 3 of Indexes and Query Planning.
-      { conceptId: WORKED_IDS.indexes, questionId: 'q-ix-2', sessionId: WORKED_IDS.sessionC, submittedAt: T - 1 * DAY, misses: 1 },
-      { conceptId: WORKED_IDS.indexes, questionId: 'q-ix-3', sessionId: WORKED_IDS.sessionC, submittedAt: T - 1 * DAY, misses: 1 },
-      { conceptId: WORKED_IDS.indexes, questionId: 'q-ix-2', sessionId: WORKED_IDS.sessionB, submittedAt: T - 2 * DAY, misses: 1 },
-      { conceptId: WORKED_IDS.indexes, questionId: 'q-ix-3', sessionId: WORKED_IDS.sessionB, submittedAt: T - 2 * DAY, misses: 1 },
+      {
+        conceptId: WORKED_IDS.indexes,
+        questionId: 'q-ix-2',
+        sessionId: WORKED_IDS.sessionC,
+        submittedAt: T - 1 * DAY,
+        misses: 1,
+      },
+      {
+        conceptId: WORKED_IDS.indexes,
+        questionId: 'q-ix-3',
+        sessionId: WORKED_IDS.sessionC,
+        submittedAt: T - 1 * DAY,
+        misses: 1,
+      },
+      {
+        conceptId: WORKED_IDS.indexes,
+        questionId: 'q-ix-2',
+        sessionId: WORKED_IDS.sessionB,
+        submittedAt: T - 2 * DAY,
+        misses: 1,
+      },
+      {
+        conceptId: WORKED_IDS.indexes,
+        questionId: 'q-ix-3',
+        sessionId: WORKED_IDS.sessionB,
+        submittedAt: T - 2 * DAY,
+        misses: 1,
+      },
       // Session A: questions 3 to 6 of Storage and B-trees.
-      { conceptId: WORKED_IDS.btrees, questionId: 'q-bt-3', sessionId: WORKED_IDS.sessionA, submittedAt: T - 9 * DAY, misses: 1 },
-      { conceptId: WORKED_IDS.btrees, questionId: 'q-bt-4', sessionId: WORKED_IDS.sessionA, submittedAt: T - 9 * DAY, misses: 1 },
-      { conceptId: WORKED_IDS.btrees, questionId: 'q-bt-5', sessionId: WORKED_IDS.sessionA, submittedAt: T - 9 * DAY, misses: 1 },
-      { conceptId: WORKED_IDS.btrees, questionId: 'q-bt-6', sessionId: WORKED_IDS.sessionA, submittedAt: T - 9 * DAY, misses: 1 },
+      {
+        conceptId: WORKED_IDS.btrees,
+        questionId: 'q-bt-3',
+        sessionId: WORKED_IDS.sessionA,
+        submittedAt: T - 9 * DAY,
+        misses: 1,
+      },
+      {
+        conceptId: WORKED_IDS.btrees,
+        questionId: 'q-bt-4',
+        sessionId: WORKED_IDS.sessionA,
+        submittedAt: T - 9 * DAY,
+        misses: 1,
+      },
+      {
+        conceptId: WORKED_IDS.btrees,
+        questionId: 'q-bt-5',
+        sessionId: WORKED_IDS.sessionA,
+        submittedAt: T - 9 * DAY,
+        misses: 1,
+      },
+      {
+        conceptId: WORKED_IDS.btrees,
+        questionId: 'q-bt-6',
+        sessionId: WORKED_IDS.sessionA,
+        submittedAt: T - 9 * DAY,
+        misses: 1,
+      },
     ],
   };
 }
 
-export const roundedRisk = (score: number, days: number): number => round4(computeRisk(score, days, 14));
+export const roundedRisk = (score: number, days: number): number =>
+  round4(computeRisk(score, days, 14));
 
 export interface QueryCall {
   name: keyof CoachQueries;
@@ -151,7 +212,11 @@ export function createStubCoachQueries(overrides: Partial<CoachQueries> = {}): S
       p.targets.length === 0
         ? null
         : { goalId: p.goalId, targetIds: p.targets.map((t) => t.conceptId), prerequisiteIds: [] },
-    createCoverTask: async (p) => ({ taskId: p.taskId, status: 'queued', concerns: p.conceptIds.length }),
+    createCoverTask: async (p) => ({
+      taskId: p.taskId,
+      status: 'queued',
+      concerns: p.conceptIds.length,
+    }),
   };
 
   const merged = { ...defaults, ...overrides } as CoachQueries;

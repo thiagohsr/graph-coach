@@ -46,7 +46,12 @@ const blank = (v: string | undefined) => (v && v.trim() !== '' ? v.trim() : unde
 
 /** Problems that apply to a parsed config regardless of where it came from. `prefix` names the env variables. */
 export function configProblems(
-  config: { provider: string; model: string; apiKey?: string | undefined; baseUrl?: string | undefined },
+  config: {
+    provider: string;
+    model: string;
+    apiKey?: string | undefined;
+    baseUrl?: string | undefined;
+  },
   prefix: 'LLM' | 'EMBEDDING',
 ): string[] {
   const problems: string[] = [];
@@ -54,7 +59,9 @@ export function configProblems(
     problems.push(`${prefix}_BASE_URL with file:// is only allowed when LLM_PROVIDER is "stub"`);
   }
   if (config.provider === 'ollama-with-fallback' && !config.baseUrl) {
-    problems.push(`${prefix}_BASE_URL (OLLAMA_BASE_URL) is required when ${prefix}_PROVIDER is "ollama-with-fallback"`);
+    problems.push(
+      `${prefix}_BASE_URL (OLLAMA_BASE_URL) is required when ${prefix}_PROVIDER is "ollama-with-fallback"`,
+    );
   }
   if (config.provider !== 'stub' && !config.model.trim()) {
     problems.push(`${prefix}_MODEL is required when ${prefix}_PROVIDER is "${config.provider}"`);
@@ -66,7 +73,12 @@ export function configProblems(
 }
 
 export function assertValidConfig(
-  config: { provider: string; model: string; apiKey?: string | undefined; baseUrl?: string | undefined },
+  config: {
+    provider: string;
+    model: string;
+    apiKey?: string | undefined;
+    baseUrl?: string | undefined;
+  },
   prefix: 'LLM' | 'EMBEDDING',
 ): void {
   const problems = configProblems(config, prefix);
@@ -87,7 +99,9 @@ function fromEnv<S extends z.ZodTypeAny>(
   const parsed = schema.safeParse(raw);
   if (!parsed.success) {
     for (const issue of parsed.error.issues) {
-      problems.push(`${prefix}_${String(issue.path[0] ?? 'CONFIG').toUpperCase()}: ${issue.message}`);
+      problems.push(
+        `${prefix}_${String(issue.path[0] ?? 'CONFIG').toUpperCase()}: ${issue.message}`,
+      );
     }
   } else {
     problems.push(...configProblems(parsed.data, prefix));
@@ -135,7 +149,12 @@ export function llmConfigFromEnv(env: NodeJS.ProcessEnv = process.env): LlmConfi
       apiKey: blank(env.LLM_API_KEY),
       ...(cfAccess ? { cfAccess } : {}),
       ...(withFallback && openRouterKey
-        ? { fallback: { apiKey: openRouterKey, model: blank(env.OPENROUTER_MODEL) ?? DEFAULT_OPENROUTER_MODEL } }
+        ? {
+            fallback: {
+              apiKey: openRouterKey,
+              model: blank(env.OPENROUTER_MODEL) ?? DEFAULT_OPENROUTER_MODEL,
+            },
+          }
         : {}),
     },
     'LLM',
@@ -177,7 +196,8 @@ export function embeddingsConfigFromEnv(env: NodeJS.ProcessEnv = process.env): E
             ? 'stub-embeddings'
             : ''),
       baseUrl: blank(env.EMBEDDING_BASE_URL),
-      apiKey: blank(env.EMBEDDING_API_KEY) ?? (viaOpenRouter ? blank(env.OPENROUTER_API_KEY) : undefined),
+      apiKey:
+        blank(env.EMBEDDING_API_KEY) ?? (viaOpenRouter ? blank(env.OPENROUTER_API_KEY) : undefined),
       ...(cfAccess ? { cfAccess } : {}),
       dimension,
     },

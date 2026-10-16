@@ -46,13 +46,22 @@ export async function phraseSummary(
           { role: 'system', content: SYSTEM },
           { role: 'user', content: template },
         ],
-        { label: 'coach.phraseSummary', timeoutMs, ...(options.trace ? { trace: options.trace } : {}) },
+        {
+          label: 'coach.phraseSummary',
+          timeoutMs,
+          ...(options.trace ? { trace: options.trace } : {}),
+        },
       ),
       timeoutMs,
     );
     const text = typeof result.text === 'string' ? result.text.trim() : '';
-    const ok = text.length >= 1 && text.length <= MAX_PHRASED && mustContain.every((needle) => text.includes(needle));
-    return ok ? { text, usage: result.usage } : { text: template, usage: result.usage, fallback: 'rejected' };
+    const ok =
+      text.length >= 1 &&
+      text.length <= MAX_PHRASED &&
+      mustContain.every((needle) => text.includes(needle));
+    return ok
+      ? { text, usage: result.usage }
+      : { text: template, usage: result.usage, fallback: 'rejected' };
   } catch (error) {
     const usage = error instanceof ProviderError ? error.usage : { ...ZERO_USAGE };
     return { text: template, usage, fallback: 'error' };

@@ -60,5 +60,7 @@ test('learner2 plays one puzzle, asks what next, and reads why', async ({ page }
   await card.getByRole('link', { name: 'Why this?' }).click();
   const heading = page.getByRole('heading', { name: 'The same path as text' });
   await expect(heading).toBeVisible();
-  await expect(page.getByRole('region', { name: 'The same path as text' }).getByRole('listitem').first()).toBeVisible();
+  await expect(
+    page.getByRole('region', { name: 'The same path as text' }).getByRole('listitem').first(),
+  ).toBeVisible();
 });

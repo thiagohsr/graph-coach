@@ -25,7 +25,14 @@ describe('identifier patterns', () => {
   });
 
   it.each(HOSTILE)('reject %j everywhere', (value) => {
-    for (const check of [isValidLabel, isValidProperty, isValidRelType, isValidSqlName, isValidSlug, isValidHref]) {
+    for (const check of [
+      isValidLabel,
+      isValidProperty,
+      isValidRelType,
+      isValidSqlName,
+      isValidSlug,
+      isValidHref,
+    ]) {
       expect(check(value)).toBe(false);
     }
   });

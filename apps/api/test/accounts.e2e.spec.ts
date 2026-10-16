@@ -162,11 +162,20 @@ describe('GET /auth/me: first sight (Cognito)', () => {
 
     const rows = await userRows(c);
     expect(rows).toHaveLength(1);
-    expect(rows[0]).toMatchObject({ email: 'ada@example.test', displayName: 'Ada Lovelace', role: 'learner', status: 'active' });
+    expect(rows[0]).toMatchObject({
+      email: 'ada@example.test',
+      displayName: 'Ada Lovelace',
+      role: 'learner',
+      status: 'active',
+    });
     expect(res.body.id).toBe(rows[0]!.id);
     const identities = await identityRows(c);
     expect(identities).toHaveLength(1);
-    expect(identities[0]).toMatchObject({ cognitoSub: 'sub-ada', userId: rows[0]!.id, provider: 'cognito' });
+    expect(identities[0]).toMatchObject({
+      cognitoSub: 'sub-ada',
+      userId: rows[0]!.id,
+      provider: 'cognito',
+    });
 
     const nodes = await learnerProps(c);
     expect(nodes).toHaveLength(1);
@@ -200,25 +209,41 @@ describe('GET /auth/me: first sight (Cognito)', () => {
   });
 
   it('links a seeded account with the same verified address: same id, role, and history', async () => {
-    const seeded = await c.createUser({ email: 'seeded@example.test', role: 'reviewer', name: 'Seeded', signedIn: false });
-    await c.testGraph.cypher(`MATCH (l:Learner {id: $id}) CREATE (l)-[:PLAYED]->(:Session {id: 'old-session'})`, { id: seeded.id });
+    const seeded = await c.createUser({
+      email: 'seeded@example.test',
+      role: 'reviewer',
+      name: 'Seeded',
+      signedIn: false,
+    });
+    await c.testGraph.cypher(
+      `MATCH (l:Learner {id: $id}) CREATE (l)-[:PLAYED]->(:Session {id: 'old-session'})`,
+      { id: seeded.id },
+    );
     const t = await mint(c, 'sub-seeded', { email: 'seeded@example.test', name: 'Someone Else' });
 
     const res = await c.http.get('/auth/me').set(bearer(t.access)).set('X-Id-Token', t.id);
     expect(res.status).toBe(200);
     expect(res.body).toMatchObject({ id: seeded.id, role: 'reviewer', name: 'Seeded' });
     expect(await userRows(c)).toHaveLength(1);
-    expect(await identityRows(c)).toEqual([expect.objectContaining({ cognitoSub: 'sub-seeded', userId: seeded.id })]);
+    expect(await identityRows(c)).toEqual([
+      expect.objectContaining({ cognitoSub: 'sub-seeded', userId: seeded.id }),
+    ]);
     expect(await learnerProps(c)).toHaveLength(1);
     expect(await c.testGraph.countEdges('PLAYED')).toBe(1);
   });
 
   it('attaches a second identity with the same verified address to the existing account', async () => {
     const google = await mint(c, 'sub-google', { email: 'same@example.test', google: true });
-    const first = await c.http.get('/auth/me').set(bearer(google.access)).set('X-Id-Token', google.id);
+    const first = await c.http
+      .get('/auth/me')
+      .set(bearer(google.access))
+      .set('X-Id-Token', google.id);
     expect(first.status).toBe(200);
     const password = await mint(c, 'sub-password', { email: 'same@example.test' });
-    const second = await c.http.get('/auth/me').set(bearer(password.access)).set('X-Id-Token', password.id);
+    const second = await c.http
+      .get('/auth/me')
+      .set(bearer(password.access))
+      .set('X-Id-Token', password.id);
     expect(second.status).toBe(200);
     expect(second.body.id).toBe(first.body.id);
 
@@ -236,7 +261,10 @@ describe('GET /auth/me: first sight (Cognito)', () => {
 
   it('refuses an unverified address with 403 FORBIDDEN and writes nothing, then succeeds once verified', async () => {
     const unverified = await mint(c, 'sub-u', { email: 'u@example.test', verified: false });
-    const res = await c.http.get('/auth/me').set(bearer(unverified.access)).set('X-Id-Token', unverified.id);
+    const res = await c.http
+      .get('/auth/me')
+      .set(bearer(unverified.access))
+      .set('X-Id-Token', unverified.id);
     expect(res.status).toBe(403);
     expect(res.body.error.code).toBe('FORBIDDEN');
     expect(res.body.error.message).toBe('Verify your e-mail address to use this site');
@@ -247,12 +275,19 @@ describe('GET /auth/me: first sight (Cognito)', () => {
     // The same refusal when the address already has an account: nothing is attached.
     await c.createUser({ email: 'owned@example.test', signedIn: false });
     const owned = await mint(c, 'sub-owned', { email: 'owned@example.test', verified: false });
-    const refused = await c.http.get('/auth/me').set(bearer(owned.access)).set('X-Id-Token', owned.id);
+    const refused = await c.http
+      .get('/auth/me')
+      .set(bearer(owned.access))
+      .set('X-Id-Token', owned.id);
     expect(refused.status).toBe(403);
     expect(await identityRows(c)).toHaveLength(0);
 
     const verified = await mint(c, 'sub-u', { email: 'u@example.test', verified: true });
-    await c.http.get('/auth/me').set(bearer(verified.access)).set('X-Id-Token', verified.id).expect(200);
+    await c.http
+      .get('/auth/me')
+      .set(bearer(verified.access))
+      .set('X-Id-Token', verified.id)
+      .expect(200);
     expect(await userRows(c)).toHaveLength(2);
   });
 
@@ -287,7 +322,11 @@ describe('GET /auth/me: first sight (Cognito)', () => {
   });
 
   it("attaches a blocked account's new identity and answers 403 ACCOUNT_BLOCKED", async () => {
-    const seeded = await c.createUser({ email: 'blocked@example.test', status: 'blocked', signedIn: false });
+    const seeded = await c.createUser({
+      email: 'blocked@example.test',
+      status: 'blocked',
+      signedIn: false,
+    });
     const t = await mint(c, 'sub-blocked', { email: 'blocked@example.test' });
     const res = await c.http.get('/auth/me').set(bearer(t.access)).set('X-Id-Token', t.id);
     expect(res.status).toBe(403);
@@ -317,12 +356,12 @@ describe('GET /auth/me: first sight (Cognito)', () => {
     const graph = c.app.get(GraphKit);
     const runOne = vi.spyOn(graph, 'runOne');
     const realTransaction = c.db.transaction.bind(c.db) as (...args: unknown[]) => Promise<unknown>;
-    const transaction = vi
-      .spyOn(c.db, 'transaction')
-      .mockImplementationOnce((async (...args: unknown[]) => {
-        await realTransaction(...args);
-        throw new Error('commit failed');
-      }) as never);
+    const transaction = vi.spyOn(c.db, 'transaction').mockImplementationOnce((async (
+      ...args: unknown[]
+    ) => {
+      await realTransaction(...args);
+      throw new Error('commit failed');
+    }) as never);
     try {
       const t = await mint(c, 'sub-commit', { email: 'commit@example.test' });
       const res = await c.http.get('/auth/me').set(bearer(t.access)).set('X-Id-Token', t.id);
@@ -342,7 +381,10 @@ describe('GET /auth/me: first sight (Cognito)', () => {
     await c.http.get('/auth/me').set(bearer('not-a-token')).expect(401);
     const user = await c.createUser();
     await c.http.get('/auth/me').set(user.auth).expect(401); // a development token in cognito mode
-    await c.http.get('/auth/me').set(bearer(await c.expiredToken(user.id))).expect(401);
+    await c.http
+      .get('/auth/me')
+      .set(bearer(await c.expiredToken(user.id)))
+      .expect(401);
     const now = Math.floor(c.clock.now().getTime() / 1000);
     const foreign = await new SignJWT({ token_use: 'access', client_id: CLIENT_ID })
       .setProtectedHeader({ alg: 'RS256', kid: 'k1' })
@@ -400,7 +442,10 @@ describe('status and role changes (development mode)', () => {
     const user = await d.createUser();
     const base = await d.listen();
     const controller = new AbortController();
-    const res = await fetch(`${base}/api/test/stream`, { headers: user.auth, signal: controller.signal });
+    const res = await fetch(`${base}/api/test/stream`, {
+      headers: user.auth,
+      signal: controller.signal,
+    });
     expect(res.status).toBe(200);
     const reader = res.body!.getReader();
     const decoder = new TextDecoder();
@@ -455,12 +500,16 @@ describe('AccountsService rules', () => {
 
     // With a second active admin the CLI may demote the first.
     await d.createUser({ role: 'admin' });
-    await expect(accounts.setRole(null, admin.id, 'reviewer')).resolves.toMatchObject({ role: 'reviewer' });
+    await expect(accounts.setRole(null, admin.id, 'reviewer')).resolves.toMatchObject({
+      role: 'reviewer',
+    });
   });
 
   it('answers 404 for an unknown target', async () => {
     const accounts = d.app.get(AccountsService);
-    await expect(accounts.setStatus(null, '00000000-0000-4000-8000-000000000000', 'blocked')).rejects.toMatchObject({
+    await expect(
+      accounts.setStatus(null, '00000000-0000-4000-8000-000000000000', 'blocked'),
+    ).rejects.toMatchObject({
       status: 404,
     });
   });
@@ -482,8 +531,12 @@ describe('UserDirectory', () => {
     const unseen = await d.createUser({ email: 'unseen@example.test', signedIn: false });
     expect(await directory.findIdByEmail('  SEEN@Example.TEST ')).toBe(seen.id);
     expect(await directory.findIdByEmail('unseen@example.test')).toBeNull();
-    expect(await directory.findIdByEmail('unseen@example.test', { signedInOnly: false })).toBe(unseen.id);
-    expect(await directory.findIdByEmail('nobody@example.test', { signedInOnly: false })).toBeNull();
+    expect(await directory.findIdByEmail('unseen@example.test', { signedInOnly: false })).toBe(
+      unseen.id,
+    );
+    expect(
+      await directory.findIdByEmail('nobody@example.test', { signedInOnly: false }),
+    ).toBeNull();
   });
 
   it('displayNames omits unknown ids and contacts returns name and address', async () => {
@@ -501,7 +554,11 @@ describe('UserDirectory', () => {
 
 describe('POST /auth/dev-login and GET /auth/dev-users', () => {
   it('issues a working token without e-mail or role in the payload', async () => {
-    const user = await d.createUser({ email: 'dev@example.test', role: 'reviewer', signedIn: false });
+    const user = await d.createUser({
+      email: 'dev@example.test',
+      role: 'reviewer',
+      signedIn: false,
+    });
     const res = await d.http.post('/auth/dev-login').send({ email: '  DEV@example.test ' });
     expect(res.status).toBe(200);
     expect(res.body.expiresIn).toBe(3600);
@@ -538,7 +595,11 @@ describe('POST /auth/dev-login and GET /auth/dev-users', () => {
 
   it('dev-login ignores a bad token (public route)', async () => {
     await d.createUser({ email: 'ok@example.test' });
-    await d.http.post('/auth/dev-login').set(bearer('garbage')).send({ email: 'ok@example.test' }).expect(200);
+    await d.http
+      .post('/auth/dev-login')
+      .set(bearer('garbage'))
+      .send({ email: 'ok@example.test' })
+      .expect(200);
   });
 
   it('dev-users lists the seeded demo accounts in the documented order, and never other accounts', async () => {
@@ -577,16 +638,28 @@ describe('GET /auth/me in development mode', () => {
   it('401 without a token, with an expired token, and with a malformed one', async () => {
     const user = await d.createUser();
     await d.http.get('/auth/me').expect(401);
-    await d.http.get('/auth/me').set(bearer(await d.expiredToken(user.id))).expect(401);
+    await d.http
+      .get('/auth/me')
+      .set(bearer(await d.expiredToken(user.id)))
+      .expect(401);
     await d.http.get('/auth/me').set(bearer('x.y.z')).expect(401);
-    await d.http.get('/auth/me').set({ Authorization: `Basic ${user.token}` }).expect(401);
+    await d.http
+      .get('/auth/me')
+      .set({ Authorization: `Basic ${user.token}` })
+      .expect(401);
   });
 
   it('returns the caller own MeDto', async () => {
     const user = await d.createUser({ role: 'admin', name: 'Root' });
     const res = await d.http.get('/auth/me').set(user.auth);
     expect(res.status).toBe(200);
-    expect(res.body).toEqual({ id: user.id, name: 'Root', email: user.email, role: 'admin', status: 'active' });
+    expect(res.body).toEqual({
+      id: user.id,
+      name: 'Root',
+      email: user.email,
+      role: 'admin',
+      status: 'active',
+    });
   });
 
   it('a token for a user that no longer exists is 401', async () => {
@@ -610,7 +683,9 @@ describe('e-mail addresses stay in the accounts table', () => {
     expect(me.body.email).toBe(secretEmail); // the one allowed place
 
     const refused = [
-      await c.http.get('/auth/me').set(bearer((await mint(c, 'sub-un', { email: secretEmail, verified: false })).access)),
+      await c.http
+        .get('/auth/me')
+        .set(bearer((await mint(c, 'sub-un', { email: secretEmail, verified: false })).access)),
       await c.http.get('/auth/me'),
       await c.http.get('/auth/dev-users'),
       await c.http.post('/auth/dev-login').send({ email: secretEmail }),
@@ -618,7 +693,9 @@ describe('e-mail addresses stay in the accounts table', () => {
     await c.setStatus(me.body.id, 'blocked');
     refused.push(await c.http.get('/auth/me').set(bearer(t.access)));
     refused.push(await c.http.get('/api/unknown').set(bearer(t.access)));
-    const login = await d.http.post('/auth/dev-login').send({ email: (await d.createUser({ email: secretEmail })).email });
+    const login = await d.http
+      .post('/auth/dev-login')
+      .send({ email: (await d.createUser({ email: secretEmail })).email });
     refused.push(login);
     for (const res of refused) bodies.push(JSON.stringify(res.body));
 
@@ -627,7 +704,9 @@ describe('e-mail addresses stay in the accounts table', () => {
     expect(logged.join('\n')).not.toContain(t.access);
     expect(logged.join('\n')).not.toContain(t.id);
 
-    const props = await c.testGraph.cypher<{ p: Record<string, unknown> }>('MATCH (n) RETURN properties(n) AS p');
+    const props = await c.testGraph.cypher<{ p: Record<string, unknown> }>(
+      'MATCH (n) RETURN properties(n) AS p',
+    );
     expect(JSON.stringify(props)).not.toContain('@');
     expect(JSON.stringify(props)).not.toContain(secretEmail);
   });

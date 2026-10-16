@@ -38,9 +38,34 @@ export interface DecisionPath {
   steps: string[];
 }
 
-const LABELS: readonly string[] = ['Decision', 'Agent', 'Learner', 'Puzzle', 'Concept', 'Session', 'Question', 'Chunk', 'Goal', 'Task'];
-const ROLES: readonly string[] = ['target', 'driver', 'alternative', 'answer', 'session', 'passage'];
-const ROLE_ORDER: Record<string, number> = { target: 0, driver: 1, alternative: 2, answer: 3, session: 4, passage: 5 };
+const LABELS: readonly string[] = [
+  'Decision',
+  'Agent',
+  'Learner',
+  'Puzzle',
+  'Concept',
+  'Session',
+  'Question',
+  'Chunk',
+  'Goal',
+  'Task',
+];
+const ROLES: readonly string[] = [
+  'target',
+  'driver',
+  'alternative',
+  'answer',
+  'session',
+  'passage',
+];
+const ROLE_ORDER: Record<string, number> = {
+  target: 0,
+  driver: 1,
+  alternative: 2,
+  answer: 3,
+  session: 4,
+  passage: 5,
+};
 
 const WHITELIST: Record<PathLabel, readonly string[]> = {
   Decision: ['kind', 'summary', 'createdAt', 'flags'],
@@ -75,7 +100,8 @@ function cleanProps(label: PathLabel, data: Record<string, unknown>): Record<str
 }
 
 function titleOf(label: PathLabel, id: string, props: Record<string, unknown>): string {
-  const str = (key: string): string | undefined => (typeof props[key] === 'string' && props[key] !== '' ? (props[key] as string) : undefined);
+  const str = (key: string): string | undefined =>
+    typeof props[key] === 'string' && props[key] !== '' ? (props[key] as string) : undefined;
   switch (label) {
     case 'Decision':
       return 'Coach decision';
@@ -89,7 +115,8 @@ function titleOf(label: PathLabel, id: string, props: Record<string, unknown>): 
     case 'Question':
       return cut(str('sentence') ?? id, 80);
     case 'Session': {
-      const when = typeof props.submittedAt === 'string' ? `, ${props.submittedAt.slice(0, 10)}` : '';
+      const when =
+        typeof props.submittedAt === 'string' ? `, ${props.submittedAt.slice(0, 10)}` : '';
       return `Session on ${str('puzzleName') ?? 'a puzzle'}${when}`;
     }
     case 'Chunk':
@@ -119,7 +146,8 @@ export function buildDecisionPath(rows: PathRow[]): DecisionPath {
     const props = cleanProps(label, data);
     return { id, label, title: titleOf(label, id, props), props };
   });
-  const nodeOf = (label: string, id: string): PathNode | undefined => nodes.find((n) => n.label === label && n.id === id);
+  const nodeOf = (label: string, id: string): PathNode | undefined =>
+    nodes.find((n) => n.label === label && n.id === id);
 
   // Edges: one per row; BECAUSE edges carry role and weight, in role order.
   const partOrder = [
@@ -185,19 +213,25 @@ export function buildDecisionPath(rows: PathRow[]): DecisionPath {
   const chain = rows.filter((r) => r.part === 'chain');
   const emittedChain = new Set<string>();
   const targets = byRole('target').map((r) => r.toId);
-  const drivers = [...byRole('driver')].sort((a, b) => (b.weight ?? 0) - (a.weight ?? 0) || cmp(a.toId, b.toId));
+  const drivers = [...byRole('driver')].sort(
+    (a, b) => (b.weight ?? 0) - (a.weight ?? 0) || cmp(a.toId, b.toId),
+  );
   for (const driver of drivers) {
     steps.push(line(driver));
     for (const edge of chainTo(chain, targets, driver.toId)) {
       const key = `${edge.fromId}>${edge.toId}`;
       if (emittedChain.has(key)) continue;
       emittedChain.add(key);
-      steps.push(`${titleById('Concept', edge.fromId)} is a prerequisite of ${titleById('Concept', edge.toId)}.`);
+      steps.push(
+        `${titleById('Concept', edge.fromId)} is a prerequisite of ${titleById('Concept', edge.toId)}.`,
+      );
     }
   }
 
   // (4) answers by weight descending then id
-  const answers = [...byRole('answer')].sort((a, b) => (b.weight ?? 0) - (a.weight ?? 0) || cmp(a.toId, b.toId));
+  const answers = [...byRole('answer')].sort(
+    (a, b) => (b.weight ?? 0) - (a.weight ?? 0) || cmp(a.toId, b.toId),
+  );
   for (const row of answers) {
     const sentence = nodeOf('Question', row.toId)?.props.sentence;
     const text = typeof sentence === 'string' ? sentence : titleById('Question', row.toId);
@@ -220,7 +254,11 @@ export function buildDecisionPath(rows: PathRow[]): DecisionPath {
   for (const row of rows.filter((r) => r.part === 'passage')) steps.push(line(row));
   const requested = rows.filter((r) => r.part === 'requested');
   if (requested.length > 0) {
-    const concerned = [...new Set(rows.filter((r) => r.part === 'concerns').map((r) => titleById('Concept', r.toId)))].sort();
+    const concerned = [
+      ...new Set(
+        rows.filter((r) => r.part === 'concerns').map((r) => titleById('Concept', r.toId)),
+      ),
+    ].sort();
     steps.push(
       concerned.length > 0
         ? `The Coach asked the Curator for new puzzles on: ${concerned.join(', ')}.`
@@ -229,9 +267,13 @@ export function buildDecisionPath(rows: PathRow[]): DecisionPath {
   }
 
   // (7) the alternatives
-  const alternatives = byRole('alternative').sort((a, b) => (b.weight ?? 0) - (a.weight ?? 0) || cmp(a.toId, b.toId));
+  const alternatives = byRole('alternative').sort(
+    (a, b) => (b.weight ?? 0) - (a.weight ?? 0) || cmp(a.toId, b.toId),
+  );
   if (alternatives.length > 0) {
-    steps.push(`Also considered: ${alternatives.map((r) => titleById('Concept', r.toId)).join(', ')}.`);
+    steps.push(
+      `Also considered: ${alternatives.map((r) => titleById('Concept', r.toId)).join(', ')}.`,
+    );
   }
 
   return { nodes, edges, steps };

@@ -23,10 +23,14 @@ function AdminHome() {
   return (
     <div className="flex flex-col gap-6">
       <RouteFocus title="Admin" />
-      <h1 className="text-2xl leading-[30px] font-bold tracking-tight sm:text-[30px] sm:leading-9">Admin</h1>
+      <h1 className="text-2xl leading-[30px] font-bold tracking-tight sm:text-[30px] sm:leading-9">
+        Admin
+      </h1>
       {models.isPending && <LoadingState label="Loading models" />}
       {models.isError && <ErrorState error={models.error} onRetry={() => void models.refetch()} />}
-      {models.isSuccess && models.data.length === 0 && <EmptyState title="No models are registered." />}
+      {models.isSuccess && models.data.length === 0 && (
+        <EmptyState title="No models are registered." />
+      )}
       {[...groups.entries()].map(([group, items]) => (
         <section key={group} aria-labelledby={`group-${group}`} className="flex flex-col gap-2">
           <h2 id={`group-${group}`} className="text-lg font-semibold">
@@ -35,7 +39,11 @@ function AdminHome() {
           <ul className="flex flex-col gap-1">
             {items.map((m) => (
               <li key={m.name}>
-                <Link to="/admin/$model" params={{ model: m.name }} className="font-medium text-primary underline underline-offset-4 hover:text-primary-hover">
+                <Link
+                  to="/admin/$model"
+                  params={{ model: m.name }}
+                  className="font-medium text-primary underline underline-offset-4 hover:text-primary-hover"
+                >
                   {m.label}
                 </Link>
               </li>

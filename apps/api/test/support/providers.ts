@@ -7,11 +7,7 @@ import {
   StubChatProvider,
   StubEmbeddingsProvider,
 } from '@coach/agents/testing';
-import {
-  CHAT_PROVIDER,
-  EMBEDDINGS_PROVIDER,
-  USAGE_TRACER,
-} from '../../src/common/llm/llm.module';
+import { CHAT_PROVIDER, EMBEDDINGS_PROVIDER, USAGE_TRACER } from '../../src/common/llm/llm.module';
 
 export { CHAT_PROVIDER, EMBEDDINGS_PROVIDER, USAGE_TRACER };
 

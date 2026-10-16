@@ -31,7 +31,10 @@ function context(
   cls: new () => object = Routes,
   user?: AuthUser,
 ) {
-  const request: { headers: Record<string, string>; user?: AuthUser } = { headers, ...(user ? { user } : {}) };
+  const request: { headers: Record<string, string>; user?: AuthUser } = {
+    headers,
+    ...(user ? { user } : {}),
+  };
   const ctx = {
     switchToHttp: () => ({ getRequest: () => request }),
     getHandler: () => handler,
@@ -55,7 +58,12 @@ function setup(options: { verifier?: Partial<TokenVerifier>; account?: Account |
       return account;
     }),
   } as unknown as AccountsService;
-  return { guard: new AuthGuard(new Reflector(), verifier, accounts), verifier, accounts, identity };
+  return {
+    guard: new AuthGuard(new Reflector(), verifier, accounts),
+    verifier,
+    accounts,
+    identity,
+  };
 }
 
 describe('AuthGuard', () => {
@@ -68,7 +76,9 @@ describe('AuthGuard', () => {
 
   it('refuses a missing header and a wrong scheme with UnauthenticatedError', async () => {
     const { guard } = setup();
-    await expect(guard.canActivate(context({}, Routes.prototype.plain).ctx)).rejects.toBeInstanceOf(UnauthenticatedError);
+    await expect(guard.canActivate(context({}, Routes.prototype.plain).ctx)).rejects.toBeInstanceOf(
+      UnauthenticatedError,
+    );
     await expect(
       guard.canActivate(context({ authorization: 'Basic abc' }, Routes.prototype.plain).ctx),
     ).rejects.toBeInstanceOf(UnauthenticatedError);
@@ -92,7 +102,10 @@ describe('AuthGuard', () => {
 
   it('passes the identity and X-Id-Token to resolve', async () => {
     const { guard, accounts, identity } = setup();
-    const { ctx } = context({ authorization: 'Bearer tok', 'x-id-token': 'idtok' }, Routes.prototype.plain);
+    const { ctx } = context(
+      { authorization: 'Bearer tok', 'x-id-token': 'idtok' },
+      Routes.prototype.plain,
+    );
     await guard.canActivate(ctx);
     expect(accounts.resolve).toHaveBeenCalledWith(identity, 'idtok');
     const { ctx: ctx2 } = context({ authorization: 'bearer tok' }, Routes.prototype.plain);
@@ -141,14 +154,20 @@ describe('RolesGuard', () => {
   });
 
   it('@Roles("admin") admits admins only', () => {
-    const reviewer = context({}, Routes.prototype.adminOnly, Routes, { id: 'u', role: 'reviewer' }).ctx;
+    const reviewer = context({}, Routes.prototype.adminOnly, Routes, {
+      id: 'u',
+      role: 'reviewer',
+    }).ctx;
     expect(() => guard.canActivate(reviewer)).toThrowError(ForbiddenError);
     const admin = context({}, Routes.prototype.adminOnly, Routes, { id: 'u', role: 'admin' }).ctx;
     expect(guard.canActivate(admin)).toBe(true);
   });
 
   it('a class-level @Roles applies to its handlers', () => {
-    const learner = context({}, AdminController.prototype.x, AdminController, { id: 'u', role: 'learner' }).ctx;
+    const learner = context({}, AdminController.prototype.x, AdminController, {
+      id: 'u',
+      role: 'learner',
+    }).ctx;
     expect(() => guard.canActivate(learner)).toThrowError(ForbiddenError);
   });
 });

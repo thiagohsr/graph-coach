@@ -61,11 +61,17 @@ function warnMissingUsage(logger: Logger, provider: string, model: string): void
   const key = `${provider}/${model}`;
   if (warnedMissingUsage.has(key)) return;
   warnedMissingUsage.add(key);
-  logger.warn(`Provider "${provider}" (model "${model}") did not report token usage; counting the call with 0 tokens`);
+  logger.warn(
+    `Provider "${provider}" (model "${model}") did not report token usage; counting the call with 0 tokens`,
+  );
 }
 
 /** Rejects after `ms` or when `signal` aborts; used where an SDK call has no timeout of its own. */
-export async function withTimeout<T>(work: Promise<T>, ms: number, signal?: AbortSignal): Promise<T> {
+export async function withTimeout<T>(
+  work: Promise<T>,
+  ms: number,
+  signal?: AbortSignal,
+): Promise<T> {
   let timer: NodeJS.Timeout | undefined;
   let onAbort: (() => void) | undefined;
   const guard = new Promise<never>((_, reject) => {
@@ -127,7 +133,11 @@ export class RemoteChatProvider implements ChatProvider {
     });
   }
 
-  private async attempt(messages: ChatMessage[], options: StructuredOptions, json: boolean): Promise<RawChat> {
+  private async attempt(
+    messages: ChatMessage[],
+    options: StructuredOptions,
+    json: boolean,
+  ): Promise<RawChat> {
     let response: ChatTransportResponse;
     try {
       response = await this.transport.invoke({

@@ -101,7 +101,8 @@ export async function createCliHarness(): Promise<CliHarness> {
     return { ...parsed, GRAPH_NAME: testGraph.name, ...(options.envObject ?? {}) };
   };
 
-  const freshGraph = () => GraphKit.create({ ...falkorConnectionFromEnv(), graphName: testGraph.name });
+  const freshGraph = () =>
+    GraphKit.create({ ...falkorConnectionFromEnv(), graphName: testGraph.name });
 
   const harness: CliHarness = {
     db,
@@ -116,20 +117,23 @@ export async function createCliHarness(): Promise<CliHarness> {
       const capture = (message: unknown) => {
         logs.push(String(message));
       };
-      Logger.overrideLogger({ log: capture, error: capture, warn: capture, debug: capture, verbose: capture });
+      Logger.overrideLogger({
+        log: capture,
+        error: capture,
+        warn: capture,
+        debug: capture,
+        verbose: capture,
+      });
 
       const moduleRef = await Test.createTestingModule({
         imports: [
-          CommandRunnerModule.forModule(
-            { module: CliRootModule, imports: [CliModule] },
-            {
-              serviceErrorHandler: (error: unknown) => {
-                const failure = describeFailure(error);
-                errors.push(...failure.lines);
-                exitCode = failure.exitCode;
-              },
-            } as never,
-          ),
+          CommandRunnerModule.forModule({ module: CliRootModule, imports: [CliModule] }, {
+            serviceErrorHandler: (error: unknown) => {
+              const failure = describeFailure(error);
+              errors.push(...failure.lines);
+              exitCode = failure.exitCode;
+            },
+          } as never),
         ],
       })
         .overrideProvider(ENV)
@@ -163,7 +167,9 @@ export async function createCliHarness(): Promise<CliHarness> {
 
     async http() {
       const env = envFor({});
-      const moduleRef = await Test.createTestingModule({ imports: [AppModule.forRoot(env.auth.mode)] })
+      const moduleRef = await Test.createTestingModule({
+        imports: [AppModule.forRoot(env.auth.mode)],
+      })
         .overrideProvider(ENV)
         .useValue(env)
         .overrideProvider(SQL_CLIENT)
@@ -177,7 +183,8 @@ export async function createCliHarness(): Promise<CliHarness> {
       configureApp(app, env);
       await app.init();
       return {
-        post: (path: string) => request(app.getHttpServer()).post(path.startsWith('/api') ? path : `/api${path}`),
+        post: (path: string) =>
+          request(app.getHttpServer()).post(path.startsWith('/api') ? path : `/api${path}`),
         close: () => app.close(),
       };
     },

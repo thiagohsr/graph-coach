@@ -117,8 +117,32 @@ export function describeAccessMatrix<C>(
 }
 
 /** Presets for `expect`. The reviewer and admin columns exist so every subsystem asserts "no staff exception". */
-export const ACCESS: Record<'ownerOnly' | 'ownerAndShared' | 'ownerAndSourceShared', Partial<Record<Actor, number>>> = {
-  ownerOnly: { owner: 200, shared: 404, sharedWithSource: 404, otherLearner: 404, reviewer: 404, admin: 404 },
-  ownerAndShared: { owner: 200, shared: 200, sharedWithSource: 200, otherLearner: 404, reviewer: 404, admin: 404 },
-  ownerAndSourceShared: { owner: 200, shared: 404, sharedWithSource: 200, otherLearner: 404, reviewer: 404, admin: 404 },
+export const ACCESS: Record<
+  'ownerOnly' | 'ownerAndShared' | 'ownerAndSourceShared',
+  Partial<Record<Actor, number>>
+> = {
+  ownerOnly: {
+    owner: 200,
+    shared: 404,
+    sharedWithSource: 404,
+    otherLearner: 404,
+    reviewer: 404,
+    admin: 404,
+  },
+  ownerAndShared: {
+    owner: 200,
+    shared: 200,
+    sharedWithSource: 200,
+    otherLearner: 404,
+    reviewer: 404,
+    admin: 404,
+  },
+  ownerAndSourceShared: {
+    owner: 200,
+    shared: 404,
+    sharedWithSource: 200,
+    otherLearner: 404,
+    reviewer: 404,
+    admin: 404,
+  },
 };

@@ -32,7 +32,8 @@ export function checkEmbeddingDimension(input: {
   if (stored === null) {
     return {
       status: 'warning',
-      message: 'The stored embedding dimension could not be read (run cli setup-graph if the graph is new)',
+      message:
+        'The stored embedding dimension could not be read (run cli setup-graph if the graph is new)',
     };
   }
   return { status: 'ok' };

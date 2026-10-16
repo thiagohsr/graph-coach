@@ -1,13 +1,24 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { promptDetail, sourceSummaries, taskDto, uploadDetail } from '~/features/sources/fixtures';
 import { ApiClientError } from './errors';
-import { createSource, getSource, getTask, isDuplicate, listSources, retryTask, taskEventsUrl } from './curator';
+import {
+  createSource,
+  getSource,
+  getTask,
+  isDuplicate,
+  listSources,
+  retryTask,
+  taskEventsUrl,
+} from './curator';
 
 const fetchMock = vi.fn();
 
 function respond(status: number, body?: unknown) {
   fetchMock.mockResolvedValueOnce(
-    new Response(body === undefined ? null : JSON.stringify(body), { status, headers: { 'Content-Type': 'application/json' } }),
+    new Response(body === undefined ? null : JSON.stringify(body), {
+      status,
+      headers: { 'Content-Type': 'application/json' },
+    }),
   );
 }
 
@@ -58,7 +69,11 @@ describe('curator api', () => {
   it('retryTask: POST /api/tasks/:id/retry with no body', async () => {
     respond(202, { taskId: 't-1' });
     await expect(retryTask('t-1')).resolves.toEqual({ taskId: 't-1' });
-    expect(lastCall()).toMatchObject({ url: '/api/tasks/t-1/retry', method: 'POST', body: undefined });
+    expect(lastCall()).toMatchObject({
+      url: '/api/tasks/t-1/retry',
+      method: 'POST',
+      body: undefined,
+    });
   });
 
   it('taskEventsUrl is the same-origin stream address', () => {

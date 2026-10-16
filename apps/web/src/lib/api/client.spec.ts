@@ -13,8 +13,17 @@ function json(body: unknown, init: ResponseInit = {}): Response {
   });
 }
 
-function envelope(status: number, code: string, message: string, details?: unknown, headers?: Record<string, string>) {
-  return json({ error: { code, message, ...(details === undefined ? {} : { details }) } }, { status, headers });
+function envelope(
+  status: number,
+  code: string,
+  message: string,
+  details?: unknown,
+  headers?: Record<string, string>,
+) {
+  return json(
+    { error: { code, message, ...(details === undefined ? {} : { details }) } },
+    { status, headers },
+  );
 }
 
 let fetchMock: ReturnType<typeof vi.fn>;
@@ -139,7 +148,9 @@ describe('apiFetch errors', () => {
   it('falls back to now + Retry-After seconds', async () => {
     vi.useFakeTimers();
     vi.setSystemTime(new Date('2026-10-15T10:00:00.000Z'));
-    fetchMock.mockResolvedValue(envelope(429, 'RATE_LIMITED', 'Slow down', undefined, { 'Retry-After': '90' }));
+    fetchMock.mockResolvedValue(
+      envelope(429, 'RATE_LIMITED', 'Slow down', undefined, { 'Retry-After': '90' }),
+    );
     const err = await catchError(apiFetch('/x', { schema: Thing }));
     expect(err.retryAt?.toISOString()).toBe('2026-10-15T10:01:30.000Z');
   });

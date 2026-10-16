@@ -33,9 +33,14 @@ describe('RecommendationDto', () => {
   });
   it('accepts coverageGap with at least one concept only', () => {
     expect(
-      RecommendationDto.safeParse({ ...base, coverageGap: { concepts: [{ conceptId: 'c1', name: 'C' }] } }).success,
+      RecommendationDto.safeParse({
+        ...base,
+        coverageGap: { concepts: [{ conceptId: 'c1', name: 'C' }] },
+      }).success,
     ).toBe(true);
-    expect(RecommendationDto.safeParse({ ...base, coverageGap: { concepts: [] } }).success).toBe(false);
+    expect(RecommendationDto.safeParse({ ...base, coverageGap: { concepts: [] } }).success).toBe(
+      false,
+    );
   });
 });
 
@@ -63,7 +68,16 @@ describe('DecisionPathDto', () => {
   const node = { id: 'a', label: 'Concept', title: 'A', props: {} };
   it('accepts a known role and rejects an unknown one', () => {
     const edge = { from: 'a', to: 'b', type: 'BECAUSE', reason: 'r', weight: 0.5 };
-    expect(DecisionPathDto.safeParse({ nodes: [node], edges: [{ ...edge, role: 'target' }], steps: ['x'] }).success).toBe(true);
-    expect(DecisionPathDto.safeParse({ nodes: [node], edges: [{ ...edge, role: 'boss' }], steps: ['x'] }).success).toBe(false);
+    expect(
+      DecisionPathDto.safeParse({
+        nodes: [node],
+        edges: [{ ...edge, role: 'target' }],
+        steps: ['x'],
+      }).success,
+    ).toBe(true);
+    expect(
+      DecisionPathDto.safeParse({ nodes: [node], edges: [{ ...edge, role: 'boss' }], steps: ['x'] })
+        .success,
+    ).toBe(false);
   });
 });

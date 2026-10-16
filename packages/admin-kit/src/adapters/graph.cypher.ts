@@ -16,7 +16,8 @@ export interface GeneratedGraphQuery {
   mode: 'read' | 'write';
 }
 
-export type GraphOperation = 'list' | 'list_search' | 'count' | 'count_search' | 'detail' | 'update';
+export type GraphOperation =
+  'list' | 'list_search' | 'count' | 'count_search' | 'detail' | 'update';
 
 /** `admin_<model>_<operation>`, with the slug's `-` turned into `_`. */
 export function graphQueryName(model: ResolvedAdminModel, operation: GraphOperation): string {
@@ -44,7 +45,8 @@ function orderClause(model: ResolvedAdminModel): string {
     return `${prop(desc ? entry.slice(1) : entry)} ${desc ? 'DESC' : 'ASC'}`;
   });
   const idEntry = `${prop(model.idField)} ASC`;
-  if (!entries.includes(idEntry) && !entries.includes(`${prop(model.idField)} DESC`)) entries.push(idEntry);
+  if (!entries.includes(idEntry) && !entries.includes(`${prop(model.idField)} DESC`))
+    entries.push(idEntry);
   return `ORDER BY ${entries.join(', ')}`;
 }
 
@@ -91,7 +93,9 @@ function detailQuery(model: ResolvedAdminModel): string {
 }
 
 function updateQuery(model: ResolvedAdminModel): string {
-  return [`MATCH ${nodePattern(model)}`, 'SET n += $props', returnClause(storedKeys(model))].join('\n');
+  return [`MATCH ${nodePattern(model)}`, 'SET n += $props', returnClause(storedKeys(model))].join(
+    '\n',
+  );
 }
 
 function linkQuery(model: ResolvedAdminModel, link: AdminRecordsLink | AdminCountLink): string {
@@ -99,7 +103,12 @@ function linkQuery(model: ResolvedAdminModel, link: AdminRecordsLink | AdminCoun
   const match = `MATCH ${nodePattern(model)}${relPattern(link)}(m:${target})`;
   if (link.kind === 'count') return [match, 'RETURN count(m) AS total'].join('\n');
   const title = assertIdentifier('property', link.titleProperty);
-  return [match, `RETURN m.id AS id, m.${title} AS title`, 'ORDER BY m.id ASC', 'LIMIT $limit'].join('\n');
+  return [
+    match,
+    `RETURN m.id AS id, m.${title} AS title`,
+    'ORDER BY m.id ASC',
+    'LIMIT $limit',
+  ].join('\n');
 }
 
 /** Every statement the adapter registers for one graph model. Takes only resolved, validated models. */
@@ -113,16 +122,28 @@ export function buildGraphQueries(model: ResolvedAdminModel): GeneratedGraphQuer
   if (model.searchFields.length > 0) {
     queries.push(
       { name: graphQueryName(model, 'list_search'), cypher: listQuery(model, true), mode: 'read' },
-      { name: graphQueryName(model, 'count_search'), cypher: countQuery(model, true), mode: 'read' },
+      {
+        name: graphQueryName(model, 'count_search'),
+        cypher: countQuery(model, true),
+        mode: 'read',
+      },
     );
   }
   queries.push({ name: graphQueryName(model, 'detail'), cypher: detailQuery(model), mode: 'read' });
   if (!model.readOnly && editableFields(model).length > 0) {
-    queries.push({ name: graphQueryName(model, 'update'), cypher: updateQuery(model), mode: 'write' });
+    queries.push({
+      name: graphQueryName(model, 'update'),
+      cypher: updateQuery(model),
+      mode: 'write',
+    });
   }
   for (const link of model.links) {
     if (link.kind === 'route') continue;
-    queries.push({ name: graphLinkQueryName(model, link.name), cypher: linkQuery(model, link), mode: 'read' });
+    queries.push({
+      name: graphLinkQueryName(model, link.name),
+      cypher: linkQuery(model, link),
+      mode: 'read',
+    });
   }
   return queries;
 }

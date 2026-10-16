@@ -16,7 +16,12 @@ function readIssues(details: unknown): FieldIssue[] {
   const issues = (details as { issues: unknown }).issues;
   if (!Array.isArray(issues)) return [];
   return issues.flatMap((i) => {
-    if (i && typeof i === 'object' && typeof (i as FieldIssue).path === 'string' && typeof (i as FieldIssue).message === 'string') {
+    if (
+      i &&
+      typeof i === 'object' &&
+      typeof (i as FieldIssue).path === 'string' &&
+      typeof (i as FieldIssue).message === 'string'
+    ) {
       return [{ path: (i as FieldIssue).path, message: (i as FieldIssue).message }];
     }
     return [];
@@ -29,7 +34,12 @@ function readIssueCodes(details: unknown): Record<string, string> {
   const issues = (details as { issues: unknown }).issues;
   if (!Array.isArray(issues)) return out;
   for (const i of issues) {
-    if (i && typeof i === 'object' && typeof (i as { path?: unknown }).path === 'string' && typeof (i as { code?: unknown }).code === 'string') {
+    if (
+      i &&
+      typeof i === 'object' &&
+      typeof (i as { path?: unknown }).path === 'string' &&
+      typeof (i as { code?: unknown }).code === 'string'
+    ) {
       out[(i as { path: string }).path] = (i as { code: string }).code;
     }
   }
@@ -54,7 +64,8 @@ async function toError(response: Response): Promise<ApiClientError> {
     return new ApiClientError({
       status: response.status,
       code: response.status >= 500 ? 'INTERNAL' : 'UNKNOWN',
-      message: response.status >= 500 ? 'Service unavailable.' : `Request failed (${response.status}).`,
+      message:
+        response.status >= 500 ? 'Service unavailable.' : `Request failed (${response.status}).`,
       retryAt: parseRetryAt(undefined, response.headers.get('Retry-After')),
     });
   }
@@ -67,7 +78,8 @@ async function toError(response: Response): Promise<ApiClientError> {
     issues: readIssues(details),
     issueCodes: readIssueCodes(details),
     reasons: readReasons(details),
-    retryAt: response.status === 429 ? parseRetryAt(details, response.headers.get('Retry-After')) : null,
+    retryAt:
+      response.status === 429 ? parseRetryAt(details, response.headers.get('Retry-After')) : null,
     window: typeof d.window === 'string' ? d.window : undefined,
     kind: d.kind === 'upload' || d.kind === 'prompt' ? d.kind : undefined,
     canRedeemCode: typeof d.canRedeemCode === 'boolean' ? d.canRedeemCode : undefined,
@@ -83,7 +95,10 @@ export async function apiFetch<S extends z.ZodTypeAny>(
   options: ApiFetchOptions<S> & { schema: S },
 ): Promise<z.output<S>>;
 export async function apiFetch(path: string, options?: ApiFetchOptions<undefined>): Promise<void>;
-export async function apiFetch(path: string, options: ApiFetchOptions<z.ZodTypeAny | undefined> = {}): Promise<unknown> {
+export async function apiFetch(
+  path: string,
+  options: ApiFetchOptions<z.ZodTypeAny | undefined> = {},
+): Promise<unknown> {
   const { method = 'GET', body, schema, signal } = options;
   const headers = new Headers({ Accept: 'application/json' });
   const init: RequestInit = { method, headers, credentials: 'same-origin', signal: signal ?? null };

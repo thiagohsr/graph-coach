@@ -4,7 +4,13 @@ import type { AnswerKey, GradedBlank } from './gameplay.dto';
 import { MasteryService } from './mastery.service';
 
 const KEY: AnswerKey = [
-  { questionId: 'q1', order: 1, sentence: '', answers: ['a', 'b'], concepts: [{ id: 'c-index', name: 'Indexes' }] },
+  {
+    questionId: 'q1',
+    order: 1,
+    sentence: '',
+    answers: ['a', 'b'],
+    concepts: [{ id: 'c-index', name: 'Indexes' }],
+  },
   {
     questionId: 'q2',
     order: 2,
@@ -26,7 +32,12 @@ const blank = (questionId: string, order: number, b: number, correct: boolean): 
   expected: 'x',
   correct,
 });
-const BLANKS = [blank('q1', 1, 0, true), blank('q1', 1, 1, false), blank('q2', 2, 0, false), blank('q3', 3, 0, true)];
+const BLANKS = [
+  blank('q1', 1, 0, true),
+  blank('q1', 1, 1, false),
+  blank('q2', 2, 0, false),
+  blank('q3', 3, 0, true),
+];
 
 function make(rows: unknown[] = []) {
   const calls: Array<{ name: string; params: Record<string, unknown> }> = [];
@@ -58,7 +69,9 @@ describe('MasteryService.plan', () => {
   });
 
   it('uses previous score and attempts from learner_mastery', async () => {
-    const { service } = make([{ conceptId: 'c-btree', name: 'B-trees', score: 0.8, attempts: 5, lastSeen: 1 }]);
+    const { service } = make([
+      { conceptId: 'c-btree', name: 'B-trees', score: 0.8, attempts: 5, lastSeen: 1 },
+    ]);
     const changes = await service.plan('u', BLANKS, KEY);
     const btree = changes.find((c) => c.conceptId === 'c-btree')!;
     expect(btree.before).toBe(0.8);
@@ -77,11 +90,21 @@ describe('MasteryService.apply and list', () => {
     const { service, calls } = make();
     const changes = await service.apply('u', BLANKS, KEY, 123);
     const write = calls.find((c) => c.name === 'upsert_mastery')!;
-    const rows = write.params.rows as Array<{ conceptId: string; score: number; attempts: number; lastSeen: number }>;
+    const rows = write.params.rows as Array<{
+      conceptId: string;
+      score: number;
+      attempts: number;
+      lastSeen: number;
+    }>;
     expect(rows).toHaveLength(2);
     for (const row of rows) {
       const change = changes.find((c) => c.conceptId === row.conceptId)!;
-      expect(row).toEqual({ conceptId: row.conceptId, score: change.after, attempts: change.attempts, lastSeen: 123 });
+      expect(row).toEqual({
+        conceptId: row.conceptId,
+        score: change.after,
+        attempts: change.attempts,
+        lastSeen: 123,
+      });
     }
   });
 

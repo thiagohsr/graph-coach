@@ -57,13 +57,30 @@ export function translateProviderError(
   init: { provider: string; label?: string; usage: Usage },
 ): ProviderError {
   if (error instanceof ProviderError) return attachUsage(error, init.usage);
-  const e = error as { status?: unknown; status_code?: unknown; message?: unknown; name?: unknown } | null;
+  const e = error as {
+    status?: unknown;
+    status_code?: unknown;
+    message?: unknown;
+    name?: unknown;
+  } | null;
   const status =
-    typeof e?.status === 'number' ? e.status : typeof e?.status_code === 'number' ? e.status_code : undefined;
+    typeof e?.status === 'number'
+      ? e.status
+      : typeof e?.status_code === 'number'
+        ? e.status_code
+        : undefined;
   const reason = typeof e?.message === 'string' ? e.message : String(error);
-  const base = { provider: init.provider, cause: error, usage: init.usage, ...(init.label ? { label: init.label } : {}) };
+  const base = {
+    provider: init.provider,
+    cause: error,
+    usage: init.usage,
+    ...(init.label ? { label: init.label } : {}),
+  };
   if (status !== undefined && status >= 400 && status < 500 && status !== 408 && status !== 429) {
-    return new ProviderConfigError(`${init.provider} rejected the request (${status}): ${reason}`, base);
+    return new ProviderConfigError(
+      `${init.provider} rejected the request (${status}): ${reason}`,
+      base,
+    );
   }
   return new ProviderUnavailableError(`${init.provider} is unavailable: ${reason}`, base);
 }

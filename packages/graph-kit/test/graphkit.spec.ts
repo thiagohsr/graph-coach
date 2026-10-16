@@ -36,7 +36,8 @@ let tg: TestGraph;
 
 beforeAll(async () => {
   dir = mkdtempSync(join(tmpdir(), 'graph-kit-queries-'));
-  for (const [name, text] of Object.entries(queries)) writeFileSync(join(dir, `${name}.cypher`), text);
+  for (const [name, text] of Object.entries(queries))
+    writeFileSync(join(dir, `${name}.cypher`), text);
   tg = await createTestGraph({ queriesDir: dir });
 });
 
@@ -80,7 +81,11 @@ describe('query', () => {
   });
 
   it('parses rows with a schema when they match', async () => {
-    const rows = await tg.graph.query('demo_concepts', { max: 3 }, { schema: z.object({ id: z.string(), score: z.number() }) });
+    const rows = await tg.graph.query(
+      'demo_concepts',
+      { max: 3 },
+      { schema: z.object({ id: z.string(), score: z.number() }) },
+    );
     expect(rows).toHaveLength(2);
   });
 
@@ -119,7 +124,9 @@ describe('query', () => {
   });
 
   it('maps a node, a relationship, and a path', async () => {
-    await tg.cypher(`MATCH (a:Concept {id: 'a'}), (b:Concept {id: 'b'}) CREATE (a)-[:PREREQUISITE_OF {weight: 2}]->(b)`);
+    await tg.cypher(
+      `MATCH (a:Concept {id: 'a'}), (b:Concept {id: 'b'}) CREATE (a)-[:PREREQUISITE_OF {weight: 2}]->(b)`,
+    );
     const [row] = await tg.graph.query<{ a: GraphNode; r: GraphEdge; p: GraphPath }>('demo_shapes');
     expect(row!.a.labels).toEqual(['Concept']);
     expect(row!.a.props.id).toBe('a');
@@ -139,7 +146,10 @@ describe('queryOne and queryWithStats', () => {
   });
 
   it('queryWithStats reports nodesCreated', async () => {
-    const { rows, stats } = await tg.graph.queryWithStats('demo_store_note', { id: 'new', note: 'n' });
+    const { rows, stats } = await tg.graph.queryWithStats('demo_store_note', {
+      id: 'new',
+      note: 'n',
+    });
     expect(rows).toHaveLength(1);
     expect(stats.nodesCreated).toBe(1);
     expect(stats.propertiesSet).toBeGreaterThanOrEqual(1);
@@ -154,7 +164,10 @@ describe('typedQuery', () => {
     );
     expect(await tg.graph.run(def, { max: 3 })).toHaveLength(2);
     expect(await tg.graph.runOne(def, { max: 2 })).toEqual({ id: 'a', score: 1 });
-    const wrong = typedQuery<{ max: number }, { id: number }>('demo_concepts', z.object({ id: z.number() }));
+    const wrong = typedQuery<{ max: number }, { id: number }>(
+      'demo_concepts',
+      z.object({ id: z.number() }),
+    );
     expect((await failure(tg.graph.run(wrong, { max: 3 }))).code).toBe('ROW_VALIDATION_FAILED');
   });
 });
@@ -165,9 +178,14 @@ describe('generated queries', () => {
   it('defineQuery makes the name callable with the same parameter checks and lists it as generated', async () => {
     const def = tg.graph.defineQuery({ name: 'admin_concept_list', cypher, mode: 'read' });
     expect(def.name).toBe('admin_concept_list');
-    expect(await tg.graph.query('admin_concept_list', { min: 2 })).toEqual([{ id: 'b' }, { id: 'c' }]);
+    expect(await tg.graph.query('admin_concept_list', { min: 2 })).toEqual([
+      { id: 'b' },
+      { id: 'c' },
+    ]);
     expect((await failure(tg.graph.query('admin_concept_list', {}))).code).toBe('MISSING_PARAM');
-    expect((await failure(tg.graph.query('admin_concept_list', { min: 1, z: 1 }))).code).toBe('UNEXPECTED_PARAM');
+    expect((await failure(tg.graph.query('admin_concept_list', { min: 1, z: 1 }))).code).toBe(
+      'UNEXPECTED_PARAM',
+    );
     const info = tg.graph.listQueries().find((q) => q.name === 'admin_concept_list');
     expect(info).toMatchObject({ source: 'generated', mode: 'read', params: ['min'] });
     expect(tg.graph.listQueries().find((q) => q.name === 'demo_concepts')).toMatchObject({
@@ -178,9 +196,15 @@ describe('generated queries', () => {
 
   it('registerQuery is an alias; identical text is a no-op, different text is DUPLICATE_QUERY', () => {
     tg.graph.registerQuery({ name: 'admin_concept_alias', cypher, mode: 'read' });
-    expect(() => tg.graph.registerQuery({ name: 'admin_concept_alias', cypher, mode: 'read' })).not.toThrow();
+    expect(() =>
+      tg.graph.registerQuery({ name: 'admin_concept_alias', cypher, mode: 'read' }),
+    ).not.toThrow();
     try {
-      tg.graph.registerQuery({ name: 'admin_concept_alias', cypher: `${cypher} LIMIT 1`, mode: 'read' });
+      tg.graph.registerQuery({
+        name: 'admin_concept_alias',
+        cypher: `${cypher} LIMIT 1`,
+        mode: 'read',
+      });
       throw new Error('expected DUPLICATE_QUERY');
     } catch (error) {
       expect((error as GraphKitError).code).toBe('DUPLICATE_QUERY');
@@ -188,7 +212,12 @@ describe('generated queries', () => {
   });
 
   it('refuses a name that is not admin_<model>_<operation>', () => {
-    for (const name of ['concept_list', 'admin_concept', 'Admin_concept_list', 'admin_concept_List']) {
+    for (const name of [
+      'concept_list',
+      'admin_concept',
+      'Admin_concept_list',
+      'admin_concept_List',
+    ]) {
       try {
         tg.graph.defineQuery({ name, cypher, mode: 'read' });
         throw new Error(`expected INVALID_QUERY_FILE for ${name}`);

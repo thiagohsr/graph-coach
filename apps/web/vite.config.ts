@@ -33,5 +33,10 @@ function peerHeader(): Plugin {
 export default defineConfig({
   resolve: { alias: { '~': path.resolve(here, 'src') } },
   server: { port: Number(process.env.WEB_PORT || 3000), strictPort: true, host: true },
-  plugins: [peerHeader(), tailwindcss(), tanstackStart({ router: { routeFileIgnorePattern: '\\.spec\\.' } }), viteReact()],
+  plugins: [
+    peerHeader(),
+    tailwindcss(),
+    tanstackStart({ router: { routeFileIgnorePattern: '\\.spec\\.' } }),
+    viteReact(),
+  ],
 });

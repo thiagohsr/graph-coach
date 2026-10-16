@@ -12,7 +12,8 @@ import {
 } from './remote';
 import type { UsageTracer } from './usage-tracer';
 
-const num = (v: unknown): number | undefined => (typeof v === 'number' && Number.isFinite(v) ? v : undefined);
+const num = (v: unknown): number | undefined =>
+  typeof v === 'number' && Number.isFinite(v) ? v : undefined;
 
 export function ollamaChatTransport(config: LlmConfig): ChatTransport {
   return {
@@ -32,10 +33,14 @@ export function ollamaChatTransport(config: LlmConfig): ChatTransport {
       const msg = (await withTimeout(
         model.invoke(
           req.messages.map((m): [string, string] => [m.role, m.content]),
-req.signal ? { signal: req.signal } : {}),
+          req.signal ? { signal: req.signal } : {},
+        ),
         req.timeoutMs,
         req.signal,
-      )) as { content: unknown; usage_metadata?: { input_tokens?: number; output_tokens?: number } };
+      )) as {
+        content: unknown;
+        usage_metadata?: { input_tokens?: number; output_tokens?: number };
+      };
       return {
         text: messageText(msg.content),
         inputTokens: num(msg.usage_metadata?.input_tokens),
@@ -55,22 +60,42 @@ export function ollamaEmbedTransport(config: EmbeddingsConfig): EmbedTransport {
   return {
     async embed(texts, req) {
       // The wrapper's embedDocuments drops the token count; the underlying client returns prompt_eval_count.
-      const res = await withTimeout(embeddings.client.embed({ model: config.model, input: texts }), req.timeoutMs, req.signal);
-      return { vectors: res.embeddings, tokens: num((res as { prompt_eval_count?: unknown }).prompt_eval_count) };
+      const res = await withTimeout(
+        embeddings.client.embed({ model: config.model, input: texts }),
+        req.timeoutMs,
+        req.signal,
+      );
+      return {
+        vectors: res.embeddings,
+        tokens: num((res as { prompt_eval_count?: unknown }).prompt_eval_count),
+      };
     },
   };
 }
 
 export function createOllamaChatProvider(
   config: LlmConfig,
-  extras: { tracer?: UsageTracer | undefined; logger?: Logger | undefined; transport?: ChatTransport | undefined } = {},
+  extras: {
+    tracer?: UsageTracer | undefined;
+    logger?: Logger | undefined;
+    transport?: ChatTransport | undefined;
+  } = {},
 ): RemoteChatProvider {
-  return new RemoteChatProvider('ollama', config.model, extras.transport ?? ollamaChatTransport(config), extras);
+  return new RemoteChatProvider(
+    'ollama',
+    config.model,
+    extras.transport ?? ollamaChatTransport(config),
+    extras,
+  );
 }
 
 export function createOllamaEmbeddingsProvider(
   config: EmbeddingsConfig,
-  extras: { tracer?: UsageTracer | undefined; logger?: Logger | undefined; transport?: EmbedTransport | undefined } = {},
+  extras: {
+    tracer?: UsageTracer | undefined;
+    logger?: Logger | undefined;
+    transport?: EmbedTransport | undefined;
+  } = {},
 ): RemoteEmbeddingsProvider {
   return new RemoteEmbeddingsProvider(
     'ollama',

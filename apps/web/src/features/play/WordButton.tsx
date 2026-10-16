@@ -5,7 +5,9 @@ import type { Word } from './board-state';
 import { bankId } from './drag';
 
 export function wordName(word: Word, useCount: number): string {
-  return useCount > 0 ? `${word.text}, used in ${useCount} ${useCount === 1 ? 'blank' : 'blanks'}` : word.text;
+  return useCount > 0
+    ? `${word.text}, used in ${useCount} ${useCount === 1 ? 'blank' : 'blanks'}`
+    : word.text;
 }
 
 interface WordButtonProps {
@@ -23,7 +25,17 @@ interface WordButtonProps {
 }
 
 /** A word of the bank. Dragging it copies the word (the bank keeps it). */
-export function WordButton({ word, useCount, selected, tabIndex, disabled, onActivate, onKeyDown, onFocus, register }: WordButtonProps) {
+export function WordButton({
+  word,
+  useCount,
+  selected,
+  tabIndex,
+  disabled,
+  onActivate,
+  onKeyDown,
+  onFocus,
+  register,
+}: WordButtonProps) {
   const drag = useDraggable({ id: bankId(word.id), disabled });
   return (
     <button
@@ -45,7 +57,8 @@ export function WordButton({ word, useCount, selected, tabIndex, disabled, onAct
         'transition-colors duration-(--duration-fast) ease-(--ease-standard) hover:border-muted-foreground hover:bg-accent disabled:cursor-not-allowed disabled:opacity-50',
         'focus-visible:outline-solid focus-visible:outline-3 focus-visible:outline-offset-2 focus-visible:outline-ring',
         useCount > 0 && 'border-primary',
-        selected && 'border-primary bg-primary text-primary-foreground hover:border-primary hover:bg-primary-hover',
+        selected &&
+          'border-primary bg-primary text-primary-foreground hover:border-primary hover:bg-primary-hover',
         drag.isDragging && 'border-dashed opacity-45 shadow-none',
       )}
     >

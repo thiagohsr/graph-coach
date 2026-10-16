@@ -1,4 +1,10 @@
-import { Inject, Injectable, Logger, type OnApplicationBootstrap, type OnModuleDestroy } from '@nestjs/common';
+import {
+  Inject,
+  Injectable,
+  Logger,
+  type OnApplicationBootstrap,
+  type OnModuleDestroy,
+} from '@nestjs/common';
 import { briefForConcepts, deterministicId } from '@coach/agents/curator';
 import { guardBrief } from '@coach/types';
 import { AccountsService } from '../accounts/accounts.service';
@@ -93,7 +99,9 @@ export class CoverPickupService implements OnApplicationBootstrap, OnModuleDestr
   }
 
   private async pass(options: { resume?: boolean; onlyTask?: string }): Promise<number> {
-    const rows = await this.graph.openCoverTasks(options.resume ? ['queued', 'in_progress'] : ['queued']);
+    const rows = await this.graph.openCoverTasks(
+      options.resume ? ['queued', 'in_progress'] : ['queued'],
+    );
     let handled = 0;
     for (const row of rows) {
       if (this.stopped) break;
@@ -104,7 +112,9 @@ export class CoverPickupService implements OnApplicationBootstrap, OnModuleDestr
         handled += 1;
       } catch (error) {
         // One task never stops the others; it stays as it is and the next pass looks at it again.
-        this.logger.error(`task=${row.id} step=${FIRST_NODE} tag=cover_skipped error=${errorClass(error)}`);
+        this.logger.error(
+          `task=${row.id} step=${FIRST_NODE} tag=cover_skipped error=${errorClass(error)}`,
+        );
       }
     }
     if (handled > 0) this.logger.log(`Handled ${handled} cover task${handled === 1 ? '' : 's'}`);
@@ -150,7 +160,10 @@ export class CoverPickupService implements OnApplicationBootstrap, OnModuleDestr
       try {
         grant = await this.allowance.begin({ id: requesterId, role: account.role }, 'prompt');
       } catch (error) {
-        if (error instanceof AppError && (error.code === 'CREATION_LIMIT_REACHED' || error.code === 'CREATION_PAUSED')) {
+        if (
+          error instanceof AppError &&
+          (error.code === 'CREATION_LIMIT_REACHED' || error.code === 'CREATION_PAUSED')
+        ) {
           await this.fail(row, error.code, error.message);
           return;
         }
@@ -171,13 +184,17 @@ export class CoverPickupService implements OnApplicationBootstrap, OnModuleDestr
           now,
         });
         if (!created) throw new Error('The source could not be written: the owner does not exist');
-        if (!(await this.graph.linkCoverTaskToSource({ taskId: row.id, requesterId, sourceId, now }))) {
+        if (
+          !(await this.graph.linkCoverTaskToSource({ taskId: row.id, requesterId, sourceId, now }))
+        ) {
           throw new Error('The task could not be linked to its source');
         }
         grant.confirm();
       } catch (error) {
         await grant.refund();
-        this.logger.error(`task=${row.id} step=${FIRST_NODE} tag=cover_source_not_written error=${errorClass(error)}`);
+        this.logger.error(
+          `task=${row.id} step=${FIRST_NODE} tag=cover_source_not_written error=${errorClass(error)}`,
+        );
         await this.fail(row, 'INCONSISTENT_STATE', 'The brief could not be stored');
         return;
       }
@@ -191,7 +208,10 @@ export class CoverPickupService implements OnApplicationBootstrap, OnModuleDestr
   /** error = "<node>: <CODE>: <message>", the same shape as a failed step, so the web client shows it the same way. */
   private async fail(row: CoverTaskRow, code: string, message: string): Promise<void> {
     const error = `${FIRST_NODE}: ${code}: ${message}`;
-    await this.recorder.setTaskStatus(row.id, ['queued', 'in_progress'], { status: 'failed', error });
+    await this.recorder.setTaskStatus(row.id, ['queued', 'in_progress'], {
+      status: 'failed',
+      error,
+    });
     this.logger.warn(`task=${row.id} step=${FIRST_NODE} tag=${code}`);
   }
 }

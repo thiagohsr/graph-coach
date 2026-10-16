@@ -80,18 +80,30 @@ export function prepareStatement(
 ): { text: string; params: string[] } {
   const scan = scanStatement(text);
   if (!scan.hasCode) {
-    throw new GraphKitError('INVALID_QUERY_FILE', `${where}: the statement is empty`, { queryName: name });
+    throw new GraphKitError('INVALID_QUERY_FILE', `${where}: the statement is empty`, {
+      queryName: name,
+    });
   }
   let body = text.trim();
   const last = scan.semicolons[scan.semicolons.length - 1];
-  if (last !== undefined && text.slice(last + 1).replace(/\/\/[^\n]*/g, '').trim() === '') {
+  if (
+    last !== undefined &&
+    text
+      .slice(last + 1)
+      .replace(/\/\/[^\n]*/g, '')
+      .trim() === ''
+  ) {
     body = text.slice(0, last).trim();
     scan.semicolons.pop();
   }
   if (scan.semicolons.length > 0) {
-    throw new GraphKitError('INVALID_QUERY_FILE', `${where}: more than one statement (one statement per file)`, {
-      queryName: name,
-    });
+    throw new GraphKitError(
+      'INVALID_QUERY_FILE',
+      `${where}: more than one statement (one statement per file)`,
+      {
+        queryName: name,
+      },
+    );
   }
   return { text: body, params: scan.params };
 }
@@ -143,7 +155,9 @@ export function loadQueryDir(dir: string): Map<string, LoadedQuery> {
     throw new GraphKitError('INVALID_QUERY_FILE', `Queries directory not found: ${dir}`);
   }
   const queries = new Map<string, LoadedQuery>();
-  for (const entry of readdirSync(dir, { withFileTypes: true }).sort((a, b) => a.name.localeCompare(b.name))) {
+  for (const entry of readdirSync(dir, { withFileTypes: true }).sort((a, b) =>
+    a.name.localeCompare(b.name),
+  )) {
     if (!entry.isFile() || !entry.name.endsWith('.cypher')) continue;
     const query = parseQueryFile(entry.name, readFileSync(join(dir, entry.name), 'utf8'));
     queries.set(query.name, query);
@@ -158,5 +172,8 @@ export function defaultQueriesDir(): string {
     if (existsSync(join(dir, 'package.json'))) return join(dir, 'queries');
     dir = dirname(dir);
   }
-  throw new GraphKitError('INVALID_QUERY_FILE', 'Cannot locate the queries directory of @coach/graph-kit');
+  throw new GraphKitError(
+    'INVALID_QUERY_FILE',
+    'Cannot locate the queries directory of @coach/graph-kit',
+  );
 }

@@ -90,7 +90,11 @@ function detailsOf(props: Record<string, unknown>): [string, string][] {
       out.push([key, formatDate(value) ?? String(value)]);
     } else if (typeof value === 'string' && key.endsWith('At') && formatDate(value)) {
       out.push([key, formatDate(value) as string]);
-    } else if (typeof value === 'string' || typeof value === 'number' || typeof value === 'boolean') {
+    } else if (
+      typeof value === 'string' ||
+      typeof value === 'number' ||
+      typeof value === 'boolean'
+    ) {
       out.push([key, String(value)]);
     }
   }
@@ -142,7 +146,9 @@ export function buildWhyPath(dto: DecisionPathDto): WhyPathVM {
   }
   const nodes: PathNodeVM[] = [];
   for (const [depth, group] of [...byDepth.entries()].sort((a, b) => a[0] - b[0])) {
-    const sorted = [...group].sort((a, b) => (a.title < b.title ? -1 : a.title > b.title ? 1 : a.id < b.id ? -1 : a.id > b.id ? 1 : 0));
+    const sorted = [...group].sort((a, b) =>
+      a.title < b.title ? -1 : a.title > b.title ? 1 : a.id < b.id ? -1 : a.id > b.id ? 1 : 0,
+    );
     sorted.forEach((n) => {
       const role = roles.get(n.id);
       const vm: PathNodeVM = {

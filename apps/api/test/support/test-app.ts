@@ -101,7 +101,10 @@ export async function applyMigrations(sql: postgres.Sql, schema: string): Promis
     entries: Array<{ tag: string }>;
   };
   for (const { tag } of journal.entries) {
-    const text = readFileSync(join(DRIZZLE_DIR, `${tag}.sql`), 'utf8').replaceAll('"public".', `"${schema}".`);
+    const text = readFileSync(join(DRIZZLE_DIR, `${tag}.sql`), 'utf8').replaceAll(
+      '"public".',
+      `"${schema}".`,
+    );
     for (const statement of text.split('--> statement-breakpoint')) {
       if (statement.trim() !== '') await sql.unsafe(statement);
     }
@@ -137,7 +140,10 @@ export async function createTestApp(options: TestAppOptions = {}): Promise<TestA
     await admin.end({ timeout: 1 }).catch(() => undefined);
     throw error;
   }
-  const appGraph = await GraphKit.create({ ...falkorConnectionFromEnv(), graphName: testGraph.name });
+  const appGraph = await GraphKit.create({
+    ...falkorConnectionFromEnv(),
+    graphName: testGraph.name,
+  });
 
   const env = parseEnv({
     DATABASE_URL: databaseUrl,
@@ -155,7 +161,9 @@ export async function createTestApp(options: TestAppOptions = {}): Promise<TestA
   const providers = createTestProviders(env.embeddings.dimension);
 
   let builder = overrideProviders(
-    Test.createTestingModule({ imports: [AppModule.forRoot(env.auth.mode), testControllersModule(options.controllers)] }),
+    Test.createTestingModule({
+      imports: [AppModule.forRoot(env.auth.mode), testControllersModule(options.controllers)],
+    }),
     providers,
   )
     .overrideProvider(ENV)
@@ -182,7 +190,9 @@ export async function createTestApp(options: TestAppOptions = {}): Promise<TestA
     (['get', 'post', 'put', 'patch', 'delete', 'options'] as const).map((method) => [
       method,
       (path: string) =>
-        request(app.getHttpServer())[method](path.startsWith('/api/') || path === '/api' ? path : `/api${path}`),
+        request(app.getHttpServer())[method](
+          path.startsWith('/api/') || path === '/api' ? path : `/api${path}`,
+        ),
     ]),
   ) as TestHttp;
 
@@ -203,7 +213,9 @@ export async function createTestApp(options: TestAppOptions = {}): Promise<TestA
       const id = randomUUID();
       const role = userOptions.role ?? 'learner';
       const name = userOptions.name ?? `Test ${role} ${dummyEmailPart().slice(0, 4)}`;
-      const email = (userOptions.email ?? `user-${dummyEmailPart()}@example.test`).trim().toLowerCase();
+      const email = (userOptions.email ?? `user-${dummyEmailPart()}@example.test`)
+        .trim()
+        .toLowerCase();
       const now = clock.now();
       await db.insert(users).values({
         id,
@@ -216,7 +228,14 @@ export async function createTestApp(options: TestAppOptions = {}): Promise<TestA
       });
       await appGraph.runOne(createLearner, { id, displayName: name, createdAt: toEpochMs(now) });
       const { accessToken } = await signer.sign(id);
-      return { id, email, name, role, token: accessToken, auth: { Authorization: `Bearer ${accessToken}` } };
+      return {
+        id,
+        email,
+        name,
+        role,
+        token: accessToken,
+        auth: { Authorization: `Bearer ${accessToken}` },
+      };
     },
 
     async expiredToken(userId = randomUUID()) {

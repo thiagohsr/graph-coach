@@ -16,7 +16,9 @@ const SOURCE = 'source-1';
 const TASK = 'task-1';
 const BRIEF = { subject: 'Library cataloguing', difficulty: 'easy', sentences: 3 } as const;
 
-function setup(brief: typeof BRIEF | { subject: string; difficulty: 'easy'; sentences: number } = BRIEF) {
+function setup(
+  brief: typeof BRIEF | { subject: string; difficulty: 'easy'; sentences: number } = BRIEF,
+) {
   const graph = new FakeCuratorGraph();
   const chat = new StubChatProvider();
   const embeddings = new StubEmbeddingsProvider(16);
@@ -105,8 +107,20 @@ describe('outline', () => {
 
     const t = setup();
     await t.graph.upsertConcepts(TASK, [
-      { id: 'a', slug: 'accession-register', name: 'Accession register', description: 'x'.repeat(12), chunkIds: [] },
-      { id: 'b', slug: 'call-numbers', name: 'Call numbers', description: 'x'.repeat(12), chunkIds: [] },
+      {
+        id: 'a',
+        slug: 'accession-register',
+        name: 'Accession register',
+        description: 'x'.repeat(12),
+        chunkIds: [],
+      },
+      {
+        id: 'b',
+        slug: 'call-numbers',
+        name: 'Call numbers',
+        description: 'x'.repeat(12),
+        chunkIds: [],
+      },
     ]);
     await t.graph.linkPrerequisite('accession-register', 'call-numbers', 0.9);
     // The planner now says the opposite: it would close a cycle and is refused.
@@ -148,7 +162,9 @@ describe('draftQuestions (writer)', () => {
     expect(result.drafts).toHaveLength(5);
     expect(result.drafts!.map((d) => d.index)).toEqual([0, 1, 2, 3, 4]);
     // The only writes since are the step records.
-    expect(s.graph.writeLog.slice(writes).every((w) => w === 'addStep' || w === 'updateTask')).toBe(true);
+    expect(s.graph.writeLog.slice(writes).every((w) => w === 'addStep' || w === 'updateTask')).toBe(
+      true,
+    );
     expect(s.graph.count('Question')).toBe(0);
   });
 
@@ -159,7 +175,10 @@ describe('draftQuestions (writer)', () => {
     const result = await draftQuestionsNode(s.deps)(s.state());
     expect(result.drafts).toEqual([]);
     expect(s.chat.callCount(PROMPT_LABELS.write)).toBe(0);
-    expect(s.graph.stepsOf(TASK).at(-1)).toMatchObject({ status: 'complete', log: 'Drafts already stored' });
+    expect(s.graph.stepsOf(TASK).at(-1)).toMatchObject({
+      status: 'complete',
+      log: 'Drafts already stored',
+    });
   });
 
   it('fails with INCONSISTENT_STATE when the outline is missing', async () => {
@@ -192,7 +211,9 @@ describe('critique', () => {
       [4, 'pass'],
     ]);
     expect(result.counts).toMatchObject({ passed: 3, dropped: 1 });
-    expect(s.graph.stepsOf(TASK).at(-1)!.log).toBe('5 reviewed: 3 passed, 1 to rewrite, 1 rejected');
+    expect(s.graph.stepsOf(TASK).at(-1)!.log).toBe(
+      '5 reviewed: 3 passed, 1 to rewrite, 1 rejected',
+    );
   });
 
   it('treats a draft without a review as invalid output and fails the step', async () => {
@@ -211,7 +232,11 @@ describe('critique', () => {
     await withOutline(s);
     await critiqueNode(s.deps)(s.state());
     expect(s.chat.callCount(PROMPT_LABELS.critique)).toBe(0);
-    expect(s.graph.stepsOf(TASK).at(-1)).toMatchObject({ node: 'critique', status: 'complete', log: 'No drafts to review' });
+    expect(s.graph.stepsOf(TASK).at(-1)).toMatchObject({
+      node: 'critique',
+      status: 'complete',
+      log: 'No drafts to review',
+    });
   });
 });
 
@@ -229,7 +254,10 @@ describe('refine', () => {
     scriptPrompt(s.chat, { secondVerdicts: { 2: 'reject' } });
     const result = await refineNode(s.deps)(s.state({ drafts: judged }));
 
-    expect(s.chat.calls.map((c) => c.label)).toEqual([PROMPT_LABELS.rewrite, PROMPT_LABELS.recritique]);
+    expect(s.chat.calls.map((c) => c.label)).toEqual([
+      PROMPT_LABELS.rewrite,
+      PROMPT_LABELS.recritique,
+    ]);
     // The rewrite prompt carried only the two indexes sent back.
     expect(s.chat.calls[0]!.messages[1]!.content.match(/<<<DRAFT:/g)).toHaveLength(2);
     const out = result.drafts!;
@@ -258,10 +286,12 @@ describe('validate', () => {
   it('applies validateDraft with no passage, keeps at most brief.sentences in planned order, and stores the critique', async () => {
     const s = setup();
     await withOutline(s);
-    const drafts = [draft(3, { rewritten: true }), draft(1), draft(0), draft(2), draft(4)].map((d, i) => ({
-      ...d,
-      sentence: `Number ${i} of the library cases keeps every ___ in a tidy order.`,
-    }));
+    const drafts = [draft(3, { rewritten: true }), draft(1), draft(0), draft(2), draft(4)].map(
+      (d, i) => ({
+        ...d,
+        sentence: `Number ${i} of the library cases keeps every ___ in a tidy order.`,
+      }),
+    );
     const result = await validateNode(s.deps)(s.state({ drafts }));
 
     expect(result.outcome).toBe('awaiting_review');

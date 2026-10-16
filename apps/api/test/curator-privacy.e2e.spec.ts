@@ -33,10 +33,21 @@ interface Row {
   mutates?: boolean;
 }
 
-const LEARNERS = { owner: 403, shared: 403, sharedWithSource: 403, otherLearner: 403, reviewer: 404, admin: 404 };
+const LEARNERS = {
+  owner: 403,
+  shared: 403,
+  sharedWithSource: 403,
+  otherLearner: 403,
+  reviewer: 404,
+  admin: 404,
+};
 
 const ROWS: Row[] = [
-  { name: 'GET /tasks/:id', request: (c) => ({ method: 'GET', path: `/tasks/${c.run.taskId}` }), expect: ACCESS.ownerOnly },
+  {
+    name: 'GET /tasks/:id',
+    request: (c) => ({ method: 'GET', path: `/tasks/${c.run.taskId}` }),
+    expect: ACCESS.ownerOnly,
+  },
   {
     name: 'GET /tasks/:id/events',
     request: (c) => ({ method: 'GET', path: `/tasks/${c.run.taskId}/events` }),
@@ -49,7 +60,18 @@ const ROWS: Row[] = [
     expect: { ...ACCESS.ownerOnly, owner: 409 },
     mutates: true,
   },
-  { name: 'GET /sources', request: () => ({ method: 'GET', path: '/sources' }), expect: { owner: 200, shared: 200, sharedWithSource: 200, otherLearner: 200, reviewer: 200, admin: 200 } },
+  {
+    name: 'GET /sources',
+    request: () => ({ method: 'GET', path: '/sources' }),
+    expect: {
+      owner: 200,
+      shared: 200,
+      sharedWithSource: 200,
+      otherLearner: 200,
+      reviewer: 200,
+      admin: 200,
+    },
+  },
   {
     name: 'GET /sources/:id',
     request: (c) => ({ method: 'GET', path: `/sources/${c.run.sourceId}` }),
@@ -64,7 +86,14 @@ const ROWS: Row[] = [
   {
     name: 'GET /review/questions (no filter)',
     request: () => ({ method: 'GET', path: '/review/questions' }),
-    expect: { owner: 200, shared: 200, sharedWithSource: 200, otherLearner: 200, reviewer: 200, admin: 200 },
+    expect: {
+      owner: 200,
+      shared: 200,
+      sharedWithSource: 200,
+      otherLearner: 200,
+      reviewer: 200,
+      admin: 200,
+    },
   },
   {
     name: 'PATCH /review/questions/:id',
@@ -84,7 +113,11 @@ const ROWS: Row[] = [
   },
   {
     name: 'POST /review/questions/:id/reject',
-    request: (c) => ({ method: 'POST', path: `/review/questions/${c.run.questionIds[2]}/reject`, body: {} }),
+    request: (c) => ({
+      method: 'POST',
+      path: `/review/questions/${c.run.questionIds[2]}/reject`,
+      body: {},
+    }),
     expect: ACCESS.ownerOnly,
     mutates: true,
   },
@@ -105,12 +138,19 @@ const ROWS: Row[] = [
   },
   {
     name: 'POST /puzzles/:id/visibility',
-    request: (c) => ({ method: 'POST', path: `/puzzles/${c.run.puzzleId}/visibility`, body: { visibility: 'private' } }),
+    request: (c) => ({
+      method: 'POST',
+      path: `/puzzles/${c.run.puzzleId}/visibility`,
+      body: { visibility: 'private' },
+    }),
     expect: LEARNERS,
   },
   {
     name: 'DELETE /puzzles/:id/shares/:userId (a user nobody shared with)',
-    request: (c) => ({ method: 'DELETE', path: `/puzzles/${c.run.puzzleId}/shares/${c.target.id}` }),
+    request: (c) => ({
+      method: 'DELETE',
+      path: `/puzzles/${c.run.puzzleId}/shares/${c.target.id}`,
+    }),
     expect: { ...ACCESS.ownerOnly, owner: 204 },
     mutates: true,
   },
@@ -184,7 +224,11 @@ describe('Source.content in responses', () => {
   });
 
   it('the owner’s lists and task snapshot never carry it either', async () => {
-    for (const path of ['/sources', `/tasks/${ctx.run.taskId}`, `/review/questions?taskId=${ctx.run.taskId}`]) {
+    for (const path of [
+      '/sources',
+      `/tasks/${ctx.run.taskId}`,
+      `/review/questions?taskId=${ctx.run.taskId}`,
+    ]) {
       const res = await app.http.get(path).set(people.owner.auth);
       expect(res.status).toBe(200);
       expect(res.text).not.toContain(ctx.secret);
@@ -209,7 +253,10 @@ describe('after revocation', () => {
     } as Actors;
     const ctx = await arrange(app, actors);
     for (const user of [friend, sourceFriend]) {
-      expect((await app.http.delete(`/puzzles/${ctx.run.puzzleId}/shares/${user.id}`).set(owner.auth)).status).toBe(204);
+      expect(
+        (await app.http.delete(`/puzzles/${ctx.run.puzzleId}/shares/${user.id}`).set(owner.auth))
+          .status,
+      ).toBe(204);
     }
     for (const row of ROWS) {
       const baseline = await send(stranger, row.request(ctx));
@@ -266,7 +313,12 @@ describe('static: request handlers do not call loadTask', () => {
   it('finds the controllers and the services they inject', () => {
     const files = reachable().map((f) => f.split('/').at(-1));
     expect(files).toEqual(
-      expect.arrayContaining(['tasks.controller.ts', 'tasks.service.ts', 'review.controller.ts', 'review.service.ts']),
+      expect.arrayContaining([
+        'tasks.controller.ts',
+        'tasks.service.ts',
+        'review.controller.ts',
+        'review.service.ts',
+      ]),
     );
   });
 

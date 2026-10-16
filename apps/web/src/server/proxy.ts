@@ -26,7 +26,12 @@ export interface ProxyDeps {
   timeoutMs?: number;
 }
 
-function errorResponse(status: number, code: string, message: string, cookies: string[] = []): Response {
+function errorResponse(
+  status: number,
+  code: string,
+  message: string,
+  cookies: string[] = [],
+): Response {
   const headers = new Headers({ 'Content-Type': 'application/json', 'Cache-Control': 'no-store' });
   for (const c of cookies) headers.append('Set-Cookie', c);
   return new Response(JSON.stringify({ error: { code, message } }), { status, headers });
@@ -40,12 +45,23 @@ export function extractSplat(pathname: string): string | null {
   const splat = pathname.slice('/api/'.length);
   if (splat === '') return null;
   const lower = splat.toLowerCase();
-  if (splat.includes('..') || splat.includes('//') || splat.includes('\\') || splat.includes('\0')) return null;
-  if (lower.includes('%2f') || lower.includes('%5c') || lower.includes('%2e') || lower.includes('%00')) return null;
+  if (splat.includes('..') || splat.includes('//') || splat.includes('\\') || splat.includes('\0'))
+    return null;
+  if (
+    lower.includes('%2f') ||
+    lower.includes('%5c') ||
+    lower.includes('%2e') ||
+    lower.includes('%00')
+  )
+    return null;
   return splat;
 }
 
-function upstreamHeaders(request: Request, accessToken: string | null, forwardedFor: string | undefined): Headers {
+function upstreamHeaders(
+  request: Request,
+  accessToken: string | null,
+  forwardedFor: string | undefined,
+): Headers {
   const headers = new Headers();
   for (const name of ['content-type', 'accept', 'last-event-id']) {
     const value = request.headers.get(name);
@@ -122,7 +138,10 @@ export async function forward(request: Request, deps: ProxyDeps): Promise<Respon
   // Token-issuing paths are never relayed: their responses contain a token.
   if (splat.toLowerCase().replace(/\/+$/, '') === 'auth/dev-login') return notFound();
 
-  if (UNSAFE_METHODS.has(method) && !originAllowed(request.headers.get('Origin'), deps.publicOrigin)) {
+  if (
+    UNSAFE_METHODS.has(method) &&
+    !originAllowed(request.headers.get('Origin'), deps.publicOrigin)
+  ) {
     return errorResponse(403, 'FORBIDDEN', 'Cross-site request refused.');
   }
 
@@ -138,21 +157,30 @@ export async function forward(request: Request, deps: ProxyDeps): Promise<Respon
   if (!isHealth) {
     if (!session) return errorResponse(401, 'UNAUTHENTICATED', 'Sign in required.');
     const fresh = await deps.ensureFresh(session);
-    if (!fresh) return errorResponse(401, 'UNAUTHENTICATED', 'Your session has ended.', deps.clearCookies());
+    if (!fresh)
+      return errorResponse(401, 'UNAUTHENTICATED', 'Your session has ended.', deps.clearCookies());
     session = fresh.session;
     accessToken = fresh.session.accessToken;
     if (fresh.refreshed) cookies = deps.sessionCookies(fresh.session);
   }
 
   const send = (token: string | null) =>
-    callUpstream(target, method, upstreamHeaders(request, token, deps.forwardedFor), body, request.signal, deps);
+    callUpstream(
+      target,
+      method,
+      upstreamHeaders(request, token, deps.forwardedFor),
+      body,
+      request.signal,
+      deps,
+    );
 
   let attempt = await send(accessToken);
 
   if (attempt.response?.status === 401 && session && !isHealth) {
     void attempt.response.body?.cancel().catch(() => undefined);
     const retry = session.refreshToken ? await deps.ensureFresh(session, { force: true }) : null;
-    if (!retry) return errorResponse(401, 'UNAUTHENTICATED', 'Your session has ended.', deps.clearCookies());
+    if (!retry)
+      return errorResponse(401, 'UNAUTHENTICATED', 'Your session has ended.', deps.clearCookies());
     cookies = deps.sessionCookies(retry.session);
     attempt = await send(retry.session.accessToken);
     if (attempt.response?.status === 401) {

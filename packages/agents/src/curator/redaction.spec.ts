@@ -6,7 +6,14 @@ import { StubChatProvider, StubEmbeddingsProvider, type StubCall } from '../llm/
 import { runCurator } from './graph';
 import { runPromptCreation } from './prompt/graph';
 import { CuratorStepError } from './ports';
-import { CURATOR_LABELS, LONG_TEXT, type DraftMode, PROMPT_LABELS, scriptCurator, scriptPrompt } from './testing/fixtures';
+import {
+  CURATOR_LABELS,
+  LONG_TEXT,
+  type DraftMode,
+  PROMPT_LABELS,
+  scriptCurator,
+  scriptPrompt,
+} from './testing/fixtures';
 import { FakeCuratorGraph, makeDeps } from './testing/fake-graph-port';
 
 const OWNER = 'owner-1';
@@ -40,7 +47,11 @@ function outputs(graph: FakeCuratorGraph, tracer: RecordingUsageTracer, error: u
     ...[...graph.steps.values()].map((s) => s.log ?? ''),
     ...graph.events.map((e) => e.log ?? ''),
     ...[...graph.tasks.values()].map((t) => t.error ?? ''),
-    error instanceof CuratorStepError ? error.toTaskError() : error instanceof Error ? error.message : '',
+    error instanceof CuratorStepError
+      ? error.toTaskError()
+      : error instanceof Error
+        ? error.message
+        : '',
     JSON.stringify(tracer.runs),
     JSON.stringify(tracer.steps),
     JSON.stringify(tracer.calls),
@@ -48,7 +59,8 @@ function outputs(graph: FakeCuratorGraph, tracer: RecordingUsageTracer, error: u
 }
 
 /** Passages and brief fields stripped of their delimited blocks. */
-const outsideBlocks = (text: string) => text.replace(/<<<(\w+):(\w+)>>>\n[\s\S]*?\n<<<END:\2>>>/g, '');
+const outsideBlocks = (text: string) =>
+  text.replace(/<<<(\w+):(\w+)>>>\n[\s\S]*?\n<<<END:\2>>>/g, '');
 
 function uploadRun(setup: (chat: StubChatProvider) => void, drafts?: DraftMode) {
   const tracer = new RecordingUsageTracer();
@@ -65,7 +77,14 @@ function uploadRun(setup: (chat: StubChatProvider) => void, drafts?: DraftMode) 
     chat,
     tracer,
     secrets: [LONG_TEXT],
-    run: () => runCurator(deps, { taskId: TASK, kind: 'ingest', sourceId: SOURCE, ownerId: OWNER, entry: 'chunk' }),
+    run: () =>
+      runCurator(deps, {
+        taskId: TASK,
+        kind: 'ingest',
+        sourceId: SOURCE,
+        ownerId: OWNER,
+        entry: 'chunk',
+      }),
   };
 }
 
@@ -85,20 +104,44 @@ function promptRun(setup: (chat: StubChatProvider) => void) {
     tracer,
     secrets: [BRIEF.subject, BRIEF.focus],
     run: () =>
-      runPromptCreation(deps, { taskId: TASK, sourceId: SOURCE, ownerId: OWNER, entry: 'outline', minQuestions: 3 }),
+      runPromptCreation(deps, {
+        taskId: TASK,
+        sourceId: SOURCE,
+        ownerId: OWNER,
+        entry: 'outline',
+        minQuestions: 3,
+      }),
   };
 }
 
-const echo = (call: StubCall) => new Error(`provider echo: ${call.messages.map((m) => m.content).join(' ')}`);
+const echo = (call: StubCall) =>
+  new Error(`provider echo: ${call.messages.map((m) => m.content).join(' ')}`);
 
-const SCENARIOS: Array<[string, () => ReturnType<typeof uploadRun> | ReturnType<typeof promptRun>]> = [
+const SCENARIOS: Array<
+  [string, () => ReturnType<typeof uploadRun> | ReturnType<typeof promptRun>]
+> = [
   ['upload, happy run', () => uploadRun(() => undefined)],
-  ['upload, nothing usable (every draft breaks a rule)', () => uploadRun(() => undefined, 'rule-breaking')],
-  ['upload, provider fails and echoes the request', () => uploadRun((chat) => chat.enqueue(CURATOR_LABELS.extract, echo))],
+  [
+    'upload, nothing usable (every draft breaks a rule)',
+    () => uploadRun(() => undefined, 'rule-breaking'),
+  ],
+  [
+    'upload, provider fails and echoes the request',
+    () => uploadRun((chat) => chat.enqueue(CURATOR_LABELS.extract, echo)),
+  ],
   ['upload, invalid model output', () => uploadRun(() => undefined, 'schema-invalid')],
   ['prompt, happy run', () => promptRun(() => undefined)],
-  ['prompt, provider fails and echoes the brief', () => promptRun((chat) => chat.enqueue(PROMPT_LABELS.outline, echo))],
-  ['prompt, critic leaves a draft without a review', () => promptRun((chat) => chat.enqueue(PROMPT_LABELS.critique, { reviews: [] }, { reviews: [] }, { reviews: [] }))],
+  [
+    'prompt, provider fails and echoes the brief',
+    () => promptRun((chat) => chat.enqueue(PROMPT_LABELS.outline, echo)),
+  ],
+  [
+    'prompt, critic leaves a draft without a review',
+    () =>
+      promptRun((chat) =>
+        chat.enqueue(PROMPT_LABELS.critique, { reviews: [] }, { reviews: [] }, { reviews: [] }),
+      ),
+  ],
 ];
 
 describe.each(SCENARIOS)('redaction: %s', (_name, make) => {
@@ -144,10 +187,15 @@ describe('the scenarios exercise what they claim', () => {
     );
 
     const invalid = uploadRun(() => undefined, 'schema-invalid');
-    expect(await invalid.run().catch((e: unknown) => e)).toMatchObject({ code: 'INVALID_MODEL_OUTPUT' });
+    expect(await invalid.run().catch((e: unknown) => e)).toMatchObject({
+      code: 'INVALID_MODEL_OUTPUT',
+    });
 
     const prompt = promptRun((chat) => chat.enqueue(PROMPT_LABELS.outline, echo));
-    expect(await prompt.run().catch((e: unknown) => e)).toMatchObject({ code: 'PROVIDER_UNAVAILABLE', node: 'outline' });
+    expect(await prompt.run().catch((e: unknown) => e)).toMatchObject({
+      code: 'PROVIDER_UNAVAILABLE',
+      node: 'outline',
+    });
     expect(messagesOf(prompt.chat.calls).join('')).toContain(BRIEF.focus);
   });
 });

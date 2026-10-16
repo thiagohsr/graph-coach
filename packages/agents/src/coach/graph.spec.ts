@@ -30,7 +30,13 @@ class GraphUnavailableError extends Error {
 const input = { learnerId: WORKED_IDS.learner, goalText: null, now: T };
 
 function makeDeps(queries: StubCoachQueries, over: Partial<CoachDeps> = {}): CoachDeps {
-  return { queries, settings: DEFAULT_COACH_SETTINGS, newId: () => 'run-1', embeddings: new StubEmbeddingsProvider(), ...over };
+  return {
+    queries,
+    settings: DEFAULT_COACH_SETTINGS,
+    newId: () => 'run-1',
+    embeddings: new StubEmbeddingsProvider(),
+    ...over,
+  };
 }
 
 const reusable = (over = {}) => ({
@@ -63,7 +69,11 @@ describe('runCoach, worked example', () => {
       goalId: '',
     });
     expect(params.summary).toContain('"B-trees"');
-    expect(params.evidence[0]).toMatchObject({ nodeId: WORKED_IDS.btrees, role: 'target', weight: 0.723 });
+    expect(params.evidence[0]).toMatchObject({
+      nodeId: WORKED_IDS.btrees,
+      role: 'target',
+      weight: 0.723,
+    });
     expect(params.evidence[1]).toMatchObject({ nodeId: WORKED_IDS.indexes, role: 'driver' });
     expect(params.evidence.filter((e) => e.role === 'answer')).toHaveLength(5);
     expect(params.evidence.filter((e) => e.role === 'session')).toHaveLength(3);
@@ -72,12 +82,23 @@ describe('runCoach, worked example', () => {
   it('passes the documented parameters to the signal queries', async () => {
     const queries = createStubCoachQueries();
     await runCoach(makeDeps(queries), input);
-    expect(queries.callsTo('recentDecision')[0]!.params).toEqual({ learnerId: WORKED_IDS.learner, since: T - 10 * 60_000 });
+    expect(queries.callsTo('recentDecision')[0]!.params).toEqual({
+      learnerId: WORKED_IDS.learner,
+      since: T - 10 * 60_000,
+    });
     expect(queries.callsTo('weakConceptsWithWeakPrereqs')[0]!.params).toEqual({
-      learnerId: WORKED_IDS.learner, now: T, decayDays: 14, threshold: 0.5, depth: 4, scopeIds: [],
+      learnerId: WORKED_IDS.learner,
+      now: T,
+      decayDays: 14,
+      threshold: 0.5,
+      depth: 4,
+      scopeIds: [],
     });
     expect(queries.callsTo('playablePuzzlesCovering')[0]!.params).toEqual({
-      userId: WORKED_IDS.learner, targetIds: [WORKED_IDS.btrees], recentSince: T - 3 * 86_400_000, limit: 20,
+      userId: WORKED_IDS.learner,
+      targetIds: [WORKED_IDS.btrees],
+      recentSince: T - 3 * 86_400_000,
+      limit: 20,
     });
     expect(queries.callsTo('decayedOrUnseenConcepts')).toHaveLength(0);
     expect(queries.callsTo('introPuzzles')).toHaveLength(0);
@@ -97,7 +118,12 @@ describe('runCoach, worked example', () => {
     const queries = createStubCoachQueries();
     await runCoach(makeDeps(queries), input);
     const p = queries.recorded[0]!;
-    expect({ modelCalls: p.modelCalls, inputTokens: p.inputTokens, outputTokens: p.outputTokens, embeddingTokens: p.embeddingTokens }).toEqual(ZERO_USAGE);
+    expect({
+      modelCalls: p.modelCalls,
+      inputTokens: p.inputTokens,
+      outputTokens: p.outputTokens,
+      embeddingTokens: p.embeddingTokens,
+    }).toEqual(ZERO_USAGE);
   });
 
   it('sets repeat and coverage_gap flags from the first puzzle row', async () => {
@@ -120,17 +146,27 @@ describe('runCoach, reuse', () => {
   });
 
   it('new answers, a changed goal, or a zero reuse window prevent reuse', async () => {
-    const newAnswers = createStubCoachQueries({ recentDecision: async () => reusable({ newAnswers: true }) });
+    const newAnswers = createStubCoachQueries({
+      recentDecision: async () => reusable({ newAnswers: true }),
+    });
     expect((await runCoach(makeDeps(newAnswers), input)).outcome).toBe('recorded');
 
     const changedGoal = createStubCoachQueries({ recentDecision: async () => reusable() });
-    expect((await runCoach(makeDeps(changedGoal), { ...input, goalText: 'learn indexes' })).outcome).toBe('recorded');
+    expect(
+      (await runCoach(makeDeps(changedGoal), { ...input, goalText: 'learn indexes' })).outcome,
+    ).toBe('recorded');
 
-    const sameGoal = createStubCoachQueries({ recentDecision: async () => reusable({ goalText: 'Learn  Indexes' }) });
-    expect((await runCoach(makeDeps(sameGoal), { ...input, goalText: ' learn indexes ' })).outcome).toBe('reused');
+    const sameGoal = createStubCoachQueries({
+      recentDecision: async () => reusable({ goalText: 'Learn  Indexes' }),
+    });
+    expect(
+      (await runCoach(makeDeps(sameGoal), { ...input, goalText: ' learn indexes ' })).outcome,
+    ).toBe('reused');
 
     const noReuse = createStubCoachQueries({ recentDecision: async () => reusable() });
-    const deps = makeDeps(noReuse, { settings: { ...DEFAULT_COACH_SETTINGS, coachReuseMinutes: 0 } });
+    const deps = makeDeps(noReuse, {
+      settings: { ...DEFAULT_COACH_SETTINGS, coachReuseMinutes: 0 },
+    });
     expect((await runCoach(deps, input)).outcome).toBe('recorded');
   });
 
@@ -153,16 +189,28 @@ describe('runCoach, failures', () => {
 
   it('record_decision returning no row throws DecisionNotRecordedError', async () => {
     const queries = createStubCoachQueries({ recordDecision: async () => null });
-    await expect(runCoach(makeDeps(queries), input)).rejects.toBeInstanceOf(DecisionNotRecordedError);
+    await expect(runCoach(makeDeps(queries), input)).rejects.toBeInstanceOf(
+      DecisionNotRecordedError,
+    );
   });
 
   it('a puzzle that was not linked, or no BECAUSE edge, is DecisionNotRecordedError', async () => {
     const unlinked = createStubCoachQueries({
-      recordDecision: async (p) => ({ decisionId: p.decisionId, becauseCount: 3, linkedPuzzle: false }),
+      recordDecision: async (p) => ({
+        decisionId: p.decisionId,
+        becauseCount: 3,
+        linkedPuzzle: false,
+      }),
     });
-    await expect(runCoach(makeDeps(unlinked), input)).rejects.toBeInstanceOf(DecisionNotRecordedError);
+    await expect(runCoach(makeDeps(unlinked), input)).rejects.toBeInstanceOf(
+      DecisionNotRecordedError,
+    );
     const none = createStubCoachQueries({
-      recordDecision: async (p) => ({ decisionId: p.decisionId, becauseCount: 0, linkedPuzzle: true }),
+      recordDecision: async (p) => ({
+        decisionId: p.decisionId,
+        becauseCount: 0,
+        linkedPuzzle: true,
+      }),
     });
     await expect(runCoach(makeDeps(none), input)).rejects.toBeInstanceOf(DecisionNotRecordedError);
   });
@@ -176,17 +224,36 @@ describe('runCoach, usage-only tracing', () => {
   it('opens one run, one step per executed node, ends ok, never records a call, and hands over no text', async () => {
     const tracer = createRecordingTracer();
     const queries = createStubCoachQueries();
-    await runCoach(makeDeps(queries, { tracer }), { ...input, goalText: 'learn about storage engines' });
+    await runCoach(makeDeps(queries, { tracer }), {
+      ...input,
+      goalText: 'learn about storage engines',
+    });
     expect(tracer.callsTo('startRun')).toHaveLength(1);
-    expect(tracer.callsTo('startRun')[0]!.args).toEqual([{ id: 'run-1', kind: 'coach', userId: WORKED_IDS.learner }]);
-    const nodes = ['resolveGoal', 'collectSignals', 'selectTarget', 'findPuzzles', 'explain', 'recordDecision'];
+    expect(tracer.callsTo('startRun')[0]!.args).toEqual([
+      { id: 'run-1', kind: 'coach', userId: WORKED_IDS.learner },
+    ]);
+    const nodes = [
+      'resolveGoal',
+      'collectSignals',
+      'selectTarget',
+      'findPuzzles',
+      'explain',
+      'recordDecision',
+    ];
     expect(tracer.callsTo('startStep').map((c) => c.args[1])).toEqual(nodes);
     expect(tracer.callsTo('endStep')).toHaveLength(nodes.length);
     expect(tracer.callsTo('endRun')).toHaveLength(1);
     expect(tracer.callsTo('endRun')[0]!.args[1]).toEqual({ ok: true });
     expect(tracer.callsTo('recordCall')).toHaveLength(0);
     const text = JSON.stringify(tracer.calls);
-    for (const forbidden of ['B-trees', 'Indexes', 'Databases 101', 'storage engines', 'Practise', queries.recorded[0]!.summary]) {
+    for (const forbidden of [
+      'B-trees',
+      'Indexes',
+      'Databases 101',
+      'storage engines',
+      'Practise',
+      queries.recorded[0]!.summary,
+    ]) {
       expect(text).not.toContain(forbidden);
     }
   });
@@ -201,7 +268,9 @@ describe('runCoach, usage-only tracing', () => {
   it('closes the run with ok false when a node throws', async () => {
     const tracer = createRecordingTracer();
     const queries = createStubCoachQueries({ recordDecision: async () => null });
-    await expect(runCoach(makeDeps(queries, { tracer }), input)).rejects.toBeInstanceOf(DecisionNotRecordedError);
+    await expect(runCoach(makeDeps(queries, { tracer }), input)).rejects.toBeInstanceOf(
+      DecisionNotRecordedError,
+    );
     expect(tracer.callsTo('endRun')[0]!.args[1]).toEqual({ ok: false });
   });
 
@@ -237,9 +306,13 @@ describe('routers', () => {
     const rows = workedExampleRows();
     const warnings: Array<[string, object | undefined]> = [];
     const queries = createStubCoachQueries({
-      weakConceptsWithWeakPrereqs: async () => rows.weak.map((w) => (w.conceptId === WORKED_IDS.indexes ? { ...w, cyclic: true } : w)),
+      weakConceptsWithWeakPrereqs: async () =>
+        rows.weak.map((w) => (w.conceptId === WORKED_IDS.indexes ? { ...w, cyclic: true } : w)),
     });
-    const result = await runCoach(makeDeps(queries, { logger: { warn: (e, d) => void warnings.push([e, d]) } }), input);
+    const result = await runCoach(
+      makeDeps(queries, { logger: { warn: (e, d) => void warnings.push([e, d]) } }),
+      input,
+    );
     expect(result.outcome).toBe('recorded');
     expect(warnings).toEqual([['coach.prerequisite_cycle', { conceptId: WORKED_IDS.indexes }]]);
   });

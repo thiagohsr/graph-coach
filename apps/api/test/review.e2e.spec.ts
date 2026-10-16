@@ -15,10 +15,12 @@ afterAll(async () => {
 });
 
 const newUser = (role: 'learner' | 'reviewer' | 'admin' = 'learner') => app.createUser({ role });
-const approve = (user: TestUser, id: string) => app.http.post(`/review/questions/${id}/approve`).set(user.auth);
+const approve = (user: TestUser, id: string) =>
+  app.http.post(`/review/questions/${id}/approve`).set(user.auth);
 const reject = (user: TestUser, id: string, body: object = {}) =>
   app.http.post(`/review/questions/${id}/reject`).set(user.auth).send(body);
-const task = async (user: TestUser, id: string) => (await app.http.get(`/tasks/${id}`).set(user.auth)).body;
+const task = async (user: TestUser, id: string) =>
+  (await app.http.get(`/tasks/${id}`).set(user.auth)).body;
 
 async function questionState(id: string) {
   const [row] = await app.testGraph.cypher<{ s: string; sentence: string }>(
@@ -37,7 +39,10 @@ describe('listing and editing drafts (S4.1, S4.2)', () => {
   });
 
   it('lists drafts with answers, distractors, concepts, and passage, ordered', async () => {
-    const res = await app.http.get('/review/questions').query({ taskId: run.taskId }).set(owner.auth);
+    const res = await app.http
+      .get('/review/questions')
+      .query({ taskId: run.taskId })
+      .set(owner.auth);
     expect(res.status).toBe(200);
     expect(res.body.map((d: any) => d.id)).toEqual(run.questionIds);
     expect(res.body[0]).toMatchObject({
@@ -55,10 +60,15 @@ describe('listing and editing drafts (S4.1, S4.2)', () => {
 
   it('a taskId the caller did not request, or that does not exist, is 404', async () => {
     const other = await newUser();
-    const res = await app.http.get('/review/questions').query({ taskId: run.taskId }).set(other.auth);
+    const res = await app.http
+      .get('/review/questions')
+      .query({ taskId: run.taskId })
+      .set(other.auth);
     expect(res.status).toBe(404);
     expect(res.body.error.code).toBe('NOT_FOUND');
-    expect((await app.http.get('/review/questions').query({ taskId: 'nope' }).set(owner.auth)).status).toBe(404);
+    expect(
+      (await app.http.get('/review/questions').query({ taskId: 'nope' }).set(owner.auth)).status,
+    ).toBe(404);
     expect((await app.http.get('/review/questions').set(other.auth)).body).toEqual([]);
   });
 
@@ -71,7 +81,10 @@ describe('listing and editing drafts (S4.1, S4.2)', () => {
     expect(res.status).toBe(422);
     expect(res.body.error.code).toBe('DRAFT_INVALID');
     expect(res.body.error.details.reasons).toContain('blank_count_mismatch');
-    expect(res.body.error.details.issues[0]).toMatchObject({ path: 'answers', code: 'blank_count_mismatch' });
+    expect(res.body.error.details.issues[0]).toMatchObject({
+      path: 'answers',
+      code: 'blank_count_mismatch',
+    });
     expect(await questionState(run.questionIds[0]!)).toEqual(before);
   });
 
@@ -117,9 +130,15 @@ describe('approving and rejecting (S4.3 to S4.7)', () => {
     expect((await approve(owner, q2)).body.remainingDrafts).toBe(3);
 
     const third = await approve(owner, q3);
-    expect(third.body).toMatchObject({ puzzle: { status: 'published', visibility: 'private' }, remainingDrafts: 2 });
+    expect(third.body).toMatchObject({
+      puzzle: { status: 'published', visibility: 'private' },
+      remainingDrafts: 2,
+    });
     expect(third.body.task).toBeUndefined();
-    expect(await task(owner, run.taskId)).toMatchObject({ status: 'awaiting_review', result: null });
+    expect(await task(owner, run.taskId)).toMatchObject({
+      status: 'awaiting_review',
+      result: null,
+    });
 
     const fourth = await reject(owner, q4, { reason: 'Too easy' });
     expect(fourth.status).toBe(200);
@@ -138,7 +157,12 @@ describe('approving and rejecting (S4.3 to S4.7)', () => {
     expect(finished).toMatchObject({ status: 'done', result: 'ok' });
     expect(finished.steps.map((s: any) => s.node)).toContain('publish');
 
-    const edges = await app.testGraph.cypher<{ id: string; d: string; reason: string | null; at: number }>(
+    const edges = await app.testGraph.cypher<{
+      id: string;
+      d: string;
+      reason: string | null;
+      at: number;
+    }>(
       `MATCH (:Learner {id: $owner})-[r:REVIEWED]->(q:Question) RETURN q.id AS id, r.decision AS d, r.reason AS reason, r.at AS at ORDER BY id`,
       { owner: owner.id },
     );
@@ -160,7 +184,10 @@ describe('approving and rejecting (S4.3 to S4.7)', () => {
       task: { status: 'done', result: 'below_minimum' },
       notPublishedReason: { code: 'below_minimum', approved: 1, minQuestions: 3 },
     });
-    expect(await task(owner, run.taskId)).toMatchObject({ status: 'done', result: 'below_minimum' });
+    expect(await task(owner, run.taskId)).toMatchObject({
+      status: 'done',
+      result: 'below_minimum',
+    });
   });
 
   it('a changed minQuestions applies at the next decision', async () => {
@@ -187,7 +214,10 @@ describe('approving and rejecting (S4.3 to S4.7)', () => {
       await approve(owner, a),
       await reject(owner, a),
       await approve(owner, r),
-      await app.http.patch(`/review/questions/${a}`).set(owner.auth).send({ distractors: ['one', 'two'] }),
+      await app.http
+        .patch(`/review/questions/${a}`)
+        .set(owner.auth)
+        .send({ distractors: ['one', 'two'] }),
     ]) {
       expect(res.status).toBe(409);
       expect(res.body.error.code).toBe('ALREADY_DECIDED');
@@ -208,7 +238,10 @@ describe('approving and rejecting (S4.3 to S4.7)', () => {
   it('a prompt draft carries its critique and no passage, and can be approved', async () => {
     const owner = await newUser();
     const run = await seedRun(app, owner, { drafts: 3, kind: 'prompt' });
-    const list = await app.http.get('/review/questions').query({ taskId: run.taskId }).set(owner.auth);
+    const list = await app.http
+      .get('/review/questions')
+      .query({ taskId: run.taskId })
+      .set(owner.auth);
     expect(list.body[0]).toMatchObject({
       origin: 'prompt',
       passage: null,
@@ -224,9 +257,12 @@ describe('approving and rejecting (S4.3 to S4.7)', () => {
     const run = await seedRun(app, owner, { drafts: 3 });
     const status = async () =>
       (
-        await app.testGraph.cypher<{ s: string }>(`MATCH (p:Puzzle {id: $id}) RETURN p.status AS s`, {
-          id: run.puzzleId,
-        })
+        await app.testGraph.cypher<{ s: string }>(
+          `MATCH (p:Puzzle {id: $id}) RETURN p.status AS s`,
+          {
+            id: run.puzzleId,
+          },
+        )
       )[0]!.s;
     await approve(owner, run.questionIds[0]!);
     await approve(owner, run.questionIds[1]!);
@@ -245,7 +281,10 @@ describeAccessMatrix(
   [
     {
       name: 'GET /review/questions?taskId',
-      request: (run: SeededRun) => ({ method: 'GET', path: `/review/questions?taskId=${run.taskId}` }),
+      request: (run: SeededRun) => ({
+        method: 'GET',
+        path: `/review/questions?taskId=${run.taskId}`,
+      }),
       expect: ACCESS.ownerOnly,
     },
     {
@@ -259,7 +298,10 @@ describeAccessMatrix(
     },
     {
       name: 'POST /review/questions/:id/approve',
-      request: (run: SeededRun) => ({ method: 'POST', path: `/review/questions/${run.questionIds[1]}/approve` }),
+      request: (run: SeededRun) => ({
+        method: 'POST',
+        path: `/review/questions/${run.questionIds[1]}/approve`,
+      }),
       expect: ACCESS.ownerOnly,
     },
     {

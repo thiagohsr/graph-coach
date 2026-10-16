@@ -4,7 +4,13 @@ import { grade, validateSubmission } from './grading';
 
 const KEY: AnswerKey = [
   { questionId: 'q2', order: 2, sentence: 'B ___', answers: ['B-tree'], concepts: [] },
-  { questionId: 'q1', order: 1, sentence: 'A ___ and ___', answers: ['index', 'writes'], concepts: [] },
+  {
+    questionId: 'q1',
+    order: 1,
+    sentence: 'A ___ and ___',
+    answers: ['index', 'writes'],
+    concepts: [],
+  },
   { questionId: 'q3', order: 3, sentence: 'C ___', answers: ['index'], concepts: [] },
 ];
 
@@ -12,14 +18,21 @@ const a = (questionId: string, blank: number, word: string | null) => ({ questio
 
 describe('grade', () => {
   it('grades correct, wrong, null, missing, and whitespace-only words', () => {
-    const { blanks, score, maxScore } = grade(KEY, [a('q1', 0, 'index'), a('q1', 1, 'reads'), a('q2', 0, null), a('q3', 0, '   ')]);
+    const { blanks, score, maxScore } = grade(KEY, [
+      a('q1', 0, 'index'),
+      a('q1', 1, 'reads'),
+      a('q2', 0, null),
+      a('q3', 0, '   '),
+    ]);
     expect(blanks.map((b) => b.correct)).toEqual([true, false, false, false]);
     expect(score).toBe(10);
     expect(maxScore).toBe(40);
   });
 
   it('ignores case, surrounding whitespace, and NFC differences', () => {
-    const key: AnswerKey = [{ questionId: 'q', order: 1, sentence: '___', answers: ['café'], concepts: [] }];
+    const key: AnswerKey = [
+      { questionId: 'q', order: 1, sentence: '___', answers: ['café'], concepts: [] },
+    ];
     expect(grade(key, [a('q', 0, '  CAFÉ ')]).score).toBe(10);
     expect(grade(KEY, [a('q1', 0, '  INDEX ')]).blanks[0]!.correct).toBe(true);
   });
@@ -64,7 +77,11 @@ describe('validateSubmission', () => {
 
   it('flags a negative or too-large blank', () => {
     const issues = validateSubmission(KEY, [a('q2', 1, 'x'), a('q1', -1, 'x'), a('q1', 2, 'x')]);
-    expect(issues.map((i) => i.path)).toEqual(['answers.0.blank', 'answers.1.blank', 'answers.2.blank']);
+    expect(issues.map((i) => i.path)).toEqual([
+      'answers.0.blank',
+      'answers.1.blank',
+      'answers.2.blank',
+    ]);
   });
 
   it('flags a duplicate (questionId, blank)', () => {

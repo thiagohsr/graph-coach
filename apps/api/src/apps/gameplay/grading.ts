@@ -13,7 +13,10 @@ export function validateSubmission(key: AnswerKey, answers: SubmitAnswer[]): Sub
   answers.forEach((answer, index) => {
     const entry = byId.get(answer.questionId);
     if (!entry) {
-      issues.push({ path: `answers.${index}.questionId`, message: 'Unknown question for this puzzle' });
+      issues.push({
+        path: `answers.${index}.questionId`,
+        message: 'Unknown question for this puzzle',
+      });
       return;
     }
     if (answer.blank < 0 || answer.blank >= entry.answers.length) {

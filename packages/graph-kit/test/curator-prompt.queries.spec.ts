@@ -133,7 +133,13 @@ describe('upsert_concepts without chunks', () => {
   });
 
   const rows = [
-    { id: 'n-1', slug: 'call-numbers', name: 'Call numbers', description: 'Codes on a spine.', chunkIds: [] },
+    {
+      id: 'n-1',
+      slug: 'call-numbers',
+      name: 'Call numbers',
+      description: 'Codes on a spine.',
+      chunkIds: [],
+    },
     { id: 'n-2', slug: 'sql', name: 'Renamed SQL', description: 'Changed text', chunkIds: [] },
   ];
 
@@ -147,7 +153,9 @@ describe('upsert_concepts without chunks', () => {
     expect(result.map((r) => r.slug).sort()).toEqual(['call-numbers', 'sql']);
     expect(result.find((r) => r.slug === 'sql')!.conceptId).toBe('c-sql');
     expect(result.find((r) => r.slug === 'call-numbers')!.conceptId).toBe('n-1');
-    const [sql] = await tg.cypher<{ name: string }>(`MATCH (c:Concept {slug: 'sql'}) RETURN c.name AS name`);
+    const [sql] = await tg.cypher<{ name: string }>(
+      `MATCH (c:Concept {slug: 'sql'}) RETURN c.name AS name`,
+    );
     expect(sql!.name).toBe('SQL');
     expect(await tg.countEdges('MENTIONS')).toBe(before);
     expect(await tg.countEdges('PRODUCED')).toBe(2);
@@ -180,7 +188,9 @@ describe('save_outline and source_chunks for a source with no chunk', () => {
       position: null,
       text: null,
     });
-    expect(await q('save_outline', { sourceId: 'P1', outline: OUTLINE })).toEqual([{ sourceId: 'P1' }]);
+    expect(await q('save_outline', { sourceId: 'P1', outline: OUTLINE })).toEqual([
+      { sourceId: 'P1' },
+    ]);
     const rows = await q<Record<string, unknown>>('source_chunks', { sourceId: 'P1' });
     expect(rows).toHaveLength(1);
     expect(rows[0]).toMatchObject({ sourceBrief: BRIEF, sourceOutline: OUTLINE, id: null });
@@ -205,8 +215,24 @@ describe('save_outline and source_chunks for a source with no chunk', () => {
 describe('create_draft_puzzle with an origin and create_generated_questions', () => {
   const critique = (note: string) => JSON.stringify({ verdict: 'pass', note, rewritten: false });
   const questions = [
-    { id: 'gq-1', sentence: 'A ___ is on the spine.', answers: ['call number'], distractors: ['a', 'b'], order: 1, conceptSlugs: ['index'], critique: critique('one') },
-    { id: 'gq-2', sentence: 'The ___ lists new items.', answers: ['register'], distractors: ['c', 'd'], order: 2, conceptSlugs: ['index', 'sql'], critique: critique('two') },
+    {
+      id: 'gq-1',
+      sentence: 'A ___ is on the spine.',
+      answers: ['call number'],
+      distractors: ['a', 'b'],
+      order: 1,
+      conceptSlugs: ['index'],
+      critique: critique('one'),
+    },
+    {
+      id: 'gq-2',
+      sentence: 'The ___ lists new items.',
+      answers: ['register'],
+      distractors: ['c', 'd'],
+      order: 2,
+      conceptSlugs: ['index', 'sql'],
+      critique: critique('two'),
+    },
   ];
   const puzzle = {
     id: 'pz-1',
@@ -225,7 +251,13 @@ describe('create_draft_puzzle with an origin and create_generated_questions', ()
 
   it('creates a draft private puzzle with its origin, OWNS, PRODUCED, and YIELDED from the brief source', async () => {
     expect(await q('create_draft_puzzle', puzzle)).toEqual([{ puzzleId: 'pz-1', status: 'draft' }]);
-    const [p] = await tg.cypher<{ origin: string; visibility: string; owned: number; yielded: number; produced: number }>(
+    const [p] = await tg.cypher<{
+      origin: string;
+      visibility: string;
+      owned: number;
+      yielded: number;
+      produced: number;
+    }>(
       `MATCH (p:Puzzle {id: 'pz-1'})
        RETURN p.origin AS origin, p.visibility AS visibility,
               size([(:Learner {id: $A})-[:OWNS]->(p) | 1]) AS owned,
@@ -233,13 +265,33 @@ describe('create_draft_puzzle with an origin and create_generated_questions', ()
               size([(:Task {id: 'gen-1'})-[:PRODUCED]->(p) | 1]) AS produced`,
       { A },
     );
-    expect(p).toEqual({ origin: 'prompt', visibility: 'private', owned: 1, yielded: 1, produced: 1 });
+    expect(p).toEqual({
+      origin: 'prompt',
+      visibility: 'private',
+      owned: 1,
+      yielded: 1,
+      produced: 1,
+    });
   });
 
   it('an upload puzzle keeps origin upload', async () => {
-    await q('create_task', { id: 'ing-1', kind: 'ingest', requesterId: A, sourceId: 'S1', now: NOW });
-    await q('create_draft_puzzle', { ...puzzle, id: 'pz-up', sourceId: 'S1', taskId: 'ing-1', origin: 'upload' });
-    const [p] = await tg.cypher<{ origin: string }>(`MATCH (p:Puzzle {id: 'pz-up'}) RETURN p.origin AS origin`);
+    await q('create_task', {
+      id: 'ing-1',
+      kind: 'ingest',
+      requesterId: A,
+      sourceId: 'S1',
+      now: NOW,
+    });
+    await q('create_draft_puzzle', {
+      ...puzzle,
+      id: 'pz-up',
+      sourceId: 'S1',
+      taskId: 'ing-1',
+      origin: 'upload',
+    });
+    const [p] = await tg.cypher<{ origin: string }>(
+      `MATCH (p:Puzzle {id: 'pz-up'}) RETURN p.origin AS origin`,
+    );
     expect(p!.origin).toBe('upload');
   });
 
@@ -253,7 +305,15 @@ describe('create_draft_puzzle with an origin and create_generated_questions', ()
       now: NOW,
     });
     expect(written).toEqual([{ written: 2 }]);
-    const stored = await tg.cypher<{ id: string; status: string; critique: string; order: number; tests: number; from: number; grounded: number }>(
+    const stored = await tg.cypher<{
+      id: string;
+      status: string;
+      critique: string;
+      order: number;
+      tests: number;
+      from: number;
+      grounded: number;
+    }>(
       `MATCH (:Puzzle {id: 'pz-1'})-[ct:CONTAINS]->(q:Question)
        RETURN q.id AS id, q.status AS status, q.critique AS critique, ct.order AS order,
               size([(q)-[:TESTS]->(:Concept) | 1]) AS tests,
@@ -262,8 +322,24 @@ describe('create_draft_puzzle with an origin and create_generated_questions', ()
        ORDER BY ct.order`,
     );
     expect(stored).toEqual([
-      { id: 'gq-1', status: 'draft', critique: critique('one'), order: 1, tests: 1, from: 1, grounded: 0 },
-      { id: 'gq-2', status: 'draft', critique: critique('two'), order: 2, tests: 2, from: 1, grounded: 0 },
+      {
+        id: 'gq-1',
+        status: 'draft',
+        critique: critique('one'),
+        order: 1,
+        tests: 1,
+        from: 1,
+        grounded: 0,
+      },
+      {
+        id: 'gq-2',
+        status: 'draft',
+        critique: critique('two'),
+        order: 2,
+        tests: 2,
+        from: 1,
+        grounded: 0,
+      },
     ]);
     expect(await tg.countEdges('PRODUCED')).toBe(3);
   });
@@ -273,7 +349,9 @@ describe('create_draft_puzzle with an origin and create_generated_questions', ()
     const args = { puzzleId: 'pz-1', taskId: 'gen-1', sourceId: 'P1', questions, now: NOW };
     expect(await q('create_generated_questions', args)).toEqual([{ written: 2 }]);
     const before = await signature();
-    expect(await q('create_generated_questions', { ...args, now: NOW + 1 })).toEqual([{ written: 2 }]);
+    expect(await q('create_generated_questions', { ...args, now: NOW + 1 })).toEqual([
+      { written: 2 },
+    ]);
     expect(await signature()).toBe(before);
   });
 
@@ -308,7 +386,13 @@ describe('list_sources with a prompt source', () => {
     await q('upsert_concepts', {
       taskId: 'gen-1',
       concepts: [
-        { id: 'n-1', slug: 'call-numbers', name: 'Call numbers', description: 'Codes on a spine.', chunkIds: [] },
+        {
+          id: 'n-1',
+          slug: 'call-numbers',
+          name: 'Call numbers',
+          description: 'Codes on a spine.',
+          chunkIds: [],
+        },
       ],
       now: NOW,
     });
@@ -326,7 +410,15 @@ describe('list_sources with a prompt source', () => {
       taskId: 'gen-1',
       sourceId: 'P1',
       questions: [
-        { id: 'gq-1', sentence: 'A ___ is on the spine.', answers: ['x'], distractors: ['a', 'b'], order: 1, conceptSlugs: ['call-numbers', 'sql'], critique: '{}' },
+        {
+          id: 'gq-1',
+          sentence: 'A ___ is on the spine.',
+          answers: ['x'],
+          distractors: ['a', 'b'],
+          order: 1,
+          conceptSlugs: ['call-numbers', 'sql'],
+          critique: '{}',
+        },
       ],
       now: NOW,
     });
@@ -374,7 +466,15 @@ describe('get_source and list_drafts for a prompt', () => {
       taskId: 'gen-1',
       sourceId: 'P1',
       questions: [
-        { id: 'gq-1', sentence: 'A ___ is on the spine.', answers: ['x'], distractors: ['a', 'b'], order: 1, conceptSlugs: ['index'], critique },
+        {
+          id: 'gq-1',
+          sentence: 'A ___ is on the spine.',
+          answers: ['x'],
+          distractors: ['a', 'b'],
+          order: 1,
+          conceptSlugs: ['index'],
+          critique,
+        },
       ],
       now: NOW,
     });
@@ -382,7 +482,14 @@ describe('get_source and list_drafts for a prompt', () => {
 
   it('get_source returns the brief and null content to the owner, and the same under the share rule as an upload', async () => {
     const [own] = await q<Record<string, unknown>>('get_source', { sourceId: 'P1', userId: A });
-    expect(own).toMatchObject({ id: 'P1', kind: 'prompt', brief: BRIEF, content: null, access: 'owner', puzzleId: 'pz-1' });
+    expect(own).toMatchObject({
+      id: 'P1',
+      kind: 'prompt',
+      brief: BRIEF,
+      content: null,
+      access: 'owner',
+      puzzleId: 'pz-1',
+    });
 
     // Not shared, shared without the source, then shared with it.
     expect(await q('get_source', { sourceId: 'P1', userId: B })).toEqual([]);
@@ -391,7 +498,10 @@ describe('get_source and list_drafts for a prompt', () => {
       { B },
     );
     expect(await q('get_source', { sourceId: 'P1', userId: B })).toEqual([]);
-    await run(`MATCH (:Puzzle {id: 'pz-1'})-[s:SHARED_WITH]->(:Learner {id: $B}) SET s.withSource = true`, { B });
+    await run(
+      `MATCH (:Puzzle {id: 'pz-1'})-[s:SHARED_WITH]->(:Learner {id: $B}) SET s.withSource = true`,
+      { B },
+    );
     const [shared] = await q<Record<string, unknown>>('get_source', { sourceId: 'P1', userId: B });
     expect(shared).toMatchObject({ brief: BRIEF, access: 'shared', content: null });
     // No role sees more: a reviewer and an admin have no row.
@@ -419,7 +529,9 @@ describe('get_source and list_drafts for a prompt', () => {
       questionOrder: 1,
     });
     for (const userId of [B, IDS.R, IDS.M]) {
-      expect(await q('list_drafts', { userId, status: null, taskId: null, questionId: null })).toEqual([]);
+      expect(
+        await q('list_drafts', { userId, status: null, taskId: null, questionId: null }),
+      ).toEqual([]);
     }
   });
 });
@@ -442,7 +554,15 @@ describe('invariant of the prompt path', () => {
       taskId: 'gen-1',
       sourceId: 'P1',
       questions: [
-        { id: 'gq-1', sentence: 'A ___ is on the spine.', answers: ['x'], distractors: ['a', 'b'], order: 1, conceptSlugs: ['index'], critique: '{"verdict":"pass"}' },
+        {
+          id: 'gq-1',
+          sentence: 'A ___ is on the spine.',
+          answers: ['x'],
+          distractors: ['a', 'b'],
+          order: 1,
+          conceptSlugs: ['index'],
+          critique: '{"verdict":"pass"}',
+        },
       ],
       now: NOW,
     });

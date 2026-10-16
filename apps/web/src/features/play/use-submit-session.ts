@@ -32,12 +32,15 @@ export function useSubmitSession(state: BoardState, dispatch: Dispatch<Action>) 
   const inFlight = useRef(false);
 
   const goToResult = useCallback(
-    (sessionId: string) => navigate({ to: '/sessions/$sessionId/result', params: { sessionId }, replace: true }),
+    (sessionId: string) =>
+      navigate({ to: '/sessions/$sessionId/result', params: { sessionId }, replace: true }),
     [navigate],
   );
 
   const mutation = useMutation({
-    mutationFn: async (current: BoardState): Promise<{ sessionId: string; result: SubmitResult }> => {
+    mutationFn: async (
+      current: BoardState,
+    ): Promise<{ sessionId: string; result: SubmitResult }> => {
       let sessionId = current.sessionId;
       try {
         if (!sessionId) {
@@ -77,7 +80,10 @@ export function useSubmitSession(state: BoardState, dispatch: Dispatch<Action>) 
       } else {
         dispatch({
           type: 'SUBMIT_FAIL',
-          error: error instanceof ApiClientError ? error : new ApiClientError({ status: 0, code: 'UNKNOWN', message: 'Service unavailable.' }),
+          error:
+            error instanceof ApiClientError
+              ? error
+              : new ApiClientError({ status: 0, code: 'UNKNOWN', message: 'Service unavailable.' }),
         });
       }
     } finally {

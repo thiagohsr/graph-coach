@@ -58,7 +58,9 @@ export function createStaticServer(clientRoot) {
     const headers = {
       'Content-Type': MIME[path.extname(file).toLowerCase()] ?? 'application/octet-stream',
       'Content-Length': stat.size,
-      'Cache-Control': pathname.startsWith('/assets/') ? 'public, max-age=31536000, immutable' : 'public, max-age=3600',
+      'Cache-Control': pathname.startsWith('/assets/')
+        ? 'public, max-age=31536000, immutable'
+        : 'public, max-age=3600',
     };
     res.writeHead(200, headers);
     if (req.method === 'HEAD') res.end();

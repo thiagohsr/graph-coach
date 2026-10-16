@@ -42,14 +42,24 @@ export class MasteryService {
     if (outcomes.size === 0) return [];
 
     const conceptIds = [...outcomes.keys()];
-    const current = await this.graph.query('learner_mastery', { learnerId, conceptIds }, { schema: MasteryRow });
-    const previous = new Map(current.map((row) => [row.conceptId, { score: row.score, attempts: row.attempts }]));
+    const current = await this.graph.query(
+      'learner_mastery',
+      { learnerId, conceptIds },
+      { schema: MasteryRow },
+    );
+    const previous = new Map(
+      current.map((row) => [row.conceptId, { score: row.score, attempts: row.attempts }]),
+    );
     const alpha = await this.settings.get('masteryAlpha');
 
     return conceptIds
       .map((conceptId) => {
         const entry = outcomes.get(conceptId)!;
-        return { conceptId, name: entry.name, ...foldMastery(previous.get(conceptId), entry.outcomes, alpha) };
+        return {
+          conceptId,
+          name: entry.name,
+          ...foldMastery(previous.get(conceptId), entry.outcomes, alpha),
+        };
       })
       .sort((a, b) => (a.name < b.name ? -1 : a.name > b.name ? 1 : 0));
   }
@@ -58,20 +68,34 @@ export class MasteryService {
    * plan() + upsert_mastery. For seed tooling and tests ONLY: it must not be called from a controller or from submit
    * (submit writes mastery inside record_answers, in one query).
    */
-  async apply(learnerId: string, blanks: GradedBlank[], key: AnswerKey, now?: number): Promise<MasteryChange[]> {
+  async apply(
+    learnerId: string,
+    blanks: GradedBlank[],
+    key: AnswerKey,
+    now?: number,
+  ): Promise<MasteryChange[]> {
     const changes = await this.plan(learnerId, blanks, key);
     if (changes.length === 0) return changes;
     const lastSeen = now ?? this.clock.now().getTime();
     await this.graph.query('upsert_mastery', {
       learnerId,
-      rows: changes.map((c) => ({ conceptId: c.conceptId, score: c.after, attempts: c.attempts, lastSeen })),
+      rows: changes.map((c) => ({
+        conceptId: c.conceptId,
+        score: c.after,
+        attempts: c.attempts,
+        lastSeen,
+      })),
     });
     return changes;
   }
 
   /** Every practised concept, ordered by name. */
   async list(learnerId: string): Promise<MasteryDto[]> {
-    const rows = await this.graph.query('learner_mastery', { learnerId, conceptIds: null }, { schema: MasteryRow });
+    const rows = await this.graph.query(
+      'learner_mastery',
+      { learnerId, conceptIds: null },
+      { schema: MasteryRow },
+    );
     return rows
       .map((row) => ({
         conceptId: row.conceptId,

@@ -22,7 +22,8 @@ import { printSetupReport } from './setup-graph.command';
 
 @Command({
   name: 'seed',
-  description: 'Load the synthetic seed content: demo users, concepts, puzzles, and the Coach scenario',
+  description:
+    'Load the synthetic seed content: demo users, concepts, puzzles, and the Coach scenario',
 })
 export class SeedCommand extends CommandRunner {
   constructor(
@@ -36,12 +37,18 @@ export class SeedCommand extends CommandRunner {
     super();
   }
 
-  @Option({ flags: '--no-scenario', description: 'Skip the Coach scenario (sessions, answers, mastery)' })
+  @Option({
+    flags: '--no-scenario',
+    description: 'Skip the Coach scenario (sessions, answers, mastery)',
+  })
   parseNoScenario(): boolean {
     return false;
   }
 
-  @Option({ flags: '--dir <path>', description: 'Read the seed from this directory instead of seed/' })
+  @Option({
+    flags: '--dir <path>',
+    description: 'Read the seed from this directory instead of seed/',
+  })
   parseDir(value: string): string {
     return value;
   }
@@ -60,7 +67,9 @@ export class SeedCommand extends CommandRunner {
     const issues = validateSeed(data);
     if (issues.length > 0) {
       for (const issue of issues) this.out.line(`${issue.file} ${issue.path}: ${issue.message}`);
-      throw new CliError(`The seed has ${issues.length} problem${issues.length === 1 ? '' : 's'}; nothing was loaded`);
+      throw new CliError(
+        `The seed has ${issues.length} problem${issues.length === 1 ? '' : 's'}; nothing was loaded`,
+      );
     }
 
     // 2. The graph schema (idempotent; reports only what it had to create).
@@ -74,7 +83,10 @@ export class SeedCommand extends CommandRunner {
     // 3. Demo users in Postgres: display name only on conflict; never role, status, or identities.
     const now = this.clock.now();
     const emails = data.users.map((user) => user.email.trim().toLowerCase());
-    const existing = await this.db.select({ email: users.email }).from(users).where(inArray(users.email, emails));
+    const existing = await this.db
+      .select({ email: users.email })
+      .from(users)
+      .where(inArray(users.email, emails));
     for (const user of data.users) {
       const email = user.email.trim().toLowerCase();
       await this.db
@@ -88,9 +100,14 @@ export class SeedCommand extends CommandRunner {
           createdAt: now,
         })
         .onConflictDoUpdate({ target: users.email, set: { displayName: user.displayName } });
-      const [row] = await this.db.select({ id: users.id }).from(users).where(eq(users.email, email));
+      const [row] = await this.db
+        .select({ id: users.id })
+        .from(users)
+        .where(eq(users.email, email));
       if (row && row.id !== seedIds.user(user.key as Parameters<typeof seedIds.user>[0])) {
-        this.out.line(`warning: demo user "${user.key}" already exists under another id; its graph node uses the seeded id`);
+        this.out.line(
+          `warning: demo user "${user.key}" already exists under another id; its graph node uses the seeded id`,
+        );
       }
     }
     const created = data.users.length - existing.length;

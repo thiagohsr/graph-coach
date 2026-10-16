@@ -8,7 +8,10 @@ async function signIn(page: Page, who: 'learner2' | 'admin') {
   const button =
     who === 'admin'
       ? page.getByRole('button').filter({ hasText: /admin/i })
-      : page.getByRole('button').filter({ hasText: /learner/ }).nth(1);
+      : page
+          .getByRole('button')
+          .filter({ hasText: /learner/ })
+          .nth(1);
   await button.first().click();
   await expect(page).toHaveURL(/\/puzzles$/);
 }
@@ -18,7 +21,9 @@ async function expectFits(page: Page, label: string) {
   await expect(page.getByRole('heading').first(), `${label}: heading`).toBeVisible();
   await page.waitForLoadState('networkidle');
   await expect
-    .poll(() => page.evaluate(() => document.documentElement.scrollWidth), { message: `${label}: scrollWidth` })
+    .poll(() => page.evaluate(() => document.documentElement.scrollWidth), {
+      message: `${label}: scrollWidth`,
+    })
     .toBeLessThanOrEqual(375);
 }
 
@@ -83,13 +88,15 @@ test.describe('375 px (V10)', () => {
     await visit(page, modelHref!, 'admin list');
     // The first model (access codes) is empty on a fresh seed; visit a record only when one exists.
     const rows = page.locator(`main a[href^="${modelHref}/"]`);
-    if ((await rows.count()) > 0) await visit(page, (await rows.first().getAttribute('href'))!, 'admin detail');
+    if ((await rows.count()) > 0)
+      await visit(page, (await rows.first().getAttribute('href'))!, 'admin detail');
     await visit(page, '/review', 'review (admin)');
   });
 });
 
 // Parse "0.01ms, 0s" style lists into milliseconds.
-const msList = (value: string) => value.split(',').map((v) => (v.trim().endsWith('ms') ? parseFloat(v) : parseFloat(v) * 1000));
+const msList = (value: string) =>
+  value.split(',').map((v) => (v.trim().endsWith('ms') ? parseFloat(v) : parseFloat(v) * 1000));
 
 /** Resolve any CSS colour (oklch included) to sRGB through a canvas, then contrast ratio. */
 async function contrast(page: Page, fgSelector: string, bgSelector: string) {
@@ -117,31 +124,49 @@ async function contrast(page: Page, fgSelector: string, bgSelector: string) {
 }
 
 test.describe('reduced motion and dark scheme (V11)', () => {
-  test.use({ colorScheme: 'dark', reducedMotion: 'reduce', viewport: { width: 1024, height: 800 } });
+  test.use({
+    colorScheme: 'dark',
+    reducedMotion: 'reduce',
+    viewport: { width: 1024, height: 800 },
+  });
 
   test('no motion, readable tokens and visible focus rings', async ({ page }) => {
     test.setTimeout(120_000);
     await signIn(page, 'learner2');
-    expect(await page.evaluate(() => matchMedia('(prefers-reduced-motion: reduce)').matches)).toBe(true);
-    expect(await page.evaluate(() => matchMedia('(prefers-color-scheme: dark)').matches)).toBe(true);
+    expect(await page.evaluate(() => matchMedia('(prefers-reduced-motion: reduce)').matches)).toBe(
+      true,
+    );
+    expect(await page.evaluate(() => matchMedia('(prefers-color-scheme: dark)').matches)).toBe(
+      true,
+    );
 
     const motionFree = async (label: string) => {
       const offenders = await page.evaluate(() => {
         const out: string[] = [];
         for (const el of document.querySelectorAll('*')) {
           const s = getComputedStyle(el);
-          out.push(`${el.tagName}|${s.animationDuration}|${s.transitionDuration}|${s.animationIterationCount}`);
+          out.push(
+            `${el.tagName}|${s.animationDuration}|${s.transitionDuration}|${s.animationIterationCount}`,
+          );
         }
         return out;
       });
       for (const row of offenders) {
         const [tag, anim, trans, iter] = row.split('|');
         expect(Math.max(...msList(anim!)), `${label}: ${tag} animation`).toBeLessThanOrEqual(0.01);
-        expect(Math.max(...msList(trans!)), `${label}: ${tag} transition`).toBeLessThanOrEqual(0.01);
+        expect(Math.max(...msList(trans!)), `${label}: ${tag} transition`).toBeLessThanOrEqual(
+          0.01,
+        );
         if (Math.max(...msList(anim!)) > 0) expect(iter, `${label}: ${tag} iterations`).toBe('1');
       }
-      const running = await page.evaluate(() =>
-        document.getAnimations().filter((a) => a.playState === 'running' && Number(a.effect?.getComputedTiming().iterations) > 1).length,
+      const running = await page.evaluate(
+        () =>
+          document
+            .getAnimations()
+            .filter(
+              (a) =>
+                a.playState === 'running' && Number(a.effect?.getComputedTiming().iterations) > 1,
+            ).length,
       );
       expect(running, `${label}: infinite animations`).toBe(0);
     };
@@ -150,7 +175,10 @@ test.describe('reduced motion and dark scheme (V11)', () => {
     const href = await page.getByRole('link', { name: /^Play/ }).first().getAttribute('href');
     await page.goto(href!);
     await expect(page.getByRole('button', { name: 'Submit answers' })).toBeVisible();
-    await page.getByRole('button', { name: /blank 1 of \d+, empty/ }).first().click();
+    await page
+      .getByRole('button', { name: /blank 1 of \d+, empty/ })
+      .first()
+      .click();
     await page.getByRole('group', { name: 'Word bank' }).getByRole('button').first().click();
     await motionFree('play board');
 
@@ -163,7 +191,10 @@ test.describe('reduced motion and dark scheme (V11)', () => {
     await page.keyboard.press('Tab');
     const ring = await page.evaluate(() => {
       const s = getComputedStyle(document.activeElement!);
-      return { outline: s.outlineStyle !== 'none' && parseFloat(s.outlineWidth) > 0, shadow: s.boxShadow !== 'none' };
+      return {
+        outline: s.outlineStyle !== 'none' && parseFloat(s.outlineWidth) > 0,
+        shadow: s.boxShadow !== 'none',
+      };
     });
     expect(ring.outline || ring.shadow, 'focus ring on the first tabbed control').toBe(true);
 
@@ -181,7 +212,10 @@ test.describe('reduced motion and dark scheme (V11)', () => {
     for (const path of ['/puzzles', '/mastery', '/account', '/sources', '/sources/new']) {
       await page.goto(path);
       await expect(page.getByRole('heading').first()).toBeVisible();
-      expect(await contrast(page, 'main h1', 'body'), `${path}: heading contrast`).toBeGreaterThanOrEqual(7);
+      expect(
+        await contrast(page, 'main h1', 'body'),
+        `${path}: heading contrast`,
+      ).toBeGreaterThanOrEqual(7);
       await motionFree(path);
     }
   });

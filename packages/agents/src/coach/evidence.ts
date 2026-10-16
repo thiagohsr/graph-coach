@@ -31,11 +31,23 @@ function targetItem(selection: Selection): EvidenceItem {
   const base = { label: 'Concept' as const, nodeId: t.conceptId, role: 'target' as const };
   switch (selection.kind) {
     case 'cold_start':
-      return { ...base, reason: 'target: introductory concept with no prerequisites', weight: weight('target', UNSEEN_STRENGTH) };
+      return {
+        ...base,
+        reason: 'target: introductory concept with no prerequisites',
+        weight: weight('target', UNSEEN_STRENGTH),
+      };
     case 'unseen':
-      return { ...base, reason: 'target: never practised', weight: weight('target', UNSEEN_STRENGTH) };
+      return {
+        ...base,
+        reason: 'target: never practised',
+        weight: weight('target', UNSEEN_STRENGTH),
+      };
     case 'goal':
-      return { ...base, reason: 'target: concept of your goal', weight: weight('target', UNSEEN_STRENGTH) };
+      return {
+        ...base,
+        reason: 'target: concept of your goal',
+        weight: weight('target', UNSEEN_STRENGTH),
+      };
     case 'all_mastered':
       return {
         ...base,
@@ -60,7 +72,10 @@ export interface BuildEvidenceInput {
 }
 
 // `_settings` is in the contract signature; weights are constants.
-export function buildEvidence(input: BuildEvidenceInput, _settings?: CoachSettings): EvidenceItem[] {
+export function buildEvidence(
+  input: BuildEvidenceInput,
+  _settings?: CoachSettings,
+): EvidenceItem[] {
   const { selection, answers } = input;
   const items: EvidenceItem[] = [targetItem(selection)];
 
@@ -85,7 +100,10 @@ export function buildEvidence(input: BuildEvidenceInput, _settings?: CoachSettin
   }
 
   // One question can test both the target and a driver: count each (question, session) once.
-  const perQuestionSession = new Map<string, { questionId: string; sessionId: string; submittedAt: number; misses: number }>();
+  const perQuestionSession = new Map<
+    string,
+    { questionId: string; sessionId: string; submittedAt: number; misses: number }
+  >();
   for (const row of answers) {
     const key = `${row.questionId}\u0000${row.sessionId}`;
     const existing = perQuestionSession.get(key);
@@ -141,7 +159,9 @@ export function buildEvidence(input: BuildEvidenceInput, _settings?: CoachSettin
     if (row.via !== 'passage' || row.bestChunkId === null) continue;
     bestPerChunk.set(row.bestChunkId, Math.max(bestPerChunk.get(row.bestChunkId) ?? 0, row.score));
   }
-  const chunks = [...bestPerChunk.entries()].sort(([ia, a], [ib, b]) => b - a || cmp(ia, ib)).slice(0, MAX_PASSAGE_EVIDENCE);
+  const chunks = [...bestPerChunk.entries()]
+    .sort(([ia, a], [ib, b]) => b - a || cmp(ia, ib))
+    .slice(0, MAX_PASSAGE_EVIDENCE);
   for (const [chunkId, similarity] of chunks) {
     items.push({
       label: 'Chunk',

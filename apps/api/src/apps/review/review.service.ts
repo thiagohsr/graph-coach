@@ -42,7 +42,11 @@ export class ReviewService {
     return rows.map(toDto);
   }
 
-  async edit(user: AuthUser, questionId: string, patch: DraftUpdateRequest): Promise<DraftQuestionDto> {
+  async edit(
+    user: AuthUser,
+    questionId: string,
+    patch: DraftUpdateRequest,
+  ): Promise<DraftQuestionDto> {
     const draft = await this.loadOwned(user, questionId);
     const merged = {
       sentence: patch.sentence ?? draft.sentence,
@@ -65,22 +69,38 @@ export class ReviewService {
     // An upload draft needs its passage, a prompt draft its brief; both need at least one concept.
     const missing: DraftViolation[] = [];
     if (draft.concepts.every((c) => c.slug === null)) {
-      missing.push({ code: 'no_concept', path: 'concepts', message: 'The question tests no concept.' });
+      missing.push({
+        code: 'no_concept',
+        path: 'concepts',
+        message: 'The question tests no concept.',
+      });
     }
     if (draft.origin === 'upload' && draft.chunkId === null) {
-      missing.push({ code: 'answer_not_in_passage', path: 'answers', message: 'The question has no passage.' });
+      missing.push({
+        code: 'answer_not_in_passage',
+        path: 'answers',
+        message: 'The question has no passage.',
+      });
     }
     if (draft.origin === 'prompt' && !draft.hasBrief) {
       missing.push({ code: 'no_concept', path: 'concepts', message: 'The question has no brief.' });
     }
     if (missing.length > 0) throw invalid(missing);
 
-    const done = await this.graph.approveQuestion(questionId, callerParams(user).userId, this.now());
+    const done = await this.graph.approveQuestion(
+      questionId,
+      callerParams(user).userId,
+      this.now(),
+    );
     if (!done) throw alreadyDecided('approved');
     return this.publish.onDecision(draft, 'approved');
   }
 
-  async reject(user: AuthUser, questionId: string, reason: string | undefined): Promise<ReviewOutcome> {
+  async reject(
+    user: AuthUser,
+    questionId: string,
+    reason: string | undefined,
+  ): Promise<ReviewOutcome> {
     const draft = await this.loadOwned(user, questionId);
     const done = await this.graph.rejectQuestion(
       questionId,
@@ -110,8 +130,16 @@ export class ReviewService {
   ): void {
     const slugs = draft.concepts.map((c) => c.slug).filter((s): s is string => s !== null);
     const verdict = validateDraft(
-      { sentence: values.sentence, answers: values.answers, distractors: values.distractors, conceptSlugs: slugs },
-      { chunkText: draft.origin === 'upload' ? draft.chunkText : null, allowedSlugs: new Set(slugs) },
+      {
+        sentence: values.sentence,
+        answers: values.answers,
+        distractors: values.distractors,
+        conceptSlugs: slugs,
+      },
+      {
+        chunkText: draft.origin === 'upload' ? draft.chunkText : null,
+        allowedSlugs: new Set(slugs),
+      },
     );
     if (!verdict.ok) throw invalid(verdict.violations);
   }
@@ -140,9 +168,10 @@ function toDto(row: DraftRow): DraftQuestionDto {
     concepts: row.concepts
       .filter((c) => c.id !== null)
       .map((c) => ({ id: c.id!, name: c.name ?? c.slug ?? c.id! })),
-    passage: row.origin === 'upload' && row.chunkId !== null && row.chunkText !== null
-      ? { chunkId: row.chunkId, text: row.chunkText }
-      : null,
+    passage:
+      row.origin === 'upload' && row.chunkId !== null && row.chunkText !== null
+        ? { chunkId: row.chunkId, text: row.chunkText }
+        : null,
     critique: parseCritique(row.critique),
     origin: row.origin,
     puzzleId: row.puzzleId,

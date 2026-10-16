@@ -37,8 +37,11 @@ const newUser = (role: 'learner' | 'reviewer' | 'admin' = 'learner', name?: stri
   app.createUser({ role, ...(name ? { name } : {}) });
 const orchestrator = () => app.app.get(RunOrchestrator);
 
-const postPrompt = (user: TestUser, brief: Record<string, unknown> = BRIEF, title = 'Cataloguing') =>
-  app.http.post('/sources').set(user.auth).send({ title, kind: 'prompt', brief });
+const postPrompt = (
+  user: TestUser,
+  brief: Record<string, unknown> = BRIEF,
+  title = 'Cataloguing',
+) => app.http.post('/sources').set(user.auth).send({ title, kind: 'prompt', brief });
 
 async function create(user: TestUser, brief: Record<string, unknown> = BRIEF) {
   const res = await postPrompt(user, brief);
@@ -94,7 +97,9 @@ describe('S9.1 a prompt creation runs the five steps', () => {
     const steps = stream.frames.filter((f) => f.event.node !== 'task');
     expect([...new Set(steps.map((f) => f.event.node))]).toEqual(PROMPT_NODES);
     for (const node of PROMPT_NODES) {
-      expect(steps.filter((f) => f.event.node === node && f.event.status === 'complete')).toHaveLength(1);
+      expect(
+        steps.filter((f) => f.event.node === node && f.event.status === 'complete'),
+      ).toHaveLength(1);
     }
     const last = stream.frames.at(-1)!;
     expect(last.id).toBe('task:awaiting_review');
@@ -148,7 +153,14 @@ describe('S9.1 a prompt creation runs the five steps', () => {
     );
     expect(rows).toHaveLength(BRIEF.sentences);
     for (const row of rows) {
-      expect(row).toMatchObject({ origin: 'prompt', status: 'draft', visibility: 'private', qs: 'draft', fromBrief: 1, grounded: 0 });
+      expect(row).toMatchObject({
+        origin: 'prompt',
+        status: 'draft',
+        visibility: 'private',
+        qs: 'draft',
+        fromBrief: 1,
+        grounded: 0,
+      });
       expect(row.tests.length).toBeGreaterThan(0);
       expect(JSON.parse(row.critique)).toMatchObject({ verdict: 'pass', rewritten: false });
     }
@@ -224,16 +236,43 @@ describe('S9.3 junk briefs are refused cheaply', () => {
     ['two letters', { ...BRIEF, subject: 'ab' }, 'VALIDATION_FAILED', ''],
     ['digits only', { ...BRIEF, subject: '12345 67890' }, 'SOURCE_REJECTED', 'brief_no_letters'],
     ['symbols only', { ...BRIEF, subject: '!!!???' }, 'SOURCE_REJECTED', 'brief_no_letters'],
-    ['one letter repeated', { ...BRIEF, subject: 'aaaaaaaaaaaa' }, 'SOURCE_REJECTED', 'brief_not_a_topic'],
-    ['a repeated word', { ...BRIEF, subject: 'test test test test' }, 'SOURCE_REJECTED', 'brief_not_a_topic'],
-    ['a URL', { ...BRIEF, subject: 'https://example.com/page' }, 'SOURCE_REJECTED', 'brief_not_a_topic'],
-    ['an address', { ...BRIEF, subject: 'someone@example.com' }, 'SOURCE_REJECTED', 'brief_not_a_topic'],
-    ['a URL as focus', { ...BRIEF, focus: 'https://example.com/page' }, 'SOURCE_REJECTED', 'brief_not_a_topic'],
+    [
+      'one letter repeated',
+      { ...BRIEF, subject: 'aaaaaaaaaaaa' },
+      'SOURCE_REJECTED',
+      'brief_not_a_topic',
+    ],
+    [
+      'a repeated word',
+      { ...BRIEF, subject: 'test test test test' },
+      'SOURCE_REJECTED',
+      'brief_not_a_topic',
+    ],
+    [
+      'a URL',
+      { ...BRIEF, subject: 'https://example.com/page' },
+      'SOURCE_REJECTED',
+      'brief_not_a_topic',
+    ],
+    [
+      'an address',
+      { ...BRIEF, subject: 'someone@example.com' },
+      'SOURCE_REJECTED',
+      'brief_not_a_topic',
+    ],
+    [
+      'a URL as focus',
+      { ...BRIEF, focus: 'https://example.com/page' },
+      'SOURCE_REJECTED',
+      'brief_not_a_topic',
+    ],
   ];
 
   it.each(junk)('%s', async (_name, brief, code, reason) => {
     const user = await newUser();
-    const sources = (await app.testGraph.cypher<{ n: number }>(`MATCH (s:Source) RETURN count(s) AS n`))[0]!.n;
+    const sources = (
+      await app.testGraph.cypher<{ n: number }>(`MATCH (s:Source) RETURN count(s) AS n`)
+    )[0]!.n;
     const calls = app.chat.callCount();
     const res = await postPrompt(user, brief);
     expect(res.status).toBe(422);
@@ -242,7 +281,9 @@ describe('S9.3 junk briefs are refused cheaply', () => {
       expect(res.body.error.details.reasons).toContain(reason);
       expect(res.body.error.details.issues[0].path).toMatch(/^brief\.(subject|focus|sentences)$/);
     }
-    expect((await app.testGraph.cypher<{ n: number }>(`MATCH (s:Source) RETURN count(s) AS n`))[0]!.n).toBe(sources);
+    expect(
+      (await app.testGraph.cypher<{ n: number }>(`MATCH (s:Source) RETURN count(s) AS n`))[0]!.n,
+    ).toBe(sources);
     expect(app.chat.callCount()).toBe(calls);
     expect(app.embeddings.calls).toHaveLength(0);
     // Nothing was consumed.
@@ -254,7 +295,9 @@ describe('S9.3 junk briefs are refused cheaply', () => {
     const res = await postPrompt(user, { subject: '!! !!', difficulty: 'easy', sentences: 5 });
     expect(res.status).toBe(422);
     expect(res.body.error.code).toBe('SOURCE_REJECTED');
-    expect(res.body.error.details.reasons).toEqual(expect.arrayContaining(['brief_too_short', 'brief_no_letters']));
+    expect(res.body.error.details.reasons).toEqual(
+      expect.arrayContaining(['brief_too_short', 'brief_no_letters']),
+    );
     expect(res.body.error.details.issues.map((i: any) => i.path)).toContain('brief.subject');
   });
 
@@ -330,7 +373,10 @@ describe('S9.4 review, publish, share, and play a prompt puzzle', () => {
       outcomes.push(res.body);
     }
     expect(outcomes.map((o) => o.puzzle.status)).toEqual(['draft', 'draft', 'published']);
-    const last = await app.http.post(`/review/questions/${list[3].id}/reject`).set(owner.auth).send({});
+    const last = await app.http
+      .post(`/review/questions/${list[3].id}/reject`)
+      .set(owner.auth)
+      .send({});
     expect(last.status).toBe(200);
     expect(last.body.task).toMatchObject({ id: run.taskId, status: 'done', result: 'ok' });
     const task = await app.http.get(`/tasks/${run.taskId}`).set(owner.auth);
@@ -361,7 +407,10 @@ describe('S9.4 review, publish, share, and play a prompt puzzle', () => {
       expect(play.body.origin).toBe('prompt');
       const session = await app.http.post(`/puzzles/${puzzleId}/sessions`).set(user.auth);
       expect(session.status).toBe(201);
-      const result = await app.http.post(`/sessions/${session.body.sessionId}/submit`).set(user.auth).send({ answers: [] });
+      const result = await app.http
+        .post(`/sessions/${session.body.sessionId}/submit`)
+        .set(user.auth)
+        .send({ answers: [] });
       expect(result.status).toBe(200);
       expect(JSON.stringify([play.body, result.body])).not.toMatch(/passage/i);
     }
@@ -379,7 +428,9 @@ describe('S9.5 failure and retry behave as for uploads', () => {
 
     const failed = await app.http.get(`/tasks/${run.taskId}`).set(user.auth);
     expect(failed.body).toMatchObject({ status: 'failed', lastCompletedStep: 'draftQuestions' });
-    expect(failed.body.error).toBe('critique: PROVIDER_UNAVAILABLE: The model provider could not answer');
+    expect(failed.body.error).toBe(
+      'critique: PROVIDER_UNAVAILABLE: The model provider could not answer',
+    );
     expect(failed.body.steps.map((s: any) => [s.node, s.status])).toEqual([
       ['outline', 'complete'],
       ['draftQuestions', 'complete'],
@@ -401,7 +452,10 @@ describe('S9.5 failure and retry behave as for uploads', () => {
     const done = (await app.http.get(`/tasks/${run.taskId}`).set(user.auth)).body;
     expect(done).toMatchObject({ status: 'awaiting_review', lastCompletedStep: 'validate' });
     expect(done.error).toBeUndefined();
-    expect(done.steps.filter((s: any) => s.node === 'critique').map((s: any) => s.status)).toEqual(['error', 'complete']);
+    expect(done.steps.filter((s: any) => s.node === 'critique').map((s: any) => s.status)).toEqual([
+      'error',
+      'complete',
+    ]);
     expect(done.steps.filter((s: any) => s.node === 'outline')).toHaveLength(1);
     expect(done.produced.questions).toBe(BRIEF.sentences);
     // The planner ran once for this task, even though a retry went on from the stored outline.
@@ -417,10 +471,15 @@ describe('the access matrix of a prompt creation equals the upload one', () => {
       const list = await drafts(actors.owner, run.taskId);
       let puzzleId = '';
       for (const draft of list.slice(0, 3)) {
-        const res = await testApp.http.post(`/review/questions/${draft.id}/approve`).set(actors.owner.auth);
+        const res = await testApp.http
+          .post(`/review/questions/${draft.id}/approve`)
+          .set(actors.owner.auth);
         puzzleId = res.body.puzzle.id;
       }
-      await testApp.http.put(`/puzzles/${puzzleId}/shares`).set(actors.owner.auth).send({ email: actors.shared.email, withSource: false });
+      await testApp.http
+        .put(`/puzzles/${puzzleId}/shares`)
+        .set(actors.owner.auth)
+        .send({ email: actors.shared.email, withSource: false });
       await testApp.http
         .put(`/puzzles/${puzzleId}/shares`)
         .set(actors.owner.auth)
@@ -428,14 +487,29 @@ describe('the access matrix of a prompt creation equals the upload one', () => {
       return { ...run, puzzleId };
     },
     [
-      { name: 'GET /tasks/:id', request: (c) => ({ method: 'GET', path: `/tasks/${c.taskId}` }), expect: ACCESS.ownerOnly },
-      { name: 'GET /tasks/:id/events', request: (c) => ({ method: 'GET', path: `/tasks/${c.taskId}/events` }), expect: ACCESS.ownerOnly },
       {
-        name: 'GET /review/questions?taskId=',
-        request: (c) => ({ method: 'GET', path: `/review/questions?taskId=${c.taskId}&status=approved` }),
+        name: 'GET /tasks/:id',
+        request: (c) => ({ method: 'GET', path: `/tasks/${c.taskId}` }),
         expect: ACCESS.ownerOnly,
       },
-      { name: 'GET /sources/:id (the brief)', request: (c) => ({ method: 'GET', path: `/sources/${c.sourceId}` }), expect: ACCESS.ownerAndSourceShared },
+      {
+        name: 'GET /tasks/:id/events',
+        request: (c) => ({ method: 'GET', path: `/tasks/${c.taskId}/events` }),
+        expect: ACCESS.ownerOnly,
+      },
+      {
+        name: 'GET /review/questions?taskId=',
+        request: (c) => ({
+          method: 'GET',
+          path: `/review/questions?taskId=${c.taskId}&status=approved`,
+        }),
+        expect: ACCESS.ownerOnly,
+      },
+      {
+        name: 'GET /sources/:id (the brief)',
+        request: (c) => ({ method: 'GET', path: `/sources/${c.sourceId}` }),
+        expect: ACCESS.ownerAndSourceShared,
+      },
     ],
   );
 });

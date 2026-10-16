@@ -13,7 +13,13 @@ import {
   sessionNotFound,
   sessionNotSubmitted,
 } from './gameplay.errors';
-import { AnswerKeyRow, GroundingRow, RecordRow, SessionIdRow, SessionRow } from './gameplay.queries';
+import {
+  AnswerKeyRow,
+  GroundingRow,
+  RecordRow,
+  SessionIdRow,
+  SessionRow,
+} from './gameplay.queries';
 import { grade, validateSubmission } from './grading';
 import { LearnerLock } from './learner-lock';
 import { MasteryService } from './mastery.service';
@@ -47,7 +53,12 @@ export class SessionsService {
     return { sessionId: row.sessionId };
   }
 
-  async submit(user: AuthUser, sessionId: string, body: SubmitRequest, now?: number): Promise<SubmitResult> {
+  async submit(
+    user: AuthUser,
+    sessionId: string,
+    body: SubmitRequest,
+    now?: number,
+  ): Promise<SubmitResult> {
     return this.lock.run(user.id, async () => {
       const session = await this.loadSession(user.id, sessionId);
       if (session.submittedAt !== null) throw sessionAlreadySubmitted();
@@ -153,8 +164,14 @@ export class SessionsService {
     sessionId: string,
   ): Promise<Map<string, { chunkId: string; sourceId: string; text: string }>> {
     try {
-      const rows = await this.graph.query('question_grounding', { sessionId, userId }, { schema: GroundingRow });
-      return new Map(rows.map((r) => [r.questionId, { chunkId: r.chunkId, sourceId: r.sourceId, text: r.text }]));
+      const rows = await this.graph.query(
+        'question_grounding',
+        { sessionId, userId },
+        { schema: GroundingRow },
+      );
+      return new Map(
+        rows.map((r) => [r.questionId, { chunkId: r.chunkId, sourceId: r.sourceId, text: r.text }]),
+      );
     } catch {
       this.logger.warn(`grounding_unavailable session=${sessionId}`);
       return new Map();
@@ -163,7 +180,11 @@ export class SessionsService {
 
   /** Zero rows means unknown or another learner's session: both are 404. */
   private async loadSession(learnerId: string, sessionId: string): Promise<SessionRow> {
-    const rows = await this.graph.query('get_session', { sessionId, learnerId }, { schema: SessionRow });
+    const rows = await this.graph.query(
+      'get_session',
+      { sessionId, learnerId },
+      { schema: SessionRow },
+    );
     const row = rows[0];
     if (!row) throw sessionNotFound();
     return row;

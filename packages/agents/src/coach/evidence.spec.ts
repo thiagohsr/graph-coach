@@ -10,7 +10,11 @@ const workedSelection = (): Selection =>
 
 describe('buildEvidence, worked example', () => {
   const items = buildEvidence(
-    { selection: workedSelection(), answers: workedExampleRows().answers, flags: ['prerequisite_first'] },
+    {
+      selection: workedSelection(),
+      answers: workedExampleRows().answers,
+      flags: ['prerequisite_first'],
+    },
     DEFAULT_COACH_SETTINGS,
   );
 
@@ -65,7 +69,15 @@ describe('buildEvidence, worked example', () => {
 
 describe('buildEvidence, other cases', () => {
   const concept = (id: string, over = {}) => ({
-    conceptId: id, slug: id, name: id, score: 0.5, attempts: 1, lastSeen: 0, daysSince: 1, risk: 0.5, ...over,
+    conceptId: id,
+    slug: id,
+    name: id,
+    score: 0.5,
+    attempts: 1,
+    lastSeen: 0,
+    daysSince: 1,
+    risk: 0.5,
+    ...over,
   });
 
   it('alternatives get role alternative with weight 0.4 x rank / 2', () => {
@@ -81,11 +93,34 @@ describe('buildEvidence, other cases', () => {
   });
 
   it('unseen and cold start targets use the unseen strength', () => {
-    const base = { target: concept('t', { score: null, risk: null, daysSince: null }), drivers: [], alternatives: [] };
-    const unseen = buildEvidence({ selection: { ...base, kind: 'unseen' }, answers: [], flags: [] });
-    expect(unseen).toEqual([{ label: 'Concept', nodeId: 't', role: 'target', reason: 'target: never practised', weight: 0.375 }]);
-    const cold = buildEvidence({ selection: { ...base, kind: 'cold_start' }, answers: [], flags: [] });
-    expect(cold[0]).toMatchObject({ reason: 'target: introductory concept with no prerequisites', weight: 0.375 });
+    const base = {
+      target: concept('t', { score: null, risk: null, daysSince: null }),
+      drivers: [],
+      alternatives: [],
+    };
+    const unseen = buildEvidence({
+      selection: { ...base, kind: 'unseen' },
+      answers: [],
+      flags: [],
+    });
+    expect(unseen).toEqual([
+      {
+        label: 'Concept',
+        nodeId: 't',
+        role: 'target',
+        reason: 'target: never practised',
+        weight: 0.375,
+      },
+    ]);
+    const cold = buildEvidence({
+      selection: { ...base, kind: 'cold_start' },
+      answers: [],
+      flags: [],
+    });
+    expect(cold[0]).toMatchObject({
+      reason: 'target: introductory concept with no prerequisites',
+      weight: 0.375,
+    });
   });
 
   it('tier 3 says how long ago the concept was practised', () => {
@@ -95,7 +130,9 @@ describe('buildEvidence, other cases', () => {
       drivers: [],
       alternatives: [],
     };
-    expect(buildEvidence({ selection, answers: [], flags: [] })[0]!.reason).toBe('target: practised longest ago (12 days)');
+    expect(buildEvidence({ selection, answers: [], flags: [] })[0]!.reason).toBe(
+      'target: practised longest ago (12 days)',
+    );
   });
 
   it('counts a question that tests two concepts once per session', () => {
@@ -106,6 +143,8 @@ describe('buildEvidence, other cases', () => {
     ];
     const items = buildEvidence({ selection, answers, flags: [] });
     expect(items.find((i) => i.role === 'answer')!.reason).toBe('missed 1 time');
-    expect(items.find((i) => i.role === 'session')!.reason).toBe('1 wrong answer on these concepts');
+    expect(items.find((i) => i.role === 'session')!.reason).toBe(
+      '1 wrong answer on these concepts',
+    );
   });
 });

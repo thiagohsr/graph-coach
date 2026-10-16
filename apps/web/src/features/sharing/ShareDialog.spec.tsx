@@ -6,17 +6,33 @@ import { renderWithQuery } from '~/test/render';
 import { ShareDialog } from './ShareDialog';
 
 const fetchMock = vi.fn();
-const json = (status: number, body?: unknown) => new Response(body === undefined ? null : JSON.stringify(body), { status });
-const apiError = (code: string, message: string, details?: unknown) => ({ error: { code, message, ...(details ? { details } : {}) } });
+const json = (status: number, body?: unknown) =>
+  new Response(body === undefined ? null : JSON.stringify(body), { status });
+const apiError = (code: string, message: string, details?: unknown) => ({
+  error: { code, message, ...(details ? { details } : {}) },
+});
 
 type Handler = (init: RequestInit) => Response | Promise<Response>;
 let handlers: Record<string, Handler> = {};
 
-const bea = { userId: 'u-2', name: 'Bea Souza', email: 'bea@example.com', withSource: false, sharedAt: '2026-10-12T10:00:00.000Z' };
-const carl = { userId: 'u-3', name: 'Carl Dias', email: 'carl@example.com', withSource: true, sharedAt: '2026-10-13T10:00:00.000Z' };
+const bea = {
+  userId: 'u-2',
+  name: 'Bea Souza',
+  email: 'bea@example.com',
+  withSource: false,
+  sharedAt: '2026-10-12T10:00:00.000Z',
+};
+const carl = {
+  userId: 'u-3',
+  name: 'Carl Dias',
+  email: 'carl@example.com',
+  withSource: true,
+  sharedAt: '2026-10-13T10:00:00.000Z',
+};
 
 const puzzle = { id: 'pz-1', name: 'My interview notes', sourceShared: true };
-const calls = (method: string) => fetchMock.mock.calls.filter(([, init]) => (init as RequestInit).method === method);
+const calls = (method: string) =>
+  fetchMock.mock.calls.filter(([, init]) => (init as RequestInit).method === method);
 const bodyOf = (call: unknown[]) => JSON.parse((call[1] as RequestInit).body as string);
 
 function serve(list: unknown[] = [bea], extra: Record<string, Handler> = {}) {
@@ -24,7 +40,9 @@ function serve(list: unknown[] = [bea], extra: Record<string, Handler> = {}) {
 }
 
 async function open(props: Partial<{ puzzle: typeof puzzle }> = {}) {
-  const view = renderWithQuery(<ShareDialog puzzle={props.puzzle ?? puzzle} ownEmail="me@example.com" />);
+  const view = renderWithQuery(
+    <ShareDialog puzzle={props.puzzle ?? puzzle} ownEmail="me@example.com" />,
+  );
   await userEvent.click(screen.getByRole('button', { name: 'Share My interview notes' }));
   return view;
 }
@@ -44,7 +62,9 @@ describe('ShareDialog', () => {
   it('is labelled with the puzzle name and has an e-mail field; the list is fetched when it opens', async () => {
     serve();
     await open();
-    expect(await screen.findByRole('dialog', { name: 'Share My interview notes' })).toBeInTheDocument();
+    expect(
+      await screen.findByRole('dialog', { name: 'Share My interview notes' }),
+    ).toBeInTheDocument();
     const field = screen.getByLabelText('E-mail address');
     expect(field).toHaveAttribute('type', 'email');
     await screen.findByText('Bea Souza');
@@ -57,9 +77,15 @@ describe('ShareDialog', () => {
     const rows = await screen.findAllByRole('listitem');
     expect(within(rows[0]!).getByText('Bea Souza')).toBeInTheDocument();
     expect(within(rows[0]!).getByText('bea@example.com')).toBeInTheDocument();
-    expect(within(rows[0]!).getByText(new Date(bea.sharedAt).toLocaleDateString())).toBeInTheDocument();
-    expect(within(rows[0]!).getByRole('checkbox', { name: 'Share the source with Bea Souza' })).not.toBeChecked();
-    expect(within(rows[1]!).getByRole('checkbox', { name: 'Share the source with Carl Dias' })).toBeChecked();
+    expect(
+      within(rows[0]!).getByText(new Date(bea.sharedAt).toLocaleDateString()),
+    ).toBeInTheDocument();
+    expect(
+      within(rows[0]!).getByRole('checkbox', { name: 'Share the source with Bea Souza' }),
+    ).not.toBeChecked();
+    expect(
+      within(rows[1]!).getByRole('checkbox', { name: 'Share the source with Carl Dias' }),
+    ).toBeChecked();
   });
 
   it('shows "Not shared with anyone yet." for an empty list', async () => {
@@ -105,8 +131,14 @@ describe('ShareDialog', () => {
   it('toggling a row sends PUT with that row address and the new value', async () => {
     serve([bea], { 'PUT /api/puzzles/pz-1/shares': () => json(200, { ...bea, withSource: true }) });
     await open();
-    await userEvent.click(await screen.findByRole('checkbox', { name: 'Share the source with Bea Souza' }));
-    await waitFor(() => expect(screen.getByRole('checkbox', { name: 'Share the source with Bea Souza' })).toBeChecked());
+    await userEvent.click(
+      await screen.findByRole('checkbox', { name: 'Share the source with Bea Souza' }),
+    );
+    await waitFor(() =>
+      expect(
+        screen.getByRole('checkbox', { name: 'Share the source with Bea Souza' }),
+      ).toBeChecked(),
+    );
     expect(bodyOf(calls('PUT')[0]!)).toEqual({ email: 'bea@example.com', withSource: true });
   });
 
@@ -114,7 +146,9 @@ describe('ShareDialog', () => {
     serve([bea, carl], { 'DELETE /api/puzzles/pz-1/shares/u-2': () => json(204) });
     await open();
     await userEvent.click(await screen.findByRole('button', { name: 'Revoke Bea Souza' }));
-    expect(screen.getByText('Bea Souza will lose the puzzle and its source at once.')).toBeInTheDocument();
+    expect(
+      screen.getByText('Bea Souza will lose the puzzle and its source at once.'),
+    ).toBeInTheDocument();
     expect(calls('DELETE')).toHaveLength(0);
     await userEvent.click(screen.getByRole('button', { name: 'Confirm revoke Bea Souza' }));
     await waitFor(() => expect(screen.queryByText('bea@example.com')).not.toBeInTheDocument());
@@ -143,21 +177,35 @@ describe('ShareDialog', () => {
   it('shows the 422 email message next to the field and keeps the typed address', async () => {
     serve([bea], {
       'PUT /api/puzzles/pz-1/shares': () =>
-        json(422, apiError('VALIDATION_FAILED', 'Invalid', { issues: [{ path: 'email', message: 'Nobody has signed in with that address yet.' }] })),
+        json(
+          422,
+          apiError('VALIDATION_FAILED', 'Invalid', {
+            issues: [{ path: 'email', message: 'Nobody has signed in with that address yet.' }],
+          }),
+        ),
     });
     await open();
     await screen.findByText('Bea Souza');
     await userEvent.type(screen.getByLabelText('E-mail address'), 'ghost@example.com');
     await userEvent.click(screen.getByRole('button', { name: 'Share' }));
-    const message = await screen.findByText('Nobody has signed in with that address yet. Ask them to sign in once.');
+    const message = await screen.findByText(
+      'Nobody has signed in with that address yet. Ask them to sign in once.',
+    );
     expect(screen.getByLabelText('E-mail address')).toHaveValue('ghost@example.com');
-    expect(screen.getByLabelText('E-mail address').getAttribute('aria-describedby')).toContain(message.id);
+    expect(screen.getByLabelText('E-mail address').getAttribute('aria-describedby')).toContain(
+      message.id,
+    );
   });
 
   it('shows the 422 withSource message at the checkbox', async () => {
     serve([bea], {
       'PUT /api/puzzles/pz-1/shares': () =>
-        json(422, apiError('VALIDATION_FAILED', 'Invalid', { issues: [{ path: 'withSource', message: 'no source' }] })),
+        json(
+          422,
+          apiError('VALIDATION_FAILED', 'Invalid', {
+            issues: [{ path: 'withSource', message: 'no source' }],
+          }),
+        ),
     });
     await open();
     await screen.findByText('Bea Souza');
@@ -169,16 +217,25 @@ describe('ShareDialog', () => {
 
   it('shows the 409 message and the 429 retry time inline', async () => {
     serve([bea], {
-      'PUT /api/puzzles/pz-1/shares': () => json(409, apiError('CONFLICT', 'The puzzle is not published')),
+      'PUT /api/puzzles/pz-1/shares': () =>
+        json(409, apiError('CONFLICT', 'The puzzle is not published')),
     });
     await open();
     await screen.findByText('Bea Souza');
     await userEvent.type(screen.getByLabelText('E-mail address'), 'carl@example.com');
     await userEvent.click(screen.getByRole('button', { name: 'Share' }));
-    expect(await screen.findByText('This puzzle is not published yet, so it cannot be shared.')).toBeInTheDocument();
+    expect(
+      await screen.findByText('This puzzle is not published yet, so it cannot be shared.'),
+    ).toBeInTheDocument();
 
     handlers['PUT /api/puzzles/pz-1/shares'] = () =>
-      json(429, apiError('RATE_LIMITED', 'Too many', { retryAfterSeconds: 60, resetAt: '2026-10-12T10:30:00.000Z' }));
+      json(
+        429,
+        apiError('RATE_LIMITED', 'Too many', {
+          retryAfterSeconds: 60,
+          resetAt: '2026-10-12T10:30:00.000Z',
+        }),
+      );
     await userEvent.click(screen.getByRole('button', { name: 'Share' }));
     expect(await screen.findByText('You are sharing too fast.')).toBeInTheDocument();
     expect(screen.getByText(/You can try again at/)).toBeInTheDocument();
@@ -186,7 +243,9 @@ describe('ShareDialog', () => {
   });
 
   it('shows ErrorState with Retry when the list cannot be loaded', async () => {
-    serve([], { 'GET /api/puzzles/pz-1/shares': () => json(503, apiError('SQL_UNAVAILABLE', 'down')) });
+    serve([], {
+      'GET /api/puzzles/pz-1/shares': () => json(503, apiError('SQL_UNAVAILABLE', 'down')),
+    });
     await open();
     expect(await screen.findByText('Accounts are unavailable.')).toBeInTheDocument();
     handlers['GET /api/puzzles/pz-1/shares'] = () => json(200, [bea]);

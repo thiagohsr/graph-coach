@@ -9,9 +9,16 @@ import type { CoachDeps } from './deps';
 import { runCoach } from './graph';
 import { phraseSummary } from './phrase';
 import { DEFAULT_COACH_SETTINGS } from './settings';
-import { T, WORKED_IDS, createRecordingTracer, createStubCoachQueries, type StubCoachQueries } from './testing/stubs';
+import {
+  T,
+  WORKED_IDS,
+  createRecordingTracer,
+  createStubCoachQueries,
+  type StubCoachQueries,
+} from './testing/stubs';
 
-const TEMPLATE = 'Practise "B-trees" first. Recommended puzzle: "Databases 101: Storage and B-trees".';
+const TEMPLATE =
+  'Practise "B-trees" first. Recommended puzzle: "Databases 101: Storage and B-trees".';
 const MUST = ['B-trees', 'Databases 101: Storage and B-trees'];
 const GOOD = 'Start with "B-trees": try "Databases 101: Storage and B-trees" next.';
 const input = { learnerId: WORKED_IDS.learner, goalText: null, now: T };
@@ -40,11 +47,18 @@ describe('phraseSummary', () => {
       usageReported: true,
     }));
     const result = await phraseSummary(TEMPLATE, MUST, provider);
-    expect(result).toEqual({ text: GOOD, usage: { modelCalls: 1, inputTokens: 11, outputTokens: 5, embeddingTokens: 0 } });
+    expect(result).toEqual({
+      text: GOOD,
+      usage: { modelCalls: 1, inputTokens: 11, outputTokens: 5, embeddingTokens: 0 },
+    });
   });
 
   it('sends the template and passes label, timeout, and the trace step', async () => {
-    const complete = vi.fn<ChatProvider['complete']>(async () => ({ text: GOOD, usage: { modelCalls: 1, inputTokens: 1, outputTokens: 1, embeddingTokens: 0 }, usageReported: true }));
+    const complete = vi.fn<ChatProvider['complete']>(async () => ({
+      text: GOOD,
+      usage: { modelCalls: 1, inputTokens: 1, outputTokens: 1, embeddingTokens: 0 },
+      usageReported: true,
+    }));
     const step = { runId: 'r', node: 'explain' };
     await phraseSummary(TEMPLATE, MUST, chat(complete), { timeoutMs: 1234, trace: step });
     const [messages, options] = complete.mock.calls[0]!;
@@ -83,9 +97,17 @@ describe('phraseSummary', () => {
     expect(result.usage.modelCalls).toBe(1);
 
     const unavailable = chat(async () => {
-      throw new ProviderUnavailableError('down', { provider: 'stub', usage: { modelCalls: 1, inputTokens: 9, outputTokens: 0, embeddingTokens: 0 } });
+      throw new ProviderUnavailableError('down', {
+        provider: 'stub',
+        usage: { modelCalls: 1, inputTokens: 9, outputTokens: 0, embeddingTokens: 0 },
+      });
     });
-    expect((await phraseSummary(TEMPLATE, MUST, unavailable)).usage).toEqual({ modelCalls: 1, inputTokens: 9, outputTokens: 0, embeddingTokens: 0 });
+    expect((await phraseSummary(TEMPLATE, MUST, unavailable)).usage).toEqual({
+      modelCalls: 1,
+      inputTokens: 9,
+      outputTokens: 0,
+      embeddingTokens: 0,
+    });
 
     const plain = chat(async () => {
       throw new Error('not a provider error');
@@ -121,7 +143,8 @@ describe('explain with model phrasing', () => {
     const baseline = createStubCoachQueries();
     await runCoach(makeDeps(baseline), input);
 
-    const response = 'Begin with "B-trees" (the weaker one) using "Databases 101: Storage and B-trees".';
+    const response =
+      'Begin with "B-trees" (the weaker one) using "Databases 101: Storage and B-trees".';
     const stub = new StubChatProvider().on('coach.phraseSummary', response);
     const queries = createStubCoachQueries();
     await runCoach(makeDeps(queries, { chatModel: stub, phraseWithModel: true }), input);
@@ -129,15 +152,32 @@ describe('explain with model phrasing', () => {
     const recorded = queries.recorded[0]!;
     expect(recorded.summary).toBe(response);
     expect(recorded.modelCalls).toBe(1);
-    expect(recorded.inputTokens).toBe(stubTokens(stub.calls[0]!.messages.map((m) => m.content).join('\n')));
+    expect(recorded.inputTokens).toBe(
+      stubTokens(stub.calls[0]!.messages.map((m) => m.content).join('\n')),
+    );
     expect(recorded.outputTokens).toBe(stubTokens(response));
     expect(recorded.embeddingTokens).toBe(0);
     // The run's chat provider and model are recorded (reconciliation M7); a run with no model call leaves them empty.
     expect([recorded.llmProvider, recorded.llmModel]).toEqual([stub.name, stub.model]);
     expect([baseline.recorded[0]!.llmProvider, baseline.recorded[0]!.llmModel]).toEqual(['', '']);
-    const { summary: _s, modelCalls: _m, inputTokens: _i, outputTokens: _o, llmProvider: _p, llmModel: _l, ...rest } = recorded;
-    const { summary: _bs, modelCalls: _bm, inputTokens: _bi, outputTokens: _bo, llmProvider: _bp, llmModel: _bl, ...baseRest } =
-      baseline.recorded[0]!;
+    const {
+      summary: _s,
+      modelCalls: _m,
+      inputTokens: _i,
+      outputTokens: _o,
+      llmProvider: _p,
+      llmModel: _l,
+      ...rest
+    } = recorded;
+    const {
+      summary: _bs,
+      modelCalls: _bm,
+      inputTokens: _bi,
+      outputTokens: _bo,
+      llmProvider: _bp,
+      llmModel: _bl,
+      ...baseRest
+    } = baseline.recorded[0]!;
     expect(rest).toEqual(baseRest);
   });
 
@@ -148,14 +188,20 @@ describe('explain with model phrasing', () => {
     const baseline = createStubCoachQueries();
     await runCoach(makeDeps(baseline), input);
     const queries = createStubCoachQueries();
-    await runCoach(makeDeps(queries, { chatModel: stub, phraseWithModel: true, logger: { warn } }), input);
+    await runCoach(
+      makeDeps(queries, { chatModel: stub, phraseWithModel: true, logger: { warn } }),
+      input,
+    );
 
     const recorded = queries.recorded[0]!;
     expect(recorded.summary).toBe(baseline.recorded[0]!.summary);
     expect(recorded.modelCalls).toBe(1);
     expect(recorded.outputTokens).toBe(stubTokens(response));
     expect(warn).toHaveBeenCalledTimes(1);
-    expect(warn).toHaveBeenCalledWith('coach.phrase_fallback', { runId: 'run-1', reason: 'rejected' });
+    expect(warn).toHaveBeenCalledWith('coach.phrase_fallback', {
+      runId: 'run-1',
+      reason: 'rejected',
+    });
     expect(JSON.stringify(warn.mock.calls)).not.toContain('Something');
     expect(JSON.stringify(warn.mock.calls)).not.toContain('B-trees');
   });
@@ -166,7 +212,10 @@ describe('explain with model phrasing', () => {
     const baseline = createStubCoachQueries();
     await runCoach(makeDeps(baseline), input);
     const queries = createStubCoachQueries();
-    const result = await runCoach(makeDeps(queries, { chatModel: stub, phraseWithModel: true, logger: { warn } }), input);
+    const result = await runCoach(
+      makeDeps(queries, { chatModel: stub, phraseWithModel: true, logger: { warn } }),
+      input,
+    );
 
     expect(result.outcome).toBe('recorded');
     expect(queries.recorded[0]!.summary).toBe(baseline.recorded[0]!.summary);
@@ -176,16 +225,27 @@ describe('explain with model phrasing', () => {
 
   it('a scripted ProviderUnavailableError stores that error usage', async () => {
     const provider = chat(async () => {
-      throw new ProviderUnavailableError('down', { provider: 'stub', usage: { modelCalls: 1, inputTokens: 13, outputTokens: 0, embeddingTokens: 0 } });
+      throw new ProviderUnavailableError('down', {
+        provider: 'stub',
+        usage: { modelCalls: 1, inputTokens: 13, outputTokens: 0, embeddingTokens: 0 },
+      });
     });
     const queries = createStubCoachQueries();
     await runCoach(makeDeps(queries, { chatModel: provider, phraseWithModel: true }), input);
-    expect(queries.recorded[0]).toMatchObject({ modelCalls: 1, inputTokens: 13, outputTokens: 0, embeddingTokens: 0 });
+    expect(queries.recorded[0]).toMatchObject({
+      modelCalls: 1,
+      inputTokens: 13,
+      outputTokens: 0,
+      embeddingTokens: 0,
+    });
   });
 
   it('with the recording tracer the provider reports one call whose record has only CallRecord fields', async () => {
     const tracer = createRecordingTracer();
-    const stub = new StubChatProvider({ tracer }).on('coach.phraseSummary', 'Begin with "B-trees" via "Databases 101: Storage and B-trees".');
+    const stub = new StubChatProvider({ tracer }).on(
+      'coach.phraseSummary',
+      'Begin with "B-trees" via "Databases 101: Storage and B-trees".',
+    );
     const queries = createStubCoachQueries();
     await runCoach(makeDeps(queries, { chatModel: stub, phraseWithModel: true, tracer }), input);
 

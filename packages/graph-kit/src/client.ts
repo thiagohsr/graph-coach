@@ -1,12 +1,7 @@
 // The only file in the workspace that imports `falkordb` (spec 002, SC-P03; enforced by ESLint and test/boundary.spec.ts).
 import { ConstraintType, EntityType, FalkorDB, type FalkorDBOptions } from 'falkordb';
 import { z } from 'zod';
-import type {
-  GeneratedQuery,
-  QueryDef,
-  QueryInfo,
-  QueryOptions,
-} from './define';
+import type { GeneratedQuery, QueryDef, QueryInfo, QueryOptions } from './define';
 import { GraphKitError, GraphUnavailableError } from './errors';
 import { defaultQueriesDir, loadQueryDir, prepareStatement, type LoadedQuery } from './loader';
 import { mapRow } from './mapping';
@@ -146,11 +141,14 @@ const EMPTY_KEY_MESSAGE = 'Invalid graph operation on empty key';
 /** True only when the whole message is FalkorDB's "empty key" error (an optional `ERR ` prefix and trailing dot aside). */
 function isEmptyKeyError(error: unknown): boolean {
   if (!(error instanceof Error)) return false;
-  const message = error.message.trim().replace(/^ERR\s+/, '').replace(/\.$/, '');
+  const message = error.message
+    .trim()
+    .replace(/^ERR\s+/, '')
+    .replace(/\.$/, '');
   return message === EMPTY_KEY_MESSAGE;
 }
 
-const sleep =(ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
+const sleep = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
 
 export class GraphKit {
   readonly graphName: string;
@@ -187,10 +185,14 @@ export class GraphKit {
     }
     for (const param of query.params) {
       if (params[param] === undefined) {
-        throw new GraphKitError('MISSING_PARAM', `Query "${name}" is missing parameter "$${param}"`, {
-          queryName: name,
-          param,
-        });
+        throw new GraphKitError(
+          'MISSING_PARAM',
+          `Query "${name}" is missing parameter "$${param}"`,
+          {
+            queryName: name,
+            param,
+          },
+        );
       }
     }
     for (const key of Object.keys(params)) {
@@ -205,7 +207,11 @@ export class GraphKit {
     return query;
   }
 
-  private validateRows<T>(name: string, rows: Record<string, unknown>[], schema?: z.ZodType<T>): T[] {
+  private validateRows<T>(
+    name: string,
+    rows: Record<string, unknown>[],
+    schema?: z.ZodType<T>,
+  ): T[] {
     if (!schema) return rows as T[];
     return rows.map((row, index) => {
       const parsed = schema.safeParse(row);
@@ -236,9 +242,13 @@ export class GraphKit {
   ): Promise<T | null> {
     const rows = await this.query<T>(name, params, options);
     if (rows.length > 1) {
-      throw new GraphKitError('QUERY_FAILED', `Query "${name}" returned ${rows.length} rows, expected at most one`, {
-        queryName: name,
-      });
+      throw new GraphKitError(
+        'QUERY_FAILED',
+        `Query "${name}" returned ${rows.length} rows, expected at most one`,
+        {
+          queryName: name,
+        },
+      );
     }
     return rows[0] ?? null;
   }
@@ -259,7 +269,11 @@ export class GraphKit {
   }
 
   /** Typed form: rows are always validated against the definition's schema. */
-  run<P extends QueryParams, R>(def: QueryDef<P, R>, params: P, options: { timeoutMs?: number } = {}): Promise<R[]> {
+  run<P extends QueryParams, R>(
+    def: QueryDef<P, R>,
+    params: P,
+    options: { timeoutMs?: number } = {},
+  ): Promise<R[]> {
     return this.query<R>(def.name, params, { schema: def.row, ...options });
   }
 
@@ -290,9 +304,13 @@ export class GraphKit {
     const existing = this.queries.get(name);
     if (existing) {
       if (existing.text !== prepared.text || existing.mode !== definition.mode) {
-        throw new GraphKitError('DUPLICATE_QUERY', `Query "${name}" is already defined with different text`, {
-          queryName: name,
-        });
+        throw new GraphKitError(
+          'DUPLICATE_QUERY',
+          `Query "${name}" is already defined with different text`,
+          {
+            queryName: name,
+          },
+        );
       }
     } else {
       this.queries.set(name, {

@@ -32,7 +32,8 @@ function toNumber(value: unknown): number | null {
 
 function toText(value: unknown): string | null {
   if (typeof value === 'string') return value;
-  if (typeof value === 'number' || typeof value === 'boolean' || typeof value === 'bigint') return String(value);
+  if (typeof value === 'number' || typeof value === 'boolean' || typeof value === 'bigint')
+    return String(value);
   return null;
 }
 
@@ -59,7 +60,11 @@ export function toAdminValue(field: ResolvedField, raw: unknown): AdminValue {
 }
 
 /** list: only the `listDisplay` fields. all: every stored declared field (computed ones are merged in by the caller). */
-export function toRecordDto(model: ResolvedAdminModel, row: AdminRow, fields: 'list' | 'all'): AdminRecordDto {
+export function toRecordDto(
+  model: ResolvedAdminModel,
+  row: AdminRow,
+  fields: 'list' | 'all',
+): AdminRecordDto {
   assertResolved(model);
   const idValue = toText(row[model.idField]) ?? '';
   const keys =

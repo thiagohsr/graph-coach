@@ -21,7 +21,15 @@ interface BlankProps {
 }
 
 /** One blank: a button that is a drop target, and (when filled) a draggable placed word. */
-export function Blank({ slot, word, selected, disabled, onActivate, onKeyDown, register }: BlankProps) {
+export function Blank({
+  slot,
+  word,
+  selected,
+  disabled,
+  onActivate,
+  onKeyDown,
+  register,
+}: BlankProps) {
   const drop = useDroppable({ id: blankId(slot.id), disabled });
   const drag = useDraggable({ id: placedId(slot.id), disabled: disabled || !word });
 
@@ -47,12 +55,20 @@ export function Blank({ slot, word, selected, disabled, onActivate, onKeyDown, r
         word
           ? 'border-solid border-primary bg-primary-soft text-primary'
           : 'border-dashed border-input bg-background text-muted-foreground hover:border-solid hover:border-primary hover:bg-primary-soft',
-        selected && 'border-solid border-ring bg-card shadow-[0_0_0_6px_color-mix(in_oklab,var(--ring)_12%,transparent)]',
+        selected &&
+          'border-solid border-ring bg-card shadow-[0_0_0_6px_color-mix(in_oklab,var(--ring)_12%,transparent)]',
         drop.isOver && 'border-solid border-primary bg-primary-soft',
         drag.isDragging && 'opacity-40',
       )}
     >
-      {word ? word.text : <span aria-hidden="true" className={cn('h-0.5 w-8 rounded-full bg-input', selected && 'bg-ring')} />}
+      {word ? (
+        word.text
+      ) : (
+        <span
+          aria-hidden="true"
+          className={cn('h-0.5 w-8 rounded-full bg-input', selected && 'bg-ring')}
+        />
+      )}
     </button>
   );
 }

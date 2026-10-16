@@ -72,7 +72,12 @@ describe('creation_counts', () => {
   it('counts a source from last month in creationsLastHour only when the hour crosses the month boundary', async () => {
     const now = MONTH_START + 30 * MINUTE; // the hour window starts 30 minutes before the month
     const [row] = await graph().graph.run(creationCountsQuery, params(now, [NEARBOUNDARY]));
-    expect(row).toEqual({ userId: NEARBOUNDARY, uploadsThisMonth: 0, promptsThisMonth: 0, creationsLastHour: 1 });
+    expect(row).toEqual({
+      userId: NEARBOUNDARY,
+      uploadsThisMonth: 0,
+      promptsThisMonth: 0,
+      creationsLastHour: 1,
+    });
   });
 
   it('gives a row of zeros to a learner without sources and to an id with no Learner node', async () => {
@@ -84,10 +89,18 @@ describe('creation_counts', () => {
   });
 
   it('returns one row per requested id with only the documented columns', async () => {
-    const rows = await graph().graph.query<{ userId: string }>('creation_counts', params(NOW, [NO_NODE, BUSY, EMPTY]));
+    const rows = await graph().graph.query<{ userId: string }>(
+      'creation_counts',
+      params(NOW, [NO_NODE, BUSY, EMPTY]),
+    );
     expect(rows.map((r) => r.userId).sort()).toEqual([BUSY, EMPTY, NO_NODE].sort());
     for (const row of rows) {
-      expect(Object.keys(row).sort()).toEqual(['creationsLastHour', 'promptsThisMonth', 'uploadsThisMonth', 'userId']);
+      expect(Object.keys(row).sort()).toEqual([
+        'creationsLastHour',
+        'promptsThisMonth',
+        'uploadsThisMonth',
+        'userId',
+      ]);
     }
   });
 });
@@ -99,7 +112,11 @@ describe('usage_totals', () => {
   const NONE = 'usage-none';
   let n = 0;
 
-  async function addTask(owner: string, createdAt: number, usage?: [number, number, number, number]): Promise<void> {
+  async function addTask(
+    owner: string,
+    createdAt: number,
+    usage?: [number, number, number, number],
+  ): Promise<void> {
     n += 1;
     await graph().cypher(
       `MATCH (l:Learner {id: $owner}) CREATE (l)-[:REQUESTED]->(:Task {id: $id, createdAt: $createdAt})`,
@@ -108,7 +125,11 @@ describe('usage_totals', () => {
     if (usage) await setUsage(`task-${n}`, 'Task', usage);
   }
 
-  async function addDecision(owner: string, createdAt: number, usage?: [number, number, number, number]): Promise<void> {
+  async function addDecision(
+    owner: string,
+    createdAt: number,
+    usage?: [number, number, number, number],
+  ): Promise<void> {
     n += 1;
     await graph().cypher(
       `MATCH (l:Learner {id: $owner}) CREATE (:Decision {id: $id, createdAt: $createdAt})-[:FOR]->(l)`,
@@ -117,7 +138,11 @@ describe('usage_totals', () => {
     if (usage) await setUsage(`decision-${n}`, 'Decision', usage);
   }
 
-  async function setUsage(id: string, label: 'Task' | 'Decision', [calls, input, output, embedding]: [number, number, number, number]) {
+  async function setUsage(
+    id: string,
+    label: 'Task' | 'Decision',
+    [calls, input, output, embedding]: [number, number, number, number],
+  ) {
     await graph().cypher(
       `MATCH (n:${label} {id: $id}) SET n.modelCalls = $calls, n.inputTokens = $input, n.outputTokens = $output, n.embeddingTokens = $embedding`,
       { id, calls, input, output, embedding },
@@ -142,18 +167,31 @@ describe('usage_totals', () => {
     await addTask(ONLY_TASKS, NOW - HOUR, [3, 30, 20, 10]);
   });
 
-  const call = (ids: string[]) => graph().graph.run(usageTotalsQuery, { userIds: ids, monthStart: MONTH_START });
+  const call = (ids: string[]) =>
+    graph().graph.run(usageTotalsQuery, { userIds: ids, monthStart: MONTH_START });
 
   it('sums this month over tasks and decisions without double counting', async () => {
     const [row] = await call([A]);
     // tasks: (2+1+1, 100+20+1, 50+10+1, 10+0+1) = (4, 121, 61, 11); decisions: 3 x (1, 10, 5, 0)
-    expect(row).toEqual({ userId: A, modelCalls: 7, inputTokens: 151, outputTokens: 76, embeddingTokens: 11 });
+    expect(row).toEqual({
+      userId: A,
+      modelCalls: 7,
+      inputTokens: 151,
+      outputTokens: 76,
+      embeddingTokens: 11,
+    });
   });
 
   it('handles a user with only decisions and a user with only tasks', async () => {
     const rows = await call([ONLY_DECISIONS, ONLY_TASKS]);
     expect(byUser(rows)).toEqual([
-      { userId: ONLY_DECISIONS, modelCalls: 2, inputTokens: 5, outputTokens: 6, embeddingTokens: 7 },
+      {
+        userId: ONLY_DECISIONS,
+        modelCalls: 2,
+        inputTokens: 5,
+        outputTokens: 6,
+        embeddingTokens: 7,
+      },
       { userId: ONLY_TASKS, modelCalls: 3, inputTokens: 30, outputTokens: 20, embeddingTokens: 10 },
     ]);
   });
@@ -168,10 +206,19 @@ describe('usage_totals', () => {
   });
 
   it('returns only the documented columns', async () => {
-    const rows = await graph().graph.query('usage_totals', { userIds: [A, NONE], monthStart: MONTH_START });
+    const rows = await graph().graph.query('usage_totals', {
+      userIds: [A, NONE],
+      monthStart: MONTH_START,
+    });
     expect(rows).toHaveLength(2);
     for (const row of rows) {
-      expect(Object.keys(row).sort()).toEqual(['embeddingTokens', 'inputTokens', 'modelCalls', 'outputTokens', 'userId']);
+      expect(Object.keys(row).sort()).toEqual([
+        'embeddingTokens',
+        'inputTokens',
+        'modelCalls',
+        'outputTokens',
+        'userId',
+      ]);
     }
   });
 });

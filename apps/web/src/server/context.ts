@@ -34,7 +34,11 @@ export function createWebContext(request: Request, fetchImpl: typeof fetch = fet
   const env = getEnv();
   const cookies = parseCookieHeader(request.headers.get('cookie'));
   const origin = publicOrigin(request.url, env.webOrigin);
-  const xff = forwardedFor(peerAddress(request), request.headers.get('x-forwarded-for'), env.trustProxy);
+  const xff = forwardedFor(
+    peerAddress(request),
+    request.headers.get('x-forwarded-for'),
+    env.trustProxy,
+  );
   const cookieOptions = { secret: env.sessionSecret, secure: env.cookieSecure };
   const existing = sessionCookieNames(cookies);
 
@@ -61,7 +65,14 @@ export function createWebContext(request: Request, fetchImpl: typeof fetch = fet
     forwardedFor: xff,
     oidc,
     ensureFresh: (session, options) =>
-      ensureFresh(session, { refresh: (refreshToken) => (oidc ? refreshTokens(refreshToken, oidc) : Promise.resolve(null)) }, options),
+      ensureFresh(
+        session,
+        {
+          refresh: (refreshToken) =>
+            oidc ? refreshTokens(refreshToken, oidc) : Promise.resolve(null),
+        },
+        options,
+      ),
     sessionCookies: (session) => writeSession(session, { ...cookieOptions, existing }),
     clearCookies: () => clearSession({ ...cookieOptions, existing }),
   };

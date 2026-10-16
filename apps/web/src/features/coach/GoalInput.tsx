@@ -15,7 +15,13 @@ export function goalProblem(value: string): string | null {
 }
 
 /** The optional goal field of `/coach`. */
-export function GoalInput({ value, onChange }: { value: string; onChange: (value: string) => void }) {
+export function GoalInput({
+  value,
+  onChange,
+}: {
+  value: string;
+  onChange: (value: string) => void;
+}) {
   const uid = useId();
   const inputId = `coach-goal-${uid}`;
   const messageId = `coach-goal-message-${uid}`;

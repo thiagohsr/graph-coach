@@ -17,13 +17,19 @@ import { useTestGraph } from '../src/testing';
 const graph = useTestGraph();
 
 const BASE = 1_760_000_000_000;
-const HOSTILE = "Quo'te \"dq\" back\\slash\nnew`tick";
+const HOSTILE = 'Quo\'te "dq" back\\slash\nnew`tick';
 const concept = (n: number) => `c-${String(n).padStart(2, '0')}`;
 
 function portOf(): GraphPort {
   const kit = graph().graph;
   return {
-    register: (query) => void kit.defineQuery({ name: query.name, cypher: query.cypher, mode: query.mode, owner: '006' }),
+    register: (query) =>
+      void kit.defineQuery({
+        name: query.name,
+        cypher: query.cypher,
+        mode: query.mode,
+        owner: '006',
+      }),
     run: (name, params) => kit.query(name, params as QueryParams),
   };
 }
@@ -48,10 +54,42 @@ const taskDeclaration: AdminDeclaration = {
     createdAt: { type: 'datetime', readonly: true },
   },
   links: [
-    { kind: 'records', name: 'producedConcepts', label: 'Produced concepts', rel: 'PRODUCED', direction: 'out', targetLabel: 'Concept', titleProperty: 'name', model: 'sample-concept' },
-    { kind: 'count', name: 'producedQuestions', label: 'Produced questions', rel: 'PRODUCED', direction: 'out', targetLabel: 'Question' },
-    { kind: 'records', name: 'requestedBy', label: 'Requested by', rel: 'REQUESTED', direction: 'in', targetLabel: 'Learner', titleProperty: 'displayName' },
-    { kind: 'records', name: 'concerns', label: 'Concerns', rel: 'CONCERNS', direction: 'out', targetLabel: 'Source', titleProperty: 'title' },
+    {
+      kind: 'records',
+      name: 'producedConcepts',
+      label: 'Produced concepts',
+      rel: 'PRODUCED',
+      direction: 'out',
+      targetLabel: 'Concept',
+      titleProperty: 'name',
+      model: 'sample-concept',
+    },
+    {
+      kind: 'count',
+      name: 'producedQuestions',
+      label: 'Produced questions',
+      rel: 'PRODUCED',
+      direction: 'out',
+      targetLabel: 'Question',
+    },
+    {
+      kind: 'records',
+      name: 'requestedBy',
+      label: 'Requested by',
+      rel: 'REQUESTED',
+      direction: 'in',
+      targetLabel: 'Learner',
+      titleProperty: 'displayName',
+    },
+    {
+      kind: 'records',
+      name: 'concerns',
+      label: 'Concerns',
+      rel: 'CONCERNS',
+      direction: 'out',
+      targetLabel: 'Source',
+      titleProperty: 'title',
+    },
   ],
 };
 
@@ -73,9 +111,34 @@ const decisionDeclaration: AdminDeclaration = {
     createdAt: { type: 'datetime', readonly: true },
   },
   links: [
-    { kind: 'records', name: 'learner', label: 'Learner', rel: 'FOR', direction: 'out', targetLabel: 'Learner', titleProperty: 'displayName' },
-    { kind: 'records', name: 'puzzle', label: 'Puzzle', rel: 'RECOMMENDED', direction: 'out', targetLabel: 'Puzzle', titleProperty: 'name' },
-    { kind: 'records', name: 'evidenceConcepts', label: 'Evidence', rel: 'BECAUSE', direction: 'out', targetLabel: 'Concept', titleProperty: 'name', model: 'sample-concept' },
+    {
+      kind: 'records',
+      name: 'learner',
+      label: 'Learner',
+      rel: 'FOR',
+      direction: 'out',
+      targetLabel: 'Learner',
+      titleProperty: 'displayName',
+    },
+    {
+      kind: 'records',
+      name: 'puzzle',
+      label: 'Puzzle',
+      rel: 'RECOMMENDED',
+      direction: 'out',
+      targetLabel: 'Puzzle',
+      titleProperty: 'name',
+    },
+    {
+      kind: 'records',
+      name: 'evidenceConcepts',
+      label: 'Evidence',
+      rel: 'BECAUSE',
+      direction: 'out',
+      targetLabel: 'Concept',
+      titleProperty: 'name',
+      model: 'sample-concept',
+    },
   ],
 };
 
@@ -112,49 +175,128 @@ beforeAll(async () => {
   // A task that produced two concepts and three questions; a learner who requested it; a source it concerns.
   nodes.push(
     { label: 'Learner', key: 'u-1', props: { displayName: 'Lena Learner', createdAt: BASE } },
-    { label: 'Source', key: 's-1', props: { title: 'Notes', kind: 'text', content: 'SECRET SOURCE TEXT', createdAt: BASE } },
-    { label: 'Task', key: 't-1', props: { kind: 'ingest', status: 'done', inputTokens: 100, createdAt: BASE + 5 } },
+    {
+      label: 'Source',
+      key: 's-1',
+      props: { title: 'Notes', kind: 'text', content: 'SECRET SOURCE TEXT', createdAt: BASE },
+    },
+    {
+      label: 'Task',
+      key: 't-1',
+      props: { kind: 'ingest', status: 'done', inputTokens: 100, createdAt: BASE + 5 },
+    },
     { label: 'Question', key: 'q-1', props: { sentence: 'A secret question', status: 'approved' } },
     { label: 'Question', key: 'q-2', props: { sentence: 'Another', status: 'approved' } },
     { label: 'Question', key: 'q-3', props: { sentence: 'A third', status: 'draft' } },
   );
   edges.push(
-    { type: 'PRODUCED', from: { label: 'Task', key: 't-1' }, to: { label: 'Concept', key: concept(1) } },
-    { type: 'PRODUCED', from: { label: 'Task', key: 't-1' }, to: { label: 'Concept', key: concept(2) } },
-    ...['q-1', 'q-2', 'q-3'].map<FixtureEdge>((q) => ({ type: 'PRODUCED', from: { label: 'Task', key: 't-1' }, to: { label: 'Question', key: q } })),
-    { type: 'REQUESTED', from: { label: 'Learner', key: 'u-1' }, to: { label: 'Task', key: 't-1' } },
+    {
+      type: 'PRODUCED',
+      from: { label: 'Task', key: 't-1' },
+      to: { label: 'Concept', key: concept(1) },
+    },
+    {
+      type: 'PRODUCED',
+      from: { label: 'Task', key: 't-1' },
+      to: { label: 'Concept', key: concept(2) },
+    },
+    ...['q-1', 'q-2', 'q-3'].map<FixtureEdge>((q) => ({
+      type: 'PRODUCED',
+      from: { label: 'Task', key: 't-1' },
+      to: { label: 'Question', key: q },
+    })),
+    {
+      type: 'REQUESTED',
+      from: { label: 'Learner', key: 'u-1' },
+      to: { label: 'Task', key: 't-1' },
+    },
     { type: 'CONCERNS', from: { label: 'Task', key: 't-1' }, to: { label: 'Source', key: 's-1' } },
   );
 
   // A task with 51 produced concepts (truncation).
-  nodes.push({ label: 'Task', key: 't-big', props: { kind: 'generate', status: 'done', createdAt: BASE + 6 } });
+  nodes.push({
+    label: 'Task',
+    key: 't-big',
+    props: { kind: 'generate', status: 'done', createdAt: BASE + 6 },
+  });
   for (let n = 1; n <= 30; n += 1) {
-    edges.push({ type: 'PRODUCED', from: { label: 'Task', key: 't-big' }, to: { label: 'Concept', key: concept(n) } });
+    edges.push({
+      type: 'PRODUCED',
+      from: { label: 'Task', key: 't-big' },
+      to: { label: 'Concept', key: concept(n) },
+    });
   }
   for (let n = 1; n <= 21; n += 1) {
-    nodes.push({ label: 'Concept', key: `x-${n}`, props: { slug: `x-${n}`, name: `Extra ${n}`, createdAt: BASE } });
-    edges.push({ type: 'PRODUCED', from: { label: 'Task', key: 't-big' }, to: { label: 'Concept', key: `x-${n}` } });
+    nodes.push({
+      label: 'Concept',
+      key: `x-${n}`,
+      props: { slug: `x-${n}`, name: `Extra ${n}`, createdAt: BASE },
+    });
+    edges.push({
+      type: 'PRODUCED',
+      from: { label: 'Task', key: 't-big' },
+      to: { label: 'Concept', key: `x-${n}` },
+    });
   }
 
   // A decision with FOR, RECOMMENDED, and BECAUSE edges, a flags list, and one evidence concept without a name.
   nodes.push(
-    { label: 'Decision', key: 'd-1', props: { kind: 'recommendation', summary: 'Practise trees', flags: ['cold_start', 'gap'], createdAt: BASE + 9 } },
-    { label: 'Puzzle', key: 'p-1', props: { name: 'Trees 101', origin: 'seed', status: 'published', visibility: 'public', createdAt: BASE } },
+    {
+      label: 'Decision',
+      key: 'd-1',
+      props: {
+        kind: 'recommendation',
+        summary: 'Practise trees',
+        flags: ['cold_start', 'gap'],
+        createdAt: BASE + 9,
+      },
+    },
+    {
+      label: 'Puzzle',
+      key: 'p-1',
+      props: {
+        name: 'Trees 101',
+        origin: 'seed',
+        status: 'published',
+        visibility: 'public',
+        createdAt: BASE,
+      },
+    },
     { label: 'Concept', key: 'nameless', props: { slug: 'nameless', createdAt: BASE } },
   );
   edges.push(
     { type: 'FOR', from: { label: 'Decision', key: 'd-1' }, to: { label: 'Learner', key: 'u-1' } },
-    { type: 'RECOMMENDED', from: { label: 'Decision', key: 'd-1' }, to: { label: 'Puzzle', key: 'p-1' } },
-    { type: 'BECAUSE', from: { label: 'Decision', key: 'd-1' }, to: { label: 'Concept', key: concept(3) }, props: { weight: 1, role: 'target' } },
-    { type: 'BECAUSE', from: { label: 'Decision', key: 'd-1' }, to: { label: 'Concept', key: 'nameless' }, props: { weight: 1, role: 'driver' } },
+    {
+      type: 'RECOMMENDED',
+      from: { label: 'Decision', key: 'd-1' },
+      to: { label: 'Puzzle', key: 'p-1' },
+    },
+    {
+      type: 'BECAUSE',
+      from: { label: 'Decision', key: 'd-1' },
+      to: { label: 'Concept', key: concept(3) },
+      props: { weight: 1, role: 'target' },
+    },
+    {
+      type: 'BECAUSE',
+      from: { label: 'Decision', key: 'd-1' },
+      to: { label: 'Concept', key: 'nameless' },
+      props: { weight: 1, role: 'driver' },
+    },
   );
-  nodes.push({ label: 'Decision', key: 'd-2', props: { kind: 'coverage_request', summary: 'No flags', createdAt: BASE + 10 } });
+  nodes.push({
+    label: 'Decision',
+    key: 'd-2',
+    props: { kind: 'coverage_request', summary: 'No flags', createdAt: BASE + 10 },
+  });
 
   await graph().load({ nodes, edges });
 });
 
 const namesSorted = () => {
-  const names = Array.from({ length: 30 }, (_, i) => (i + 1 === 30 ? HOSTILE : `Concept ${String(i + 1).padStart(2, '0')}`));
+  const names = Array.from({ length: 30 }, (_, i) =>
+    i + 1 === 30 ? HOSTILE : `Concept ${String(i + 1).padStart(2, '0')}`,
+  );
   return [...names, ...Array.from({ length: 21 }, (_, i) => `Extra ${i + 1}`)].sort();
 };
 
@@ -225,7 +367,13 @@ describe('search (R-V1)', () => {
 
   it('a hostile term matches nothing and changes nothing', async () => {
     const before = await graph().count('Concept');
-    for (const term of ["') RETURN 1 //", '" OR 1=1 //', 'x} DETACH DELETE n //', '$search', '\\n']) {
+    for (const term of [
+      "') RETURN 1 //",
+      '" OR 1=1 //',
+      'x} DETACH DELETE n //',
+      '$search',
+      '\\n',
+    ]) {
       const result = await adapter.list(conceptModel, { page: 1, pageSize: 100, search: term });
       expect(result, term).toEqual({ rows: [], total: 0 });
     }
@@ -248,7 +396,12 @@ describe('search (R-V1)', () => {
 describe('update (R-V3)', () => {
   it('changes only the given properties; null removes one; the rest stay', async () => {
     const changed = await adapter.update(conceptModel, concept(5), { name: 'Renamed' });
-    expect(changed).toMatchObject({ id: concept(5), name: 'Renamed', slug: 'concept-5', description: 'Plain text' });
+    expect(changed).toMatchObject({
+      id: concept(5),
+      name: 'Renamed',
+      slug: 'concept-5',
+      description: 'Plain text',
+    });
 
     const cleared = await adapter.update(conceptModel, concept(5), { description: null });
     expect(cleared!.description).toBeNull();
@@ -257,11 +410,20 @@ describe('update (R-V3)', () => {
       { id: concept(5) },
     );
     expect(raw!.props).not.toHaveProperty('description');
-    expect(raw!.props).toMatchObject({ name: 'Renamed', slug: 'concept-5', createdAt: BASE + 5000 });
+    expect(raw!.props).toMatchObject({
+      name: 'Renamed',
+      slug: 'concept-5',
+      createdAt: BASE + 5000,
+    });
   });
 
   it('writes only editable keys even when changes is forced to hold others', async () => {
-    await adapter.update(conceptModel, concept(6), { name: 'Six', slug: 'hacked', evil: 'x', createdAt: 1 } as never);
+    await adapter.update(conceptModel, concept(6), {
+      name: 'Six',
+      slug: 'hacked',
+      evil: 'x',
+      createdAt: 1,
+    } as never);
     const row = await adapter.get(conceptModel, concept(6));
     expect(row).toMatchObject({ name: 'Six', slug: 'concept-6', createdAt: BASE + 6000 });
     const [raw] = await graph().cypher<{ props: Record<string, unknown> }>(
@@ -292,13 +454,22 @@ describe('links (R-V5, R-V6)', () => {
 
   it('returns records, counts, and no questions', async () => {
     const links = await linksOf(taskModel, 't-1');
-    expect(links.producedConcepts).toMatchObject({ kind: 'records', model: 'sample-concept', truncated: false });
+    expect(links.producedConcepts).toMatchObject({
+      kind: 'records',
+      model: 'sample-concept',
+      truncated: false,
+    });
     const produced = links.producedConcepts as { items: { id: string; title: string }[] };
     expect(produced.items).toEqual([
       { id: concept(1), title: 'Concept 01' },
       { id: concept(2), title: 'Concept 02' },
     ]);
-    expect(links.producedQuestions).toEqual({ kind: 'count', name: 'producedQuestions', label: 'Produced questions', count: 3 });
+    expect(links.producedQuestions).toEqual({
+      kind: 'count',
+      name: 'producedQuestions',
+      label: 'Produced questions',
+      count: 3,
+    });
     expect(links.requestedBy).toMatchObject({ items: [{ id: 'u-1', title: 'Lena Learner' }] });
     expect(links.concerns).toMatchObject({ items: [{ id: 's-1', title: 'Notes' }] });
     expect(JSON.stringify(links)).not.toContain('secret');
@@ -306,7 +477,10 @@ describe('links (R-V5, R-V6)', () => {
   });
 
   it('a record link holds 50 items and sets truncated for 51 targets', async () => {
-    const link = (await linksOf(taskModel, 't-big')).producedConcepts as { items: unknown[]; truncated: boolean };
+    const link = (await linksOf(taskModel, 't-big')).producedConcepts as {
+      items: unknown[];
+      truncated: boolean;
+    };
     expect(link.items).toHaveLength(50);
     expect(link.truncated).toBe(true);
   });
@@ -334,8 +508,12 @@ describe('links (R-V5, R-V6)', () => {
   });
 
   it('the count text reads no property of the target', () => {
-    const count = buildGraphQueries(taskModel).find((q) => q.name === 'admin_task_link_produced_questions')!;
-    expect(count.cypher).toBe('MATCH (n:Task {id: $id})-[:PRODUCED]->(m:Question)\nRETURN count(m) AS total');
+    const count = buildGraphQueries(taskModel).find(
+      (q) => q.name === 'admin_task_link_produced_questions',
+    )!;
+    expect(count.cypher).toBe(
+      'MATCH (n:Task {id: $id})-[:PRODUCED]->(m:Question)\nRETURN count(m) AS total',
+    );
   });
 
   it('a decision with no puzzle lists no puzzle', async () => {

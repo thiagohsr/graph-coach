@@ -20,7 +20,10 @@ import { createTestApp, type TestApp, type TestUser } from './support/test-app';
 const MINUTE = 60_000;
 
 const recommend = (app: TestApp, user: TestUser, body: unknown = {}) =>
-  app.http.post('/coach/recommendations').set(user.auth).send(body as object);
+  app.http
+    .post('/coach/recommendations')
+    .set(user.auth)
+    .send(body as object);
 
 const decisionCount = async (app: TestApp): Promise<number> =>
   (await app.testGraph.cypher<{ c: number }>('MATCH (d:Decision) RETURN count(d) AS c'))[0]!.c;
@@ -89,7 +92,9 @@ describe('Coach: the seeded weak-prerequisite scenario (S1, S2)', () => {
               d.embeddingTokens AS embeddingTokens, count(b) AS because`,
       { id: first.decisionId },
     );
-    expect(stored).toEqual([{ modelCalls: 0, inputTokens: 0, outputTokens: 0, embeddingTokens: 0, because: 10 }]);
+    expect(stored).toEqual([
+      { modelCalls: 0, inputTokens: 0, outputTokens: 0, embeddingTokens: 0, because: 10 },
+    ]);
     const orphans = await app.testGraph.cypher<{ c: number }>(
       'MATCH (d:Decision) WHERE NOT (d)-[:BECAUSE]->() RETURN count(d) AS c',
     );
@@ -98,7 +103,9 @@ describe('Coach: the seeded weak-prerequisite scenario (S1, S2)', () => {
 
   it('records a usage-only trace: one coach run, no model call', async () => {
     const runs = app.tracer.runs.filter((r) => r.id === first.decisionId);
-    expect(runs).toEqual([{ id: first.decisionId, kind: 'coach', userId: learner.id, ok: true, ended: true }]);
+    expect(runs).toEqual([
+      { id: first.decisionId, kind: 'coach', userId: learner.id, ok: true, ended: true },
+    ]);
     expect(app.tracer.calls).toEqual([]);
   });
 
@@ -134,7 +141,14 @@ describe('Coach: the seeded weak-prerequisite scenario (S1, S2)', () => {
 
     const { nodes, edges, steps } = res.body as {
       nodes: Array<{ id: string; label: string; title: string; props: Record<string, unknown> }>;
-      edges: Array<{ from: string; to: string; type: string; reason?: string; role?: string; weight?: number }>;
+      edges: Array<{
+        from: string;
+        to: string;
+        type: string;
+        reason?: string;
+        role?: string;
+        weight?: number;
+      }>;
       steps: string[];
     };
     const ids = new Set(nodes.map((n) => n.id));
@@ -146,13 +160,27 @@ describe('Coach: the seeded weak-prerequisite scenario (S1, S2)', () => {
 
     const because = edges.filter((e) => e.type === 'BECAUSE');
     expect(because.length).toBeGreaterThanOrEqual(1);
-    expect(because.find((e) => e.role === 'target')).toMatchObject({ to: seedIds.concept('b-trees'), weight: 0.723 });
-    expect(because.find((e) => e.role === 'driver')).toMatchObject({ to: seedIds.concept('indexes'), weight: 0.359 });
+    expect(because.find((e) => e.role === 'target')).toMatchObject({
+      to: seedIds.concept('b-trees'),
+      weight: 0.723,
+    });
+    expect(because.find((e) => e.role === 'driver')).toMatchObject({
+      to: seedIds.concept('indexes'),
+      weight: 0.359,
+    });
     expect(edges).toContainEqual(
-      expect.objectContaining({ from: seedIds.concept('b-trees'), to: seedIds.concept('indexes'), type: 'PREREQUISITE_OF' }),
+      expect.objectContaining({
+        from: seedIds.concept('b-trees'),
+        to: seedIds.concept('indexes'),
+        type: 'PREREQUISITE_OF',
+      }),
     );
     expect(edges.every((e) => typeof e.reason === 'string' && e.reason.length > 0)).toBe(true);
-    expect(edges.filter((e) => e.type !== 'BECAUSE').every((e) => e.role === undefined && e.weight === undefined)).toBe(true);
+    expect(
+      edges
+        .filter((e) => e.type !== 'BECAUSE')
+        .every((e) => e.role === undefined && e.weight === undefined),
+    ).toBe(true);
     expect(because.filter((e) => e.role === 'answer')).toHaveLength(5);
     expect(because.filter((e) => e.role === 'session')).toHaveLength(3);
 
@@ -169,7 +197,11 @@ describe('Coach: the seeded weak-prerequisite scenario (S1, S2)', () => {
     const text = JSON.stringify(res.body);
     expect(text).not.toMatch(/\S+@\S+/);
     expect(text).not.toMatch(/"(answers|distractors|word)"/);
-    const questions = await app.testGraph.cypher<{ sentence: string; answers: string[]; distractors: string[] }>(
+    const questions = await app.testGraph.cypher<{
+      sentence: string;
+      answers: string[];
+      distractors: string[];
+    }>(
       `MATCH (:Decision {id: $id})-[:BECAUSE]->(q:Question) RETURN q.sentence AS sentence, q.answers AS answers, q.distractors AS distractors`,
       { id: first.decisionId },
     );
@@ -177,9 +209,15 @@ describe('Coach: the seeded weak-prerequisite scenario (S1, S2)', () => {
     const sentences = questions.map((q) => q.sentence.toLowerCase()).join(' ');
     const stripped = text.toLowerCase();
     for (const word of questions.flatMap((q) => [...q.answers, ...q.distractors])) {
-      const re = new RegExp(`(?<![\\w-])${word.toLowerCase().replace(/[.*+?^${}()|[\]\\/]/g, '\\$&')}(?![\\w-])`);
+      const re = new RegExp(
+        `(?<![\\w-])${word.toLowerCase().replace(/[.*+?^${}()|[\]\\/]/g, '\\$&')}(?![\\w-])`,
+      );
       // a word that is part of any sentence of the path legitimately occurs in the response
-      if (re.test(sentences) || re.test(JSON.stringify(nodes.map((n) => n.title + JSON.stringify(n.props))).toLowerCase())) continue;
+      if (
+        re.test(sentences) ||
+        re.test(JSON.stringify(nodes.map((n) => n.title + JSON.stringify(n.props))).toLowerCase())
+      )
+        continue;
       expect(stripped).not.toMatch(re);
     }
   });
@@ -196,7 +234,10 @@ describe('Coach: the seeded weak-prerequisite scenario (S1, S2)', () => {
     expect(res.status).toBe(201);
     expect(res.body.flags).toEqual(['cold_start']);
     expect(res.body.summary).toMatch(/no study history/);
-    expect(res.body.target).toEqual({ conceptId: seedIds.concept('relational-model'), name: 'Relational model' });
+    expect(res.body.target).toEqual({
+      conceptId: seedIds.concept('relational-model'),
+      name: 'Relational model',
+    });
     expect(res.body.puzzle.id).toBe(seedIds.puzzle('tables-and-keys'));
     expect(res.body.alternatives).toEqual([]);
     expect('coverageGap' in res.body).toBe(false);
@@ -224,7 +265,9 @@ describe('Coach: the seeded weak-prerequisite scenario (S1, S2)', () => {
     const spy = vi
       .spyOn(graph, 'query')
       .mockImplementation(((name: string, params?: never, options?: never) =>
-        name === 'record_decision' ? Promise.resolve([]) : original(name, params, options)) as never);
+        name === 'record_decision'
+          ? Promise.resolve([])
+          : original(name, params, options)) as never);
     try {
       const res = await recommend(app, learner);
       expect(res.status).toBe(503);
@@ -237,7 +280,9 @@ describe('Coach: the seeded weak-prerequisite scenario (S1, S2)', () => {
   });
 
   it('after a submitted session the next call is a new decision', async () => {
-    const start = await app.http.post(`/puzzles/${seedIds.puzzle('storage-and-b-trees')}/sessions`).set(learner.auth);
+    const start = await app.http
+      .post(`/puzzles/${seedIds.puzzle('storage-and-b-trees')}/sessions`)
+      .set(learner.auth);
     expect(start.status).toBe(201);
     app.clock.advance(MINUTE);
     const submit = await app.http
@@ -278,8 +323,18 @@ describe('Coach: who may read a decision (C4, G8)', () => {
         {
           id: actors.owner.id,
           rows: [
-            { id: seedIds.concept('b-trees'), score: 0.12, attempts: 4, lastSeen: testApp.clock.now().getTime() - 9 * 86_400_000 },
-            { id: seedIds.concept('indexes'), score: 0.26, attempts: 6, lastSeen: testApp.clock.now().getTime() - 86_400_000 },
+            {
+              id: seedIds.concept('b-trees'),
+              score: 0.12,
+              attempts: 4,
+              lastSeen: testApp.clock.now().getTime() - 9 * 86_400_000,
+            },
+            {
+              id: seedIds.concept('indexes'),
+              score: 0.26,
+              attempts: 6,
+              lastSeen: testApp.clock.now().getTime() - 86_400_000,
+            },
           ],
         },
       );
@@ -292,12 +347,26 @@ describe('Coach: who may read a decision (C4, G8)', () => {
       {
         name: 'GET /decisions/:id',
         request: (ctx) => ({ method: 'GET', path: `/decisions/${ctx.decisionId}` }),
-        expect: { owner: 200, shared: 404, sharedWithSource: 404, otherLearner: 404, reviewer: 404, admin: 200 },
+        expect: {
+          owner: 200,
+          shared: 404,
+          sharedWithSource: 404,
+          otherLearner: 404,
+          reviewer: 404,
+          admin: 200,
+        },
       },
       {
         name: 'GET /decisions/:id/path',
         request: (ctx) => ({ method: 'GET', path: `/decisions/${ctx.decisionId}/path` }),
-        expect: { owner: 200, shared: 404, sharedWithSource: 404, otherLearner: 404, reviewer: 404, admin: 200 },
+        expect: {
+          owner: 200,
+          shared: 404,
+          sharedWithSource: 404,
+          otherLearner: 404,
+          reviewer: 404,
+          admin: 200,
+        },
       },
     ],
   );
@@ -306,7 +375,9 @@ describe('Coach: who may read a decision (C4, G8)', () => {
     const admin = await app.createUser({ role: 'admin', name: 'Reader' });
     const res = await app.http.get(`/decisions/${owner.decisionId}/path`).set(admin.auth);
     expect(res.status).toBe(200);
-    expect(res.body.nodes.some((n: { label: string; title: string }) => n.label === 'Learner')).toBe(true);
+    expect(
+      res.body.nodes.some((n: { label: string; title: string }) => n.label === 'Learner'),
+    ).toBe(true);
     expect(JSON.stringify(res.body)).not.toMatch(/\S+@\S+/);
   });
 });
@@ -320,7 +391,13 @@ describe('Coach: sparse content (S3)', () => {
       await addAgents(app);
       await addConcepts(app, [{ slug: 'y' }, { slug: 'x', prereqs: ['y'] }]);
       await addMastery(app, user.id, [{ slug: 'x', score: 0.1, attempts: 3, daysAgo: 4 }]);
-      await addPuzzle(app, { id: 'gap-puzzle', name: 'Neighbour puzzle', ownerId: other.id, visibility: 'public', tests: ['y', 'y'] });
+      await addPuzzle(app, {
+        id: 'gap-puzzle',
+        name: 'Neighbour puzzle',
+        ownerId: other.id,
+        visibility: 'public',
+        tests: ['y', 'y'],
+      });
       const res = await recommend(app, user);
       expect(res.status).toBe(201);
       expect(res.body.puzzle).toEqual({ id: 'gap-puzzle', name: 'Neighbour puzzle' });
@@ -389,8 +466,20 @@ describe('Coach: respects ownership (S5)', () => {
     for (const user of [a, b, reviewer, admin]) {
       await addMastery(app, user.id, [{ slug: 't', score: 0.2, attempts: 3, daysAgo: 2 }]);
     }
-    await addPuzzle(app, { id: 'p-private', name: 'A private puzzle', ownerId: a.id, visibility: 'private', tests: ['t', 't'] });
-    await addPuzzle(app, { id: 'p-public', name: 'A public neighbour', ownerId: admin.id, visibility: 'public', tests: ['nb', 'nb'] });
+    await addPuzzle(app, {
+      id: 'p-private',
+      name: 'A private puzzle',
+      ownerId: a.id,
+      visibility: 'private',
+      tests: ['t', 't'],
+    });
+    await addPuzzle(app, {
+      id: 'p-public',
+      name: 'A public neighbour',
+      ownerId: admin.id,
+      visibility: 'public',
+      tests: ['nb', 'nb'],
+    });
   });
   afterAll(async () => {
     await app?.close();
@@ -471,7 +560,13 @@ describe('Coach: practising toward a goal and requesting coverage (S4)', () => {
     for (const user of [learner, exhausted]) {
       await addMastery(app, user.id, [{ slug: 'alpha', score: 0.2, attempts: 3, daysAgo: 3 }]);
     }
-    await addPuzzle(app, { id: 'p-alpha', name: 'Alpha basics', ownerId: publisher.id, visibility: 'public', tests: ['alpha', 'alpha'] });
+    await addPuzzle(app, {
+      id: 'p-alpha',
+      name: 'Alpha basics',
+      ownerId: publisher.id,
+      visibility: 'public',
+      tests: ['alpha', 'alpha'],
+    });
   });
   afterAll(async () => {
     await app?.close();
@@ -487,7 +582,9 @@ describe('Coach: practising toward a goal and requesting coverage (S4)', () => {
     expect(res.body.puzzle).toEqual({ id: 'p-alpha', name: 'Alpha basics' });
     expect(res.body.flags).toEqual(['coverage_gap', 'coverage_requested']);
     expect(res.body.coverageGap).toEqual({ concepts: [{ conceptId: cid('zeta'), name: 'ZETA' }] });
-    expect(res.body.summary).toContain('No puzzle covers "ZETA" yet, so I requested new puzzles for it.');
+    expect(res.body.summary).toContain(
+      'No puzzle covers "ZETA" yet, so I requested new puzzles for it.',
+    );
 
     const goals = await app.testGraph.cypher<{ text: string; active: boolean; targets: string[] }>(
       `MATCH (:Learner {id: $id})-[:HAS_GOAL]->(g:Goal)-[:TARGETS]->(c:Concept)
@@ -508,15 +605,23 @@ describe('Coach: practising toward a goal and requesting coverage (S4)', () => {
               d.outputTokens AS outputTokens, d.embeddingTokens AS embeddingTokens`,
       { id: decisionId },
     );
-    expect(usage).toEqual([{ modelCalls: 1, inputTokens: 0, outputTokens: 0, embeddingTokens: stubTokens(GOAL) }]);
+    expect(usage).toEqual([
+      { modelCalls: 1, inputTokens: 0, outputTokens: 0, embeddingTokens: stubTokens(GOAL) },
+    ]);
   });
 
   it('GET /decisions/:id/path includes the Goal and Task nodes and their steps', async () => {
     const res = await app.http.get(`/decisions/${decisionId}/path`).set(learner.auth);
     expect(res.status).toBe(200);
     const body = res.body as PathBody;
-    expect(body.nodes.find((n) => n.label === 'Goal')).toMatchObject({ title: GOAL, props: { text: GOAL } });
-    expect(body.nodes.find((n) => n.label === 'Task')).toMatchObject({ id: taskId, title: 'Coverage request' });
+    expect(body.nodes.find((n) => n.label === 'Goal')).toMatchObject({
+      title: GOAL,
+      props: { text: GOAL },
+    });
+    expect(body.nodes.find((n) => n.label === 'Task')).toMatchObject({
+      id: taskId,
+      title: 'Coverage request',
+    });
     for (const type of ['TOWARD', 'TARGETS', 'REQUESTED', 'CONCERNS']) {
       expect(body.edges.some((e) => e.type === type)).toBe(true);
     }
@@ -595,7 +700,8 @@ describe('Coach: practising toward a goal and requesting coverage (S4)', () => {
     expect(res.body.coverageGap).toEqual({ concepts: [{ conceptId: cid('zeta'), name: 'ZETA' }] });
     expect(res.body.summary).toContain('no puzzle-creation allowance left');
     expect(await taskCount(app)).toBe(tasksBefore);
-    const nodes = (await app.http.get(`/decisions/${res.body.decisionId}/path`).set(exhausted.auth)).body as PathBody;
+    const nodes = (await app.http.get(`/decisions/${res.body.decisionId}/path`).set(exhausted.auth))
+      .body as PathBody;
     expect(nodes.nodes.some((n) => n.label === 'Task')).toBe(false);
     expect(nodes.nodes.some((n) => n.label === 'Goal')).toBe(true);
     // the Coach only reads the allowance: nothing was consumed
@@ -615,21 +721,38 @@ describe('Coach: structured log events (T068, constitution VII)', () => {
       lines.push(String(message));
     });
     try {
-      const empty = await app.createUser({ role: 'learner', name: 'Private Display Name', email: 'private.person@example.test' });
+      const empty = await app.createUser({
+        role: 'learner',
+        name: 'Private Display Name',
+        email: 'private.person@example.test',
+      });
       await addAgents(app);
       expect((await recommend(app, empty)).status).toBe(409);
 
       await addConcepts(app, [{ slug: 'omega' }]);
       await addMastery(app, empty.id, [{ slug: 'omega', score: 0.2, attempts: 3, daysAgo: 3 }]);
-      await addPuzzle(app, { id: 'p-omega', name: 'Omega puzzle', ownerId: empty.id, visibility: 'public', tests: ['omega', 'omega'] });
+      await addPuzzle(app, {
+        id: 'p-omega',
+        name: 'Omega puzzle',
+        ownerId: empty.id,
+        visibility: 'public',
+        tests: ['omega', 'omega'],
+      });
       const goal = 'a secret goal about omega';
       const first = await recommend(app, empty, { goal });
       const second = await recommend(app, empty, { goal });
       expect(second.body.reused).toBe(true);
 
       const events = lines.filter((l) => l.startsWith('coach.'));
-      expect(events.map((l) => l.split(' ')[0])).toEqual(['coach.no_content', 'coach.recommended', 'coach.reused']);
-      const recommended = JSON.parse(events[1]!.slice('coach.recommended '.length)) as Record<string, unknown>;
+      expect(events.map((l) => l.split(' ')[0])).toEqual([
+        'coach.no_content',
+        'coach.recommended',
+        'coach.reused',
+      ]);
+      const recommended = JSON.parse(events[1]!.slice('coach.recommended '.length)) as Record<
+        string,
+        unknown
+      >;
       expect(recommended).toEqual({
         learnerId: empty.id,
         decisionId: first.body.decisionId,
@@ -639,7 +762,13 @@ describe('Coach: structured log events (T068, constitution VII)', () => {
         coverageTaskId: null,
       });
       const text = events.join('\n');
-      for (const forbidden of [goal, first.body.summary, 'Private Display Name', 'private.person@example.test', 'Omega puzzle']) {
+      for (const forbidden of [
+        goal,
+        first.body.summary,
+        'Private Display Name',
+        'private.person@example.test',
+        'Omega puzzle',
+      ]) {
         expect(text).not.toContain(forbidden);
       }
     } finally {
@@ -665,7 +794,13 @@ describe('Coach: passages follow source access (G6, G8)', () => {
     await addAgents(app);
     await addConcepts(app, [{ slug: 'kappa' }, { slug: 'lambda' }]);
     await addMastery(app, learner.id, [{ slug: 'kappa', score: 0.2, attempts: 3, daysAgo: 3 }]);
-    await addPuzzle(app, { id: 'p-kappa', name: 'Kappa deep dive', ownerId: owner.id, visibility: 'private', tests: ['kappa', 'kappa'] });
+    await addPuzzle(app, {
+      id: 'p-kappa',
+      name: 'Kappa deep dive',
+      ownerId: owner.id,
+      visibility: 'private',
+      tests: ['kappa', 'kappa'],
+    });
     const vector = (await new StubEmbeddingsProvider(64).embed([GOAL])).vectors[0]!;
     await app.testGraph.cypher(
       `MATCH (o:Learner {id: $owner}), (p:Puzzle {id: 'p-kappa'}), (c:Concept {id: $kappa})
@@ -694,15 +829,22 @@ describe('Coach: passages follow source access (G6, G8)', () => {
     expect(evidence[0]!.role).toBe('passage');
     expect(evidence[0]!.reason).toMatch(/^matched the goal \(similarity \d\.\d\d\)$/);
 
-    const path = (await app.http.get(`/decisions/${decisionId}/path`).set(learner.auth)).body as PathBody;
-    expect(path.nodes.find((n) => n.label === 'Chunk')).toMatchObject({ id: 'chunk-kappa', title: 'Passage from Kappa notes' });
+    const path = (await app.http.get(`/decisions/${decisionId}/path`).set(learner.auth))
+      .body as PathBody;
+    expect(path.nodes.find((n) => n.label === 'Chunk')).toMatchObject({
+      id: 'chunk-kappa',
+      title: 'Passage from Kappa notes',
+    });
     expect(path.edges.some((e) => e.role === 'passage')).toBe(true);
-    expect(path.steps.some((s) => s.startsWith('Passage from Kappa notes — matched the goal'))).toBe(true);
+    expect(
+      path.steps.some((s) => s.startsWith('Passage from Kappa notes — matched the goal')),
+    ).toBe(true);
     expect(JSON.stringify(path)).toContain('SECRET-PASSAGE');
   });
 
   it('after the source is no longer shared, the learner and an admin get the path without any passage', async () => {
-    const withPassage = (await app.http.get(`/decisions/${decisionId}/path`).set(learner.auth)).body as PathBody;
+    const withPassage = (await app.http.get(`/decisions/${decisionId}/path`).set(learner.auth))
+      .body as PathBody;
     await share(app, 'p-kappa', learner.id, false); // play-only now
     for (const viewer of [learner, admin]) {
       const res = await app.http.get(`/decisions/${decisionId}/path`).set(viewer.auth);
@@ -714,7 +856,12 @@ describe('Coach: passages follow source access (G6, G8)', () => {
       expect(JSON.stringify(body)).not.toContain('SECRET-PASSAGE');
       // everything else is unchanged
       expect(body.steps).toEqual(withPassage.steps.filter((s) => !s.startsWith('Passage from')));
-      expect(body.nodes.map((n) => n.id).sort()).toEqual(withPassage.nodes.map((n) => n.id).filter((id) => id !== 'chunk-kappa').sort());
+      expect(body.nodes.map((n) => n.id).sort()).toEqual(
+        withPassage.nodes
+          .map((n) => n.id)
+          .filter((id) => id !== 'chunk-kappa')
+          .sort(),
+      );
     }
   });
 
@@ -732,8 +879,16 @@ describe('Coach: passages follow source access (G6, G8)', () => {
 
   it('a published puzzle of origin prompt is recommended like any other and its decision has no passage evidence', async () => {
     const promptLearner = await app.createUser({ role: 'learner' });
-    await addMastery(app, promptLearner.id, [{ slug: 'lambda', score: 0.1, attempts: 3, daysAgo: 4 }]);
-    await addPuzzle(app, { id: 'p-prompt', name: 'Made from a prompt', ownerId: admin.id, visibility: 'public', tests: ['lambda', 'lambda'] });
+    await addMastery(app, promptLearner.id, [
+      { slug: 'lambda', score: 0.1, attempts: 3, daysAgo: 4 },
+    ]);
+    await addPuzzle(app, {
+      id: 'p-prompt',
+      name: 'Made from a prompt',
+      ownerId: admin.id,
+      visibility: 'public',
+      tests: ['lambda', 'lambda'],
+    });
     await app.testGraph.cypher(`MATCH (p:Puzzle {id: 'p-prompt'}) SET p.origin = 'prompt'`);
     const res = await recommend(app, promptLearner);
     expect(res.status).toBe(201);
@@ -743,7 +898,9 @@ describe('Coach: passages follow source access (G6, G8)', () => {
       { id: res.body.decisionId },
     );
     expect(chunks[0]!.c).toBe(0);
-    const path = (await app.http.get(`/decisions/${res.body.decisionId}/path`).set(promptLearner.auth)).body as PathBody;
+    const path = (
+      await app.http.get(`/decisions/${res.body.decisionId}/path`).set(promptLearner.auth)
+    ).body as PathBody;
     expect(path.nodes.some((n) => n.label === 'Chunk')).toBe(false);
   });
 });

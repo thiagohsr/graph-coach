@@ -21,7 +21,10 @@ export interface ChatFactoryOptions {
   fetch?: FetchLike;
 }
 
-export function createChatProvider(config: LlmConfig, options: ChatFactoryOptions = {}): ChatProvider {
+export function createChatProvider(
+  config: LlmConfig,
+  options: ChatFactoryOptions = {},
+): ChatProvider {
   assertValidConfig(config, 'LLM');
   switch (config.provider) {
     case 'stub':
@@ -38,7 +41,9 @@ export function createChatProvider(config: LlmConfig, options: ChatFactoryOption
       return createOllamaChatProvider(config, options);
     case 'ollama-with-fallback': {
       const primary = createOllamaChatProvider(config, options);
-      const fallback = config.fallback ? createOpenRouterChatProvider(config.fallback, options) : undefined;
+      const fallback = config.fallback
+        ? createOpenRouterChatProvider(config.fallback, options)
+        : undefined;
       const isUp = createOllamaHealthCheck({
         baseUrl: config.baseUrl ?? '',
         cfAccess: config.cfAccess,

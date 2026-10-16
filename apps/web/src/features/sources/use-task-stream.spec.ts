@@ -49,7 +49,14 @@ describe('useTaskStream', () => {
         status: 'done',
         result: 'ok',
         steps: [
-          { stepId: 's1', order: 1, node: 'chunk', status: 'complete', log: 'chunked', startedAt: '2026-10-15T10:00:00.000Z' },
+          {
+            stepId: 's1',
+            order: 1,
+            node: 'chunk',
+            status: 'complete',
+            log: 'chunked',
+            startedAt: '2026-10-15T10:00:00.000Z',
+          },
         ],
       }),
     );

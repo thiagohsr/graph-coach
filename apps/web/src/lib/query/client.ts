@@ -16,7 +16,10 @@ export function shouldRetry(failureCount: number, error: unknown): boolean {
   return error.status === 0 || error.status >= 500;
 }
 
-export function createQueryClient({ onUnauthenticated, onBlocked }: QueryClientHandlers): QueryClient {
+export function createQueryClient({
+  onUnauthenticated,
+  onBlocked,
+}: QueryClientHandlers): QueryClient {
   const handle = (error: unknown) => {
     if (!isApiClientError(error)) return;
     if (error.status === 401) {

@@ -10,7 +10,13 @@ const USER = { id: 'u1', role: 'learner' as const };
 const NOW = 1_760_000_000_000;
 
 const KEY_ROWS = [
-  { questionId: 'q1', order: 1, sentence: 'A ___ and ___', answers: ['index', 'writes'], concepts: [{ id: 'c-index', name: 'Indexes' }] },
+  {
+    questionId: 'q1',
+    order: 1,
+    sentence: 'A ___ and ___',
+    answers: ['index', 'writes'],
+    concepts: [{ id: 'c-index', name: 'Indexes' }],
+  },
   { questionId: 'q2', order: 2, sentence: 'B ___', answers: ['B-tree'], concepts: [] },
 ];
 
@@ -57,7 +63,12 @@ describe('SessionsService.start', () => {
     expect(r.sessionId).toEqual(expect.any(String));
     expect(calls[0]!.name).toBe('create_session');
     expect(calls[0]!.params).toMatchObject({ userId: 'u1', puzzleId: 'P1', now: NOW });
-    expect(Object.keys(calls[0]!.params).sort()).toEqual(['now', 'puzzleId', 'sessionId', 'userId']);
+    expect(Object.keys(calls[0]!.params).sort()).toEqual([
+      'now',
+      'puzzleId',
+      'sessionId',
+      'userId',
+    ]);
   });
 
   it('throws NotFoundError on zero rows', async () => {
@@ -72,7 +83,13 @@ describe('SessionsService.submit', () => {
   it('calls get_session, puzzle_answer_key, learner_mastery, record_answers in order with every blank', async () => {
     const { service, calls } = make();
     const result = await service.submit(USER, 's1', body, NOW);
-    expect(calls.map((c) => c.name)).toEqual(['get_session', 'puzzle_answer_key', 'learner_mastery', 'record_answers', 'question_grounding']);
+    expect(calls.map((c) => c.name)).toEqual([
+      'get_session',
+      'puzzle_answer_key',
+      'learner_mastery',
+      'record_answers',
+      'question_grounding',
+    ]);
     expect(calls[0]!.params).toEqual({ sessionId: 's1', learnerId: 'u1' });
     const write = calls[3]!.params;
     expect((write.answers as unknown[]).length).toBe(3);
@@ -88,7 +105,10 @@ describe('SessionsService.submit', () => {
 
   it('throws SESSION_ALREADY_SUBMITTED from the pre-check', async () => {
     const { service, calls } = make({ get_session: [{ ...SESSION, submittedAt: 5 }] });
-    await expect(service.submit(USER, 's1', body)).rejects.toMatchObject({ code: 'SESSION_ALREADY_SUBMITTED', status: 409 });
+    await expect(service.submit(USER, 's1', body)).rejects.toMatchObject({
+      code: 'SESSION_ALREADY_SUBMITTED',
+      status: 409,
+    });
     expect(calls.map((c) => c.name)).toEqual(['get_session']);
   });
 
@@ -139,20 +159,32 @@ describe('SessionsService.getResult', () => {
   };
 
   it('throws NotFoundError on zero rows and SESSION_NOT_SUBMITTED when unsubmitted', async () => {
-    await expect(make({ get_session: [] }).service.getResult(USER, 's1')).rejects.toBeInstanceOf(NotFoundError);
-    await expect(make().service.getResult(USER, 's1')).rejects.toMatchObject({ code: 'SESSION_NOT_SUBMITTED' });
+    await expect(make({ get_session: [] }).service.getResult(USER, 's1')).rejects.toBeInstanceOf(
+      NotFoundError,
+    );
+    await expect(make().service.getResult(USER, 's1')).rejects.toMatchObject({
+      code: 'SESSION_NOT_SUBMITTED',
+    });
   });
 
   it('rebuilds blanks with expected from the key and uses the stored mastery changes', async () => {
     const { service, calls } = make({ get_session: [submitted] });
     const r = await service.getResult(USER, 's1');
-    expect(r.review.map((i) => [i.questionId, i.blank, i.submitted, i.expected, i.correct])).toEqual([
+    expect(
+      r.review.map((i) => [i.questionId, i.blank, i.submitted, i.expected, i.correct]),
+    ).toEqual([
       ['q1', 0, 'index', 'index', true],
       ['q1', 1, null, 'writes', false],
       ['q2', 0, null, 'B-tree', false],
     ]);
-    expect(r.mastery).toEqual([{ conceptId: 'c-index', name: 'Indexes', before: 0.5, after: 0.455 }]);
-    expect(calls.map((c) => c.name)).toEqual(['get_session', 'puzzle_answer_key', 'question_grounding']);
+    expect(r.mastery).toEqual([
+      { conceptId: 'c-index', name: 'Indexes', before: 0.5, after: 0.455 },
+    ]);
+    expect(calls.map((c) => c.name)).toEqual([
+      'get_session',
+      'puzzle_answer_key',
+      'question_grounding',
+    ]);
   });
 
   it('attaches an excerpt, never the full chunk text, and passes the caller id to question_grounding', async () => {
@@ -162,7 +194,10 @@ describe('SessionsService.getResult', () => {
       question_grounding: [{ questionId: 'q1', chunkId: 'ch-1', sourceId: 'S1', text: long }],
     });
     const r = await service.getResult(USER, 's1');
-    expect(calls.at(-1)).toEqual({ name: 'question_grounding', params: { sessionId: 's1', userId: 'u1' } });
+    expect(calls.at(-1)).toEqual({
+      name: 'question_grounding',
+      params: { sessionId: 's1', userId: 'u1' },
+    });
     const withPassage = r.review.filter((i) => i.passage);
     expect(withPassage.map((i) => i.questionId)).toEqual(['q1', 'q1']);
     const passage = withPassage[0]!.passage!;
@@ -175,7 +210,11 @@ describe('SessionsService.getResult', () => {
   it('still returns the result without passages when question_grounding fails (submit and read)', async () => {
     const failing = (rows: unknown[]) => {
       const made = make({ get_session: rows });
-      const original = (made.service as unknown as { graph: { query: (n: string, p: unknown) => Promise<unknown[]> } }).graph;
+      const original = (
+        made.service as unknown as {
+          graph: { query: (n: string, p: unknown) => Promise<unknown[]> };
+        }
+      ).graph;
       const query = original.query.bind(original);
       original.query = async (name, params) => {
         if (name === 'question_grounding') throw new Error('boom');

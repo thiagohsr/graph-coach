@@ -11,10 +11,10 @@ export const LearnerRow = z.object({
 export type LearnerRow = z.infer<typeof LearnerRow>;
 
 /** Creates the Learner node for an account, or finds it when it exists (a retry, or a linked seeded account). */
-export const createLearner = typedQuery<{ id: string; displayName: string; createdAt: number }, LearnerRow>(
-  'create_learner',
-  LearnerRow,
-);
+export const createLearner = typedQuery<
+  { id: string; displayName: string; createdAt: number },
+  LearnerRow
+>('create_learner', LearnerRow);
 
 export const CreationCountRow = z.object({
   userId: z.string(),
@@ -40,12 +40,12 @@ export const UsageTotalRow = z.object({
 export type UsageTotalRow = z.infer<typeof UsageTotalRow>;
 
 /** Model calls and tokens per user in the current month, over their tasks and decisions (data-model §2.4). */
-export const usageTotalsQuery = typedQuery<{ userIds: string[]; monthStart: number }, UsageTotalRow>(
-  'usage_totals',
-  UsageTotalRow,
-);
+export const usageTotalsQuery = typedQuery<
+  { userIds: string[]; monthStart: number },
+  UsageTotalRow
+>('usage_totals', UsageTotalRow);
 
-export const DeletedRow =z.object({ deleted: z.number().int() });
+export const DeletedRow = z.object({ deleted: z.number().int() });
 export type DeletedRow = z.infer<typeof DeletedRow>;
 
 /** Compensation for a failed account creation: deletes a learner that has no relationships. */

@@ -28,7 +28,11 @@ export const DraftRow = z.object({
 export type DraftRow = z.output<typeof DraftRow>;
 
 const IdRow = z.object({ id: z.string() });
-const RemainingRow = z.object({ remaining: z.number(), approved: z.number(), rejected: z.number() });
+const RemainingRow = z.object({
+  remaining: z.number(),
+  approved: z.number(),
+  rejected: z.number(),
+});
 export type RemainingCounts = z.output<typeof RemainingRow>;
 
 const PublishRow = z.object({
@@ -131,7 +135,9 @@ export class ReviewGraph {
     reason: string | null,
     now: number,
   ): Promise<boolean> {
-    return (await this.rows('reject_question', { questionId, userId, reason, now }, IdRow)).length > 0;
+    return (
+      (await this.rows('reject_question', { questionId, userId, reason, now }, IdRow)).length > 0
+    );
   }
 
   async remainingDrafts(taskId: string): Promise<RemainingCounts> {
@@ -171,7 +177,11 @@ export class ReviewGraph {
     userId: string,
     visibility: 'public' | 'private',
   ): Promise<VisibilityResult | null> {
-    const [row] = await this.rows('set_puzzle_visibility', { puzzleId, userId, visibility }, VisibilityRow);
+    const [row] = await this.rows(
+      'set_puzzle_visibility',
+      { puzzleId, userId, visibility },
+      VisibilityRow,
+    );
     return row ?? null;
   }
 }

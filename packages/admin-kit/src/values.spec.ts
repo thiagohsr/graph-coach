@@ -12,7 +12,13 @@ registry.register({
   source: 'graph',
   entity: 'Decision',
   listDisplay: ['summary'],
-  fields: { id: {}, summary: { type: 'text' }, flags: { type: 'list', readonly: true }, calls: { type: 'integer' }, ok: { type: 'boolean' } },
+  fields: {
+    id: {},
+    summary: { type: 'text' },
+    flags: { type: 'list', readonly: true },
+    calls: { type: 'integer' },
+    ok: { type: 'boolean' },
+  },
 });
 registry.freeze();
 
@@ -50,7 +56,13 @@ describe('value conversion', () => {
 });
 
 describe('toRecordDto', () => {
-  const row = { id: 'c1', slug: 's', name: 'B-trees', description: 'd', createdAt: 1_700_000_000_000 };
+  const row = {
+    id: 'c1',
+    slug: 's',
+    name: 'B-trees',
+    description: 'd',
+    createdAt: 1_700_000_000_000,
+  };
 
   it('list returns only the listDisplay keys with id and title as strings', () => {
     const dto = toRecordDto(concept, row, 'list');
@@ -61,8 +73,20 @@ describe('toRecordDto', () => {
   });
 
   it('all returns every stored field and leaves computed keys out', () => {
-    const dto = toRecordDto(item, { id: 'i1', title: 'T', status: 'open', payload: {}, size: 2, createdAt: new Date(0) }, 'all');
-    expect(Object.keys(dto.values)).toEqual(['id', 'title', 'status', 'payload', 'size', 'createdAt', 'updatedAt']);
+    const dto = toRecordDto(
+      item,
+      { id: 'i1', title: 'T', status: 'open', payload: {}, size: 2, createdAt: new Date(0) },
+      'all',
+    );
+    expect(Object.keys(dto.values)).toEqual([
+      'id',
+      'title',
+      'status',
+      'payload',
+      'size',
+      'createdAt',
+      'updatedAt',
+    ]);
     expect(dto.values.updatedAt).toBeNull();
     expect('total' in dto.values).toBe(false);
   });

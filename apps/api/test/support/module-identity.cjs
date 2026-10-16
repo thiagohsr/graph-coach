@@ -24,7 +24,8 @@ const byName = new Map();
 for (const entry of entries) {
   for (const [name, value] of Object.entries(modules[entry])) {
     // Classes only: plain functions with the same name may be separate implementations in different packages.
-    if (typeof value !== 'function' || !/^class[\s{]/.test(Function.prototype.toString.call(value))) continue;
+    if (typeof value !== 'function' || !/^class[\s{]/.test(Function.prototype.toString.call(value)))
+      continue;
     if (!byName.has(name)) byName.set(name, []);
     byName.get(name).push({ entry, value });
   }

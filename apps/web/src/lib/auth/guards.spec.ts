@@ -1,8 +1,21 @@
 import type { MeDto } from '@coach/types';
 import { describe, expect, it } from 'vitest';
-import { ForbiddenError, guardSession, requireRole, requireSession, roleAtLeast, safeRedirect } from './guards';
+import {
+  ForbiddenError,
+  guardSession,
+  requireRole,
+  requireSession,
+  roleAtLeast,
+  safeRedirect,
+} from './guards';
 
-const user: MeDto = { id: 'u1', name: 'Ada', email: 'ada@example.com', role: 'learner', status: 'active' };
+const user: MeDto = {
+  id: 'u1',
+  name: 'Ada',
+  email: 'ada@example.com',
+  role: 'learner',
+  status: 'active',
+};
 
 function thrown(fn: () => unknown): unknown {
   try {
@@ -60,13 +73,20 @@ describe('requireSession', () => {
       to: '/login',
       search: { redirect: '/admin/user?page=2' },
     });
-    const e = thrown(() => requireSession(null, { pathname: '/coach', search: '?goal=x' })) as { options: unknown };
+    const e = thrown(() => requireSession(null, { pathname: '/coach', search: '?goal=x' })) as {
+      options: unknown;
+    };
     expect(e.options).toMatchObject({ to: '/login', search: { redirect: '/coach?goal=x' } });
   });
 
   it('redirects to /blocked when the session says the account is blocked', () => {
-    expect(guardSession({ blocked: true }, { pathname: '/coach' })).toEqual({ kind: 'redirect', to: '/blocked' });
-    const e = thrown(() => requireSession({ blocked: true }, { pathname: '/coach' })) as { options: unknown };
+    expect(guardSession({ blocked: true }, { pathname: '/coach' })).toEqual({
+      kind: 'redirect',
+      to: '/blocked',
+    });
+    const e = thrown(() => requireSession({ blocked: true }, { pathname: '/coach' })) as {
+      options: unknown;
+    };
     expect(e.options).toMatchObject({ to: '/blocked' });
   });
 });
@@ -76,6 +96,8 @@ describe('requireRole', () => {
     expect(() => requireRole({ role: 'admin' }, 'admin')).not.toThrow();
     expect(() => requireRole({ role: 'admin' }, 'reviewer')).not.toThrow();
     expect(thrown(() => requireRole({ role: 'reviewer' }, 'admin'))).toBeInstanceOf(ForbiddenError);
-    expect(thrown(() => requireRole({ role: 'learner' }, 'reviewer'))).toBeInstanceOf(ForbiddenError);
+    expect(thrown(() => requireRole({ role: 'learner' }, 'reviewer'))).toBeInstanceOf(
+      ForbiddenError,
+    );
   });
 });

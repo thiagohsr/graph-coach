@@ -499,7 +499,9 @@ describe('Ollama with OpenRouter fallback', () => {
     expect(problems(prod)).toEqual([
       'ENV OPENROUTER_API_KEY: required in production when LLM_PROVIDER=ollama-with-fallback',
     ]);
-    expect(parseEnv({ ...prod, OPENROUTER_API_KEY: SECRET_VALUE }).llm.provider).toBe('ollama-with-fallback');
+    expect(parseEnv({ ...prod, OPENROUTER_API_KEY: SECRET_VALUE }).llm.provider).toBe(
+      'ollama-with-fallback',
+    );
   });
 
   it('embeddings via openrouter: default model, key from OPENROUTER_API_KEY, dimension required', () => {
@@ -519,18 +521,26 @@ describe('Ollama with OpenRouter fallback', () => {
     expect(problems({ ...base, EMBEDDING_PROVIDER: 'openrouter', EMBEDDING_DIM: '4096' })).toEqual([
       'ENV OPENROUTER_API_KEY: required when EMBEDDING_PROVIDER=openrouter',
     ]);
-    expect(problems({ ...base, EMBEDDING_PROVIDER: 'openrouter', OPENROUTER_API_KEY: SECRET_VALUE })).toEqual([
-      'ENV EMBEDDING_DIM: required when EMBEDDING_PROVIDER=openrouter',
-    ]);
+    expect(
+      problems({ ...base, EMBEDDING_PROVIDER: 'openrouter', OPENROUTER_API_KEY: SECRET_VALUE }),
+    ).toEqual(['ENV EMBEDDING_DIM: required when EMBEDDING_PROVIDER=openrouter']);
   });
 
   it('keeps each provider value to its own variable', () => {
-    expect(problems({ ...base, LLM_PROVIDER: 'openrouter' })[0]).toMatch(/LLM_PROVIDER: must be one of/);
-    expect(problems({ ...base, EMBEDDING_PROVIDER: 'ollama-with-fallback' })[0]).toMatch(/EMBEDDING_PROVIDER: must be one of/);
+    expect(problems({ ...base, LLM_PROVIDER: 'openrouter' })[0]).toMatch(
+      /LLM_PROVIDER: must be one of/,
+    );
+    expect(problems({ ...base, EMBEDDING_PROVIDER: 'ollama-with-fallback' })[0]).toMatch(
+      /EMBEDDING_PROVIDER: must be one of/,
+    );
   });
 
   it('never puts a secret in an error message', () => {
-    const text = problems({ ...withFallback, OLLAMA_BASE_URL: 'not a url', CF_ACCESS_CLIENT_SECRET: '' }).join('\n');
+    const text = problems({
+      ...withFallback,
+      OLLAMA_BASE_URL: 'not a url',
+      CF_ACCESS_CLIENT_SECRET: '',
+    }).join('\n');
     expect(text).not.toContain(SECRET_VALUE);
   });
 });

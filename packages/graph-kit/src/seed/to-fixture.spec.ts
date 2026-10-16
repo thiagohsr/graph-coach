@@ -31,7 +31,14 @@ describe('seedToFixture', () => {
     const f = seedToFixture(seed, { now: NOW });
     const nodes = countBy(f.nodes, (n) => n.label);
     const edges = countBy(f.edges, (e) => e.type);
-    expect(nodes).toMatchObject({ Concept: 25, Puzzle: 6, Question: 36, Learner: 4, Agent: 2, Session: 5 });
+    expect(nodes).toMatchObject({
+      Concept: 25,
+      Puzzle: 6,
+      Question: 36,
+      Learner: 4,
+      Agent: 2,
+      Session: 5,
+    });
     expect(edges).toMatchObject({
       PREREQUISITE_OF: 32,
       ANSWERED: 41,
@@ -74,8 +81,14 @@ describe('seedToFixture', () => {
       score: 30,
       maxScore: 70,
     });
-    const indexes = f.edges.find((e) => e.type === 'HAS_MASTERY' && e.to.key === seedIds.concept('indexes'))!;
-    expect(indexes.props).toMatchObject({ score: 0.2562455, attempts: 6, lastSeen: NOW.getTime() - DAY });
+    const indexes = f.edges.find(
+      (e) => e.type === 'HAS_MASTERY' && e.to.key === seedIds.concept('indexes'),
+    )!;
+    expect(indexes.props).toMatchObject({
+      score: 0.2562455,
+      attempts: 6,
+      lastSeen: NOW.getTime() - DAY,
+    });
 
     const later = seedToFixture(seed, { now: new Date(NOW.getTime() + 1000) });
     const laterA = later.nodes.find((n) => n.key === seedIds.session('A'))!;
@@ -87,7 +100,10 @@ describe('seedToFixture', () => {
     copy.scenario.sessions[2]!.answers[3]!.word = null;
     const f = seedToFixture(copy, { now: NOW });
     const edge = f.edges.find(
-      (e) => e.type === 'ANSWERED' && e.from.key === seedIds.session('A') && e.to.key === seedIds.question('storage-and-b-trees', 3),
+      (e) =>
+        e.type === 'ANSWERED' &&
+        e.from.key === seedIds.session('A') &&
+        e.to.key === seedIds.question('storage-and-b-trees', 3),
     )!;
     expect(edge.props).toMatchObject({ blank: 0, word: '' });
   });
@@ -103,7 +119,9 @@ describe('seedToFixture', () => {
 
   it('builds ids by the documented scheme', () => {
     expect(seedIds.email('learner2')).toBe('learner2@example.test');
-    expect(seedIds.question('storage-and-b-trees', 3)).toMatch(/^[0-9a-f]{8}(-[0-9a-f]{4}){3}-[0-9a-f]{12}$/);
+    expect(seedIds.question('storage-and-b-trees', 3)).toMatch(
+      /^[0-9a-f]{8}(-[0-9a-f]{4}){3}-[0-9a-f]{12}$/,
+    );
     expect(seedIds.user('admin')).not.toBe(seedIds.user('learner'));
   });
 });

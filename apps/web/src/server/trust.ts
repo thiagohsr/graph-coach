@@ -27,13 +27,18 @@ function parseIPv6(ip: string): bigint {
   const tail = /(\d+\.\d+\.\d+\.\d+)$/.exec(text);
   if (tail) {
     const v4 = parseIPv4(tail[1]!);
-    text = text.slice(0, -tail[1]!.length) + `${(v4 >> 16n).toString(16)}:${(v4 & 0xffffn).toString(16)}`;
+    text =
+      text.slice(0, -tail[1]!.length) +
+      `${(v4 >> 16n).toString(16)}:${(v4 & 0xffffn).toString(16)}`;
   }
   const [head = '', rest] = text.split('::');
   const headParts = head ? head.split(':') : [];
   const restParts = rest === undefined ? [] : rest ? rest.split(':') : [];
   const missing = 8 - headParts.length - restParts.length;
-  const groups = rest === undefined ? headParts : [...headParts, ...Array<string>(missing).fill('0'), ...restParts];
+  const groups =
+    rest === undefined
+      ? headParts
+      : [...headParts, ...Array<string>(missing).fill('0'), ...restParts];
   return groups.reduce((acc, g) => (acc << 16n) + BigInt(`0x${g}`), 0n);
 }
 

@@ -62,4 +62,7 @@ export const sourceOptions = (sourceId: string) =>
   });
 
 export const taskOptions = (taskId: string) =>
-  queryOptions({ queryKey: keys.tasks.detail(taskId), queryFn: ({ signal }) => getTask(taskId, signal) });
+  queryOptions({
+    queryKey: keys.tasks.detail(taskId),
+    queryFn: ({ signal }) => getTask(taskId, signal),
+  });

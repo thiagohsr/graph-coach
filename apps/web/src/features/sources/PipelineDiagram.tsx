@@ -18,7 +18,10 @@ const STATUS_TEXT: Record<DiagramStatus, string> = {
 export function PipelineDiagram({ kind, state }: { kind: TaskKind; state: PipelineState }) {
   const items = diagramSteps(kind, state);
   return (
-    <ol aria-label="Pipeline steps" className="flex flex-col gap-4 [counter-reset:step] sm:flex-row sm:gap-0">
+    <ol
+      aria-label="Pipeline steps"
+      className="flex flex-col gap-4 [counter-reset:step] sm:flex-row sm:gap-0"
+    >
       {items.map((item) => (
         <li
           key={`${item.node}`}
@@ -39,8 +42,10 @@ export function PipelineDiagram({ kind, state }: { kind: TaskKind; state: Pipeli
               'relative grid size-7 shrink-0 [counter-increment:step] before:content-[counter(step)] place-items-center rounded-full border-[1.5px] font-mono text-xs leading-none font-medium',
               item.status === 'pending' && 'border-input bg-card text-muted-foreground',
               item.status === 'active' && 'border-2 border-primary bg-primary-soft text-primary',
-              item.status === 'complete' && 'border-primary bg-primary text-primary-foreground before:invisible',
-              item.status === 'error' && 'border-2 border-danger bg-danger-soft text-danger before:content-["!"]',
+              item.status === 'complete' &&
+                'border-primary bg-primary text-primary-foreground before:invisible',
+              item.status === 'error' &&
+                'border-2 border-danger bg-danger-soft text-danger before:content-["!"]',
             )}
           >
             {item.status === 'complete' && <CheckIcon className="absolute size-4" />}
@@ -49,10 +54,18 @@ export function PipelineDiagram({ kind, state }: { kind: TaskKind; state: Pipeli
             )}
           </span>
           <span className="flex flex-1 flex-wrap items-center justify-between gap-2 sm:flex-col sm:justify-start sm:gap-1">
-            <span className={cn('text-sm font-semibold', item.status === 'error' && 'text-danger')}>{item.label}</span>
+            <span className={cn('text-sm font-semibold', item.status === 'error' && 'text-danger')}>
+              {item.label}
+            </span>
             <span className="sr-only">: </span>
             <Badge
-              variant={item.status === 'error' ? 'destructive' : item.status === 'complete' ? 'default' : 'secondary'}
+              variant={
+                item.status === 'error'
+                  ? 'destructive'
+                  : item.status === 'complete'
+                    ? 'default'
+                    : 'secondary'
+              }
               className="font-mono"
             >
               {STATUS_TEXT[item.status]}

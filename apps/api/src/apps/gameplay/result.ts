@@ -41,7 +41,13 @@ export function buildResult(input: ResultInput): SubmitResult {
         expected: blank.expected,
         correct: blank.correct,
         ...(passage
-          ? { passage: { chunkId: passage.chunkId, sourceId: passage.sourceId, excerpt: excerpt(passage.text, undefined, blank.expected) } }
+          ? {
+              passage: {
+                chunkId: passage.chunkId,
+                sourceId: passage.sourceId,
+                excerpt: excerpt(passage.text, undefined, blank.expected),
+              },
+            }
           : {}),
       };
     }),

@@ -1,5 +1,11 @@
 import type { z } from 'zod';
-import type { ChatMessage, ChatOptions, ChatProvider, ProviderName, StructuredOptions } from './types';
+import type {
+  ChatMessage,
+  ChatOptions,
+  ChatProvider,
+  ProviderName,
+  StructuredOptions,
+} from './types';
 import type { ChatResult, StructuredResult } from './usage';
 
 /** A chat provider that picks its real provider when a run starts, not per call. */
@@ -50,7 +56,9 @@ export class FallbackChatProvider implements RunScopedChatProvider {
       this.logger.warn(`${this.primary.name} is unreachable and no fallback is configured`);
       return this.primary;
     }
-    this.logger.warn(`${this.primary.name} is unreachable; this run uses ${this.fallback.name} (${this.fallback.model})`);
+    this.logger.warn(
+      `${this.primary.name} is unreachable; this run uses ${this.fallback.name} (${this.fallback.model})`,
+    );
     return this.fallback;
   }
 

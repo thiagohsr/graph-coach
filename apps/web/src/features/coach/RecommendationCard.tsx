@@ -18,9 +18,17 @@ export function RecommendationCard({ recommendation: r }: { recommendation: Reco
 
   const notices = flagNotices(r.flags);
   return (
-    <article className="flex flex-col gap-4 rounded-lg border bg-card p-5 shadow-xs sm:p-6" aria-labelledby="coach-card-heading">
+    <article
+      className="flex flex-col gap-4 rounded-lg border bg-card p-5 shadow-xs sm:p-6"
+      aria-labelledby="coach-card-heading"
+    >
       <div className="flex flex-col gap-1">
-        <h2 id="coach-card-heading" ref={heading} tabIndex={-1} className="text-[22px] leading-7 font-bold">
+        <h2
+          id="coach-card-heading"
+          ref={heading}
+          tabIndex={-1}
+          className="text-[22px] leading-7 font-bold"
+        >
           {r.target ? r.target.name : 'No specific concept'}
         </h2>
         {r.reused && (
@@ -55,7 +63,10 @@ export function RecommendationCard({ recommendation: r }: { recommendation: Reco
           </ul>
           {r.coverageTaskId && (
             // The task page is built in a later phase, so its route is not in the typed tree yet.
-            <Link to={`/tasks/${encodeURIComponent(r.coverageTaskId)}` as never} className="font-semibold text-primary underline underline-offset-4 hover:text-primary-hover">
+            <Link
+              to={`/tasks/${encodeURIComponent(r.coverageTaskId)}` as never}
+              className="font-semibold text-primary underline underline-offset-4 hover:text-primary-hover"
+            >
               Follow the content request
             </Link>
           )}
@@ -115,7 +126,10 @@ export function CoachError({ error, onRetry }: { error: unknown; onRetry?: () =>
         <AlertDescription className="flex flex-col gap-2">
           <span>There is nothing to practise yet.</span>
           <span className="flex gap-4">
-            <Link to={'/sources/new' as never} className="font-semibold text-primary underline underline-offset-4">
+            <Link
+              to={'/sources/new' as never}
+              className="font-semibold text-primary underline underline-offset-4"
+            >
               Create a puzzle
             </Link>
             <Link to="/puzzles" className="font-semibold text-primary underline underline-offset-4">
@@ -141,7 +155,11 @@ export function CoachError({ error, onRetry }: { error: unknown; onRetry?: () =>
 
 function RetryButton({ onRetry }: { onRetry: () => void }) {
   return (
-    <button type="button" className={cn(buttonVariants({ variant: 'outline', size: 'sm' }))} onClick={onRetry}>
+    <button
+      type="button"
+      className={cn(buttonVariants({ variant: 'outline', size: 'sm' }))}
+      onClick={onRetry}
+    >
       Retry
     </button>
   );

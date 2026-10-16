@@ -65,7 +65,10 @@ export class SourcesService {
    * `generate` task. Prompts are not deduplicated: every submission gets a random source id, a new run, and its own
    * allowance.
    */
-  private async createPrompt(user: AuthUser, body: PromptCreateRequest): Promise<CreateSourceResult> {
+  private async createPrompt(
+    user: AuthUser,
+    body: PromptCreateRequest,
+  ): Promise<CreateSourceResult> {
     const verdict = guardBrief(body.brief);
     if (!verdict.ok) {
       throw new DomainInvalidError('SOURCE_REJECTED', 'The brief was not accepted', {
@@ -116,7 +119,10 @@ export class SourcesService {
     return { status: 202, body: { taskId, sourceId } };
   }
 
-  private async createUpload(user: AuthUser, body: UploadCreateRequest): Promise<CreateSourceResult> {
+  private async createUpload(
+    user: AuthUser,
+    body: UploadCreateRequest,
+  ): Promise<CreateSourceResult> {
     const maxWords = await this.settings.get('sourceMaxWords');
     const verdict = guard({ kind: body.kind, content: body.content }, { maxWords });
     if (!verdict.ok) {
@@ -188,7 +194,15 @@ export class SourcesService {
   /** The source with its text (upload) or brief (prompt). 404 for anyone who fails canReadSource, whatever the role. */
   async get(user: AuthUser, id: string): Promise<SourceDetailDto> {
     const row = await this.graph.getSource(id, callerParams(user).userId);
-    assertCanReadSource(user, row ? { ownerId: row.access === 'owner' ? user.id : null, sharedWithCaller: row.access === 'shared' } : null);
+    assertCanReadSource(
+      user,
+      row
+        ? {
+            ownerId: row.access === 'owner' ? user.id : null,
+            sharedWithCaller: row.access === 'shared',
+          }
+        : null,
+    );
     return toDetail(row!);
   }
 }

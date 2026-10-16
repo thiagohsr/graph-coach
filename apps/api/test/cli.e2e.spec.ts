@@ -42,7 +42,10 @@ describe('migrate and setup-graph', () => {
     expect(setup.exitCode).toBe(0);
     expect(setup.lines).toContain('created: 20');
     expect(await settingsRows()).toBe(SETTING_KEYS.length); // 15
-    const [stored] = await cli.db.select().from(adminSettings).where(eq(adminSettings.key, 'embeddingDim'));
+    const [stored] = await cli.db
+      .select()
+      .from(adminSettings)
+      .where(eq(adminSettings.key, 'embeddingDim'));
     expect(stored?.value).toBe(64);
   });
 
@@ -58,10 +61,15 @@ describe('migrate and setup-graph', () => {
     expect(refused.errors.join('\n')).toContain('--rebuild-vector');
     expect(refused.errors.join('\n')).toContain('32');
 
-    const rebuilt = await cli.run(['setup-graph', '--rebuild-vector'], { env: { EMBEDDING_DIM: '32' } });
+    const rebuilt = await cli.run(['setup-graph', '--rebuild-vector'], {
+      env: { EMBEDDING_DIM: '32' },
+    });
     expect(rebuilt.exitCode).toBe(0);
     expect(rebuilt.lines.join('\n')).toContain('(rebuilt)');
-    const [stored] = await cli.db.select().from(adminSettings).where(eq(adminSettings.key, 'embeddingDim'));
+    const [stored] = await cli.db
+      .select()
+      .from(adminSettings)
+      .where(eq(adminSettings.key, 'embeddingDim'));
     expect(stored?.value).toBe(32);
 
     // Back to the default dimension for the rest of the file.
@@ -87,9 +95,14 @@ describe('seed', () => {
     expect(result.lines.join('\n')).toContain('users: 4 created');
 
     const rows = await cli.db.select().from(users);
-    const demo = rows.filter((row) => row.id === seedIds.user('learner') || DEMO.some((key) => row.id === seedIds.user(key)));
+    const demo = rows.filter(
+      (row) =>
+        row.id === seedIds.user('learner') || DEMO.some((key) => row.id === seedIds.user(key)),
+    );
     expect(demo).toHaveLength(4);
-    expect(demo.map((row) => row.email).sort()).toEqual(DEMO.map((key) => seedIds.email(key)).sort());
+    expect(demo.map((row) => row.email).sort()).toEqual(
+      DEMO.map((key) => seedIds.email(key)).sort(),
+    );
     expect(await cli.db.select().from(userIdentities)).toHaveLength(0);
     // seed creates no code and no bonus run
     expect(await cli.db.select().from(accessCodes)).toHaveLength(0);
@@ -113,8 +126,14 @@ describe('seed', () => {
   });
 
   it('a second seed creates nothing and keeps a re-roled, blocked, or linked demo row as it was', async () => {
-    await cli.db.update(users).set({ role: 'reviewer' }).where(eq(users.id, seedIds.user('learner')));
-    await cli.db.update(users).set({ status: 'blocked' }).where(eq(users.id, seedIds.user('learner2')));
+    await cli.db
+      .update(users)
+      .set({ role: 'reviewer' })
+      .where(eq(users.id, seedIds.user('learner')));
+    await cli.db
+      .update(users)
+      .set({ status: 'blocked' })
+      .where(eq(users.id, seedIds.user('learner2')));
     await cli.db
       .insert(userIdentities)
       .values({ cognitoSub: 'sub-admin', userId: seedIds.user('admin'), provider: 'google' });
@@ -126,14 +145,26 @@ describe('seed', () => {
     expect(again.lines.join('\n')).toContain('graph: 0 nodes and 0 relationships created');
     expect(await graphNodes()).toBe(before);
 
-    const [learner] = await cli.db.select().from(users).where(eq(users.id, seedIds.user('learner')));
-    const [learner2] = await cli.db.select().from(users).where(eq(users.id, seedIds.user('learner2')));
+    const [learner] = await cli.db
+      .select()
+      .from(users)
+      .where(eq(users.id, seedIds.user('learner')));
+    const [learner2] = await cli.db
+      .select()
+      .from(users)
+      .where(eq(users.id, seedIds.user('learner2')));
     expect(learner?.role).toBe('reviewer');
     expect(learner2?.status).toBe('blocked');
     expect(await cli.db.select().from(userIdentities)).toHaveLength(1);
 
-    await cli.db.update(users).set({ role: 'learner' }).where(eq(users.id, seedIds.user('learner')));
-    await cli.db.update(users).set({ status: 'active' }).where(eq(users.id, seedIds.user('learner2')));
+    await cli.db
+      .update(users)
+      .set({ role: 'learner' })
+      .where(eq(users.id, seedIds.user('learner')));
+    await cli.db
+      .update(users)
+      .set({ status: 'active' })
+      .where(eq(users.id, seedIds.user('learner2')));
     await cli.db.delete(userIdentities);
   });
 
@@ -152,7 +183,10 @@ describe('user commands', () => {
     const output = result.lines.join('\n');
     expect(output).toContain(seedIds.user('learner'));
     expect(output).not.toContain(learnerEmail);
-    const [row] = await cli.db.select().from(users).where(eq(users.id, seedIds.user('learner')));
+    const [row] = await cli.db
+      .select()
+      .from(users)
+      .where(eq(users.id, seedIds.user('learner')));
     expect(row?.role).toBe('reviewer');
     await cli.run(['grant-role', learnerEmail, 'learner']);
   });
@@ -167,10 +201,16 @@ describe('user commands', () => {
 
   it('block-user then unblock-user toggle status', async () => {
     expect((await cli.run(['block-user', learnerEmail])).exitCode).toBe(0);
-    let [row] = await cli.db.select().from(users).where(eq(users.id, seedIds.user('learner')));
+    let [row] = await cli.db
+      .select()
+      .from(users)
+      .where(eq(users.id, seedIds.user('learner')));
     expect(row?.status).toBe('blocked');
     expect((await cli.run(['unblock-user', learnerEmail])).exitCode).toBe(0);
-    [row] = await cli.db.select().from(users).where(eq(users.id, seedIds.user('learner')));
+    [row] = await cli.db
+      .select()
+      .from(users)
+      .where(eq(users.id, seedIds.user('learner')));
     expect(row?.status).toBe('active');
   });
 
@@ -197,9 +237,21 @@ describe('access code commands', () => {
   });
 
   it('refuses a code with no grant', async () => {
-    const result = await cli.run(['create-code', '--label', 'empty', '--source', '0', '--prompt', '0', '--lift-days', '0']);
+    const result = await cli.run([
+      'create-code',
+      '--label',
+      'empty',
+      '--source',
+      '0',
+      '--prompt',
+      '0',
+      '--lift-days',
+      '0',
+    ]);
     expect(result.exitCode).toBe(1);
-    expect(await cli.db.select().from(accessCodes).where(eq(accessCodes.label, 'empty'))).toHaveLength(0);
+    expect(
+      await cli.db.select().from(accessCodes).where(eq(accessCodes.label, 'empty')),
+    ).toHaveLength(0);
   });
 
   it('--generate-only prints a code and writes no row', async () => {
@@ -215,7 +267,15 @@ describe('access code commands', () => {
     const code = generateCode();
     process.env.INVITE_CODE = code;
     try {
-      const result = await cli.run(['create-code', '--label', 'live', '--prompt', '1', '--from-env', 'INVITE_CODE']);
+      const result = await cli.run([
+        'create-code',
+        '--label',
+        'live',
+        '--prompt',
+        '1',
+        '--from-env',
+        'INVITE_CODE',
+      ]);
       expect(result.exitCode).toBe(0);
       const everything = [...result.lines, ...result.errors, ...result.logs].join('\n');
       expect(everything).not.toContain(code);
@@ -226,7 +286,15 @@ describe('access code commands', () => {
       expect(everything).toContain(row!.id);
 
       // A value whose hash already exists is refused.
-      const duplicate = await cli.run(['create-code', '--label', 'again', '--prompt', '1', '--from-env', 'INVITE_CODE']);
+      const duplicate = await cli.run([
+        'create-code',
+        '--label',
+        'again',
+        '--prompt',
+        '1',
+        '--from-env',
+        'INVITE_CODE',
+      ]);
       expect(duplicate.exitCode).toBe(1);
       expect(duplicate.errors.join('\n')).toContain('This code already exists');
       expect(duplicate.errors.join('\n')).not.toContain(code);
@@ -260,7 +328,15 @@ describe('access code commands', () => {
     if (value === undefined) delete process.env.BAD_CODE;
     else process.env.BAD_CODE = value;
     try {
-      const result = await cli.run(['create-code', '--label', 'bad', '--prompt', '1', '--from-env', 'BAD_CODE']);
+      const result = await cli.run([
+        'create-code',
+        '--label',
+        'bad',
+        '--prompt',
+        '1',
+        '--from-env',
+        'BAD_CODE',
+      ]);
       expect(result.exitCode).toBe(1);
       expect(result.errors).toContain('ENV BAD_CODE: not a valid access code');
       if (value) expect(result.errors.join('\n') + result.logs.join('\n')).not.toContain(value);
@@ -284,15 +360,29 @@ describe('access code commands', () => {
     const [after] = await cli.db.select().from(accessCodes).where(eq(accessCodes.id, row!.id));
     expect(after?.disabled).toBe(true);
 
-    expect((await cli.run(['disable-code', '00000000-0000-4000-8000-000000000000'])).exitCode).toBe(1);
+    expect((await cli.run(['disable-code', '00000000-0000-4000-8000-000000000000'])).exitCode).toBe(
+      1,
+    );
   });
 
   it('grant-runs adds to the bonus columns; an unknown address exits 1', async () => {
-    const result = await cli.run(['grant-runs', seedIds.email('learner'), '--source', '1', '--prompt', '2']);
+    const result = await cli.run([
+      'grant-runs',
+      seedIds.email('learner'),
+      '--source',
+      '1',
+      '--prompt',
+      '2',
+    ]);
     expect(result.exitCode).toBe(0);
-    const [row] = await cli.db.select().from(users).where(eq(users.id, seedIds.user('learner')));
+    const [row] = await cli.db
+      .select()
+      .from(users)
+      .where(eq(users.id, seedIds.user('learner')));
     expect(row).toMatchObject({ bonusSourceRuns: 1, bonusPromptRuns: 3 }); // 1 prompt from the redeemed code
-    expect((await cli.run(['grant-runs', 'nobody@example.test', '--source', '1'])).exitCode).toBe(1);
+    expect((await cli.run(['grant-runs', 'nobody@example.test', '--source', '1'])).exitCode).toBe(
+      1,
+    );
     expect((await cli.run(['grant-runs', seedIds.email('learner')])).exitCode).toBe(1);
   });
 });

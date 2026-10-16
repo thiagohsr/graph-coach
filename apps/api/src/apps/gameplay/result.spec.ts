@@ -13,7 +13,9 @@ const BLANKS: GradedBlank[] = [
   { questionId: 'q2', order: 2, blank: 0, word: 'no', expected: 'y', correct: false },
 ];
 
-const input = (passages = new Map<string, { chunkId: string; sourceId: string; text: string }>()) => ({
+const input = (
+  passages = new Map<string, { chunkId: string; sourceId: string; text: string }>(),
+) => ({
   session: {
     sessionId: 's1',
     puzzleId: 'P1',
@@ -51,7 +53,9 @@ describe('buildResult', () => {
 
   it("review follows the blanks, maps '' to null, and copies expected and correct", () => {
     const r = buildResult(input());
-    expect(r.review.map((i) => [i.questionId, i.blank, i.submitted, i.expected, i.correct])).toEqual([
+    expect(
+      r.review.map((i) => [i.questionId, i.blank, i.submitted, i.expected, i.correct]),
+    ).toEqual([
       ['q1', 0, 'x', 'x', true],
       ['q1', 1, null, 'z', false],
       ['q2', 0, 'no', 'y', false],
@@ -66,7 +70,9 @@ describe('buildResult', () => {
   });
 
   it('adds a capped passage only for questions in the map', () => {
-    const r = buildResult(input(new Map([['q1', { chunkId: 'ch', sourceId: 'S', text: 'word '.repeat(200) }]])));
+    const r = buildResult(
+      input(new Map([['q1', { chunkId: 'ch', sourceId: 'S', text: 'word '.repeat(200) }]])),
+    );
     expect(r.review[0]!.passage).toMatchObject({ chunkId: 'ch', sourceId: 'S' });
     expect(r.review[0]!.passage!.excerpt.length).toBeLessThanOrEqual(281);
     expect(r.review[2]!.passage).toBeUndefined();

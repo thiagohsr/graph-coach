@@ -2,7 +2,9 @@ import type { CoachDeps, CoachNode } from '../deps';
 import { DecisionNotRecordedError, EvidenceMissingError } from '../errors';
 
 /** The only core node that writes. The decision id is the run id. */
-export function createRecordDecisionNode(deps: Pick<CoachDeps, 'queries' | 'chatModel'>): CoachNode {
+export function createRecordDecisionNode(
+  deps: Pick<CoachDeps, 'queries' | 'chatModel'>,
+): CoachNode {
   return async (state) => {
     if (state.evidence.length === 0) throw new EvidenceMissingError();
     const chatRan = state.usage.inputTokens > 0 || state.usage.outputTokens > 0;

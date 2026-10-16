@@ -5,7 +5,12 @@ const kind = { used: 1, allowance: 3, bonus: 0, resetsAt: '2026-11-01T00:00:00.0
 
 describe('AllowanceDto', () => {
   it('accepts a limited learner', () => {
-    const dto = { upload: kind, prompt: kind, hourly: { used: 0, limit: 5 }, creationEnabled: true };
+    const dto = {
+      upload: kind,
+      prompt: kind,
+      hourly: { used: 0, limit: 5 },
+      creationEnabled: true,
+    };
     expect(AllowanceDto.parse(dto)).toEqual(dto);
   });
 
@@ -22,7 +27,8 @@ describe('AllowanceDto', () => {
   it('allows liftedUntil only as a date-time', () => {
     const base = { upload: kind, prompt: kind, creationEnabled: true };
     expect(
-      AllowanceDto.safeParse({ ...base, hourly: { used: 0, limit: 5, liftedUntil: 'tomorrow' } }).success,
+      AllowanceDto.safeParse({ ...base, hourly: { used: 0, limit: 5, liftedUntil: 'tomorrow' } })
+        .success,
     ).toBe(false);
     expect(
       AllowanceDto.safeParse({

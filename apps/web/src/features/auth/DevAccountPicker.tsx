@@ -6,7 +6,13 @@ import { devLoginFn, getDevUsersFn } from '~/lib/auth/session.functions';
 import { Skeleton } from '~/components/ui/skeleton';
 
 /** Development mode: choose a seeded demo account. The token never reaches the browser (devLoginFn seals it). */
-export function DevAccountPicker({ redirect, onSignedIn }: { redirect: string; onSignedIn: (to: string) => void }) {
+export function DevAccountPicker({
+  redirect,
+  onSignedIn,
+}: {
+  redirect: string;
+  onSignedIn: (to: string) => void;
+}) {
   const users = useQuery({
     queryKey: ['auth', 'dev-users'],
     queryFn: () => getDevUsersFn(),
@@ -25,7 +31,11 @@ export function DevAccountPicker({ redirect, onSignedIn }: { redirect: string; o
         return;
       }
       setChosen(null);
-      setError(result.code === 'INVALID_CREDENTIALS' ? 'That account does not exist in the seed data.' : 'Service unavailable.');
+      setError(
+        result.code === 'INVALID_CREDENTIALS'
+          ? 'That account does not exist in the seed data.'
+          : 'Service unavailable.',
+      );
     },
     onError: () => {
       setChosen(null);
@@ -42,8 +52,13 @@ export function DevAccountPicker({ redirect, onSignedIn }: { redirect: string; o
 
   return (
     <section className="mx-auto my-10 flex max-w-md flex-col gap-5 rounded-xl border bg-card p-6 shadow-sm max-sm:mx-4 max-sm:my-6">
-      <div className="rounded-md border border-dashed border-input bg-muted px-3 py-2 font-mono text-xs font-medium tracking-[0.06em] uppercase">Development sign-in</div>
-      <h1 className="text-2xl leading-[30px] font-bold tracking-tight sm:text-[30px] sm:leading-9" tabIndex={-1}>
+      <div className="rounded-md border border-dashed border-input bg-muted px-3 py-2 font-mono text-xs font-medium tracking-[0.06em] uppercase">
+        Development sign-in
+      </div>
+      <h1
+        className="text-2xl leading-[30px] font-bold tracking-tight sm:text-[30px] sm:leading-9"
+        tabIndex={-1}
+      >
         Sign in as
       </h1>
       {shownError && (

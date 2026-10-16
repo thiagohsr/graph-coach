@@ -48,7 +48,8 @@ export const keys = {
 
   review: {
     all: ['review', 'drafts'] as const,
-    drafts: (params: { taskId?: string | undefined }) => ['review', 'drafts', { taskId: params.taskId }] as const,
+    drafts: (params: { taskId?: string | undefined }) =>
+      ['review', 'drafts', { taskId: params.taskId }] as const,
   },
 
   admin: {

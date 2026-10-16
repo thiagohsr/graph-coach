@@ -13,7 +13,10 @@ export const authedBeforeLoad = ({
   context: { session: SessionState };
   location: { pathname: string; searchStr?: string };
 }) => ({
-  user: requireSession(context.session, { pathname: location.pathname, search: location.searchStr }),
+  user: requireSession(context.session, {
+    pathname: location.pathname,
+    search: location.searchStr,
+  }),
 });
 
 export const Route = createFileRoute('/_authed')({

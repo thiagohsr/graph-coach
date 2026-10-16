@@ -1,4 +1,9 @@
-import { countBlanks, validateDraft, type DraftQuestionDto, type DraftUpdateRequest } from '@coach/types';
+import {
+  countBlanks,
+  validateDraft,
+  type DraftQuestionDto,
+  type DraftUpdateRequest,
+} from '@coach/types';
 import { isApiClientError } from '~/lib/api/errors';
 
 export interface DraftFormValues {
@@ -22,14 +27,20 @@ export const hasIssues = (issues: DraftIssues): boolean =>
 
 /** Concepts are displayed, never edited, so they are not a form value. */
 export function formDefaults(draft: DraftQuestionDto): DraftFormValues {
-  return { sentence: draft.sentence, answers: [...draft.answers], distractors: [...draft.distractors] };
+  return {
+    sentence: draft.sentence,
+    answers: [...draft.answers],
+    distractors: [...draft.distractors],
+  };
 }
 
 /** Number of `___` blanks in the sentence. */
 export const blankCount = (sentence: string): number => countBlanks(sentence);
 
 function addIssue(issues: DraftIssues, path: string, message: string): void {
-  const field = DRAFT_FIELDS.find((f) => path === f || path.startsWith(`${f}.`) || path.startsWith(`${f}[`));
+  const field = DRAFT_FIELDS.find(
+    (f) => path === f || path.startsWith(`${f}.`) || path.startsWith(`${f}[`),
+  );
   if (field) (issues.fields[field] ??= []).push(message);
   else if (!issues.form.includes(message)) issues.form.push(message);
 }
@@ -49,10 +60,14 @@ export function validateValues(values: DraftFormValues, draft: DraftQuestionDto)
   return issues;
 }
 
-const sameList = (a: readonly string[], b: readonly string[]) => a.length === b.length && a.every((x, i) => x === b[i]);
+const sameList = (a: readonly string[], b: readonly string[]) =>
+  a.length === b.length && a.every((x, i) => x === b[i]);
 
 /** Only the keys that differ from the stored draft, for `PATCH`. */
-export function changedFields(values: DraftFormValues, draft: DraftQuestionDto): DraftUpdateRequest {
+export function changedFields(
+  values: DraftFormValues,
+  draft: DraftQuestionDto,
+): DraftUpdateRequest {
   const diff: DraftUpdateRequest = {};
   if (values.sentence !== draft.sentence) diff.sentence = values.sentence;
   if (!sameList(values.answers, draft.answers)) diff.answers = values.answers;

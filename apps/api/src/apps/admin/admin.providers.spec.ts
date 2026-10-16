@@ -13,19 +13,25 @@ import { AdminService } from './admin.service';
 const ID = '11111111-1111-4111-8111-111111111111';
 const ADMIN = { id: '22222222-2222-4222-8222-222222222222', role: 'admin' as const };
 
-function fakes(overrides: {
-  counts?: Partial<CreationCounts>;
-  usage?: Partial<UsageTotals>;
-  accounts?: Partial<Record<keyof AccountsService, unknown>>;
-  codes?: Partial<Record<keyof CodesService, unknown>>;
-} = {}) {
+function fakes(
+  overrides: {
+    counts?: Partial<CreationCounts>;
+    usage?: Partial<UsageTotals>;
+    accounts?: Partial<Record<keyof AccountsService, unknown>>;
+    codes?: Partial<Record<keyof CodesService, unknown>>;
+  } = {},
+) {
   const counts = {
-    creationCountsFor: vi.fn(async () => new Map([[ID, { uploadsThisMonth: 2, promptsThisMonth: 1, creationsLastHour: 3 }]])),
+    creationCountsFor: vi.fn(
+      async () =>
+        new Map([[ID, { uploadsThisMonth: 2, promptsThisMonth: 1, creationsLastHour: 3 }]]),
+    ),
     ...overrides.counts,
   };
   const usage = {
     usageTotalsFor: vi.fn(
-      async () => new Map([[ID, { modelCalls: 4, inputTokens: 100, outputTokens: 20, embeddingTokens: 5 }]]),
+      async () =>
+        new Map([[ID, { modelCalls: 4, inputTokens: 100, outputTokens: 20, embeddingTokens: 5 }]]),
     ),
     ...overrides.usage,
   };
@@ -47,7 +53,10 @@ function fakes(overrides: {
   return { counts, usage, accounts, codes, providers };
 }
 
-const ctx = (changes: Record<string, unknown>, current: Record<string, unknown> = {}): AdminHookContext => ({
+const ctx = (
+  changes: Record<string, unknown>,
+  current: Record<string, unknown> = {},
+): AdminHookContext => ({
   model: 'user',
   id: ID,
   current: current as never,
@@ -61,7 +70,12 @@ describe('user.creations (compute)', () => {
     const values = await providers.compute['user.creations']!({ id: ID, values: {} });
     expect(counts.creationCountsFor).toHaveBeenCalledWith([ID]);
     expect(usage.usageTotalsFor).toHaveBeenCalledWith([ID]);
-    expect(values).toEqual({ uploadsThisMonth: 2, promptsThisMonth: 1, creationsLastHour: 3, tokensThisMonth: 125 });
+    expect(values).toEqual({
+      uploadsThisMonth: 2,
+      promptsThisMonth: 1,
+      creationsLastHour: 3,
+      tokensThisMonth: 125,
+    });
   });
 
   it('a user without data has zeros, not null', async () => {
@@ -123,7 +137,11 @@ describe('AdminService and providers', () => {
 
   it('merges provider values into the detail record for the computed keys only', async () => {
     const { providers } = fakes();
-    (providers.compute as Record<string, unknown>)['user.creations'] = async () => ({ uploadsThisMonth: 9, role: 'admin', extra: 'x' });
+    (providers.compute as Record<string, unknown>)['user.creations'] = async () => ({
+      uploadsThisMonth: 9,
+      role: 'admin',
+      extra: 'x',
+    });
     const { admin } = service(providers, [[userRow]]);
     const detail = await admin.get('user', ID);
     expect(detail.record.values.uploadsThisMonth).toBe(9);
@@ -163,13 +181,18 @@ describe('AdminService and providers', () => {
 
   it('start-up fails with a readable message when a declared provider is not bound', () => {
     const { providers } = fakes();
-    const unbound = Object.assign(Object.create(providers), { compute: {}, update: { 'user.account': providers.update['user.account'] } });
+    const unbound = Object.assign(Object.create(providers), {
+      compute: {},
+      update: { 'user.account': providers.update['user.account'] },
+    });
     const admin = new AdminService(
       { graph: createRecordingGraphPort(), sql: createRecordingSqlPort() },
       unbound,
       { invalidate: vi.fn() } as never,
     );
-    expect(() => admin.onModuleInit()).toThrow(/user: compute provider "user.creations".*code\.disable|user: compute provider "user.creations"/s);
+    expect(() => admin.onModuleInit()).toThrow(
+      /user: compute provider "user.creations".*code\.disable|user: compute provider "user.creations"/s,
+    );
   });
 });
 
@@ -184,7 +207,9 @@ describe('user.account (update provider)', () => {
         setRole: vi.fn(async () => void order.push('setRole')),
       },
     });
-    const result = await providers.update['user.account']!(ctx({ status: 'blocked', role: 'reviewer' }));
+    const result = await providers.update['user.account']!(
+      ctx({ status: 'blocked', role: 'reviewer' }),
+    );
     expect(result).toBeUndefined();
     expect(order).toEqual(['assertStatus', 'assertRole', 'setStatus', 'setRole']);
     expect(accounts.assertCanChangeStatus).toHaveBeenCalledWith(ADMIN, ID, 'blocked');
@@ -199,7 +224,9 @@ describe('user.account (update provider)', () => {
         }),
       },
     });
-    const result = await providers.update['user.account']!(ctx({ status: 'blocked', role: 'reviewer', bonusSourceRuns: 5 }));
+    const result = await providers.update['user.account']!(
+      ctx({ status: 'blocked', role: 'reviewer', bonusSourceRuns: 5 }),
+    );
     expect(result).toEqual({ fields: { status: 'You cannot block your own account' } });
     expect(accounts.setStatus).not.toHaveBeenCalled();
     expect(accounts.setRole).not.toHaveBeenCalled();
@@ -214,7 +241,9 @@ describe('user.account (update provider)', () => {
         }),
       },
     });
-    const result = await providers.update['user.account']!(ctx({ status: 'active', role: 'learner' }));
+    const result = await providers.update['user.account']!(
+      ctx({ status: 'active', role: 'learner' }),
+    );
     expect(result).toEqual({ fields: { role: 'At least one active admin must remain' } });
     expect(accounts.setStatus).not.toHaveBeenCalled();
     expect(accounts.setRole).not.toHaveBeenCalled();
@@ -225,8 +254,12 @@ describe('user.account (update provider)', () => {
       vi.fn(async () => {
         throw new ConflictError(message);
       });
-    const { providers } = fakes({ accounts: { assertCanChangeStatus: refuse('s'), assertCanChangeRole: refuse('r') } });
-    expect(await providers.update['user.account']!(ctx({ status: 'blocked', role: 'learner' }))).toEqual({
+    const { providers } = fakes({
+      accounts: { assertCanChangeStatus: refuse('s'), assertCanChangeRole: refuse('r') },
+    });
+    expect(
+      await providers.update['user.account']!(ctx({ status: 'blocked', role: 'learner' })),
+    ).toEqual({
       fields: { status: 's', role: 'r' },
     });
   });
@@ -254,7 +287,9 @@ describe('user.account (update provider)', () => {
     const { providers } = fakes({
       accounts: {
         setBonusRuns: vi.fn(async () => {
-          throw new ValidationFailedError([{ path: 'prompt', message: 'must be an integer from 0 to 1000' }]);
+          throw new ValidationFailedError([
+            { path: 'prompt', message: 'must be an integer from 0 to 1000' },
+          ]);
         }),
       },
     });
@@ -271,27 +306,37 @@ describe('user.account (update provider)', () => {
         }),
       },
     });
-    await expect(providers.update['user.account']!(ctx({ status: 'blocked' }))).rejects.toBeInstanceOf(NotFoundError);
+    await expect(
+      providers.update['user.account']!(ctx({ status: 'blocked' })),
+    ).rejects.toBeInstanceOf(NotFoundError);
   });
 });
 
 describe('code.disable (update provider)', () => {
   it('disabled: true calls disable(id)', async () => {
     const { providers, codes } = fakes();
-    expect(await providers.update['code.disable']!(ctx({ disabled: true }, { disabled: false }))).toBeUndefined();
+    expect(
+      await providers.update['code.disable']!(ctx({ disabled: true }, { disabled: false })),
+    ).toBeUndefined();
     expect(codes.disable).toHaveBeenCalledWith(ID);
   });
 
   it('disabled: false on a disabled code is a field error and calls nothing', async () => {
     const { providers, codes } = fakes();
-    const result = await providers.update['code.disable']!(ctx({ disabled: false }, { disabled: true }));
-    expect(result).toEqual({ fields: { disabled: expect.stringContaining('cannot be re-enabled') } });
+    const result = await providers.update['code.disable']!(
+      ctx({ disabled: false }, { disabled: true }),
+    );
+    expect(result).toEqual({
+      fields: { disabled: expect.stringContaining('cannot be re-enabled') },
+    });
     expect(codes.disable).not.toHaveBeenCalled();
   });
 
   it('disabled: false on a code that is not disabled calls nothing and is accepted', async () => {
     const { providers, codes } = fakes();
-    expect(await providers.update['code.disable']!(ctx({ disabled: false }, { disabled: false }))).toBeUndefined();
+    expect(
+      await providers.update['code.disable']!(ctx({ disabled: false }, { disabled: false })),
+    ).toBeUndefined();
     expect(codes.disable).not.toHaveBeenCalled();
   });
 });

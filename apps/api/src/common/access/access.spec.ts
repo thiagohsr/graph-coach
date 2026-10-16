@@ -47,10 +47,16 @@ describe('canPlay truth table', () => {
           // Owner: published only (a draft is for the review screens, not for play).
           expect(canPlay(owner, { ...facts, sharedWithCaller: false })).toBe(published);
           // Another learner: published and (public or shared with them).
-          expect(canPlay(other, facts)).toBe(published && (visibility === 'public' || sharedWithCaller));
+          expect(canPlay(other, facts)).toBe(
+            published && (visibility === 'public' || sharedWithCaller),
+          );
           // No staff exception: reviewer and admin are other learners for this purpose.
-          expect(canPlay(reviewer, facts)).toBe(published && (visibility === 'public' || sharedWithCaller));
-          expect(canPlay(admin, facts)).toBe(published && (visibility === 'public' || sharedWithCaller));
+          expect(canPlay(reviewer, facts)).toBe(
+            published && (visibility === 'public' || sharedWithCaller),
+          );
+          expect(canPlay(admin, facts)).toBe(
+            published && (visibility === 'public' || sharedWithCaller),
+          );
         });
       }
     }
@@ -155,12 +161,16 @@ describe('assert helpers answer 404 with one message for missing and unreachable
 
   it('assertCanReadSource', () => {
     for (const user of [other, reviewer, admin]) {
-      const hidden = thrown(() => assertCanReadSource(user, { ownerId: 'owner', sharedWithCaller: false }));
+      const hidden = thrown(() =>
+        assertCanReadSource(user, { ownerId: 'owner', sharedWithCaller: false }),
+      );
       expect(hidden).toBeInstanceOf(NotFoundError);
       expect(hidden.message).toBe('Source not found');
     }
     expect(thrown(() => assertCanReadSource(owner, null)).message).toBe('Source not found');
-    expect(() => assertCanReadSource(other, { ownerId: 'owner', sharedWithCaller: true })).not.toThrow();
+    expect(() =>
+      assertCanReadSource(other, { ownerId: 'owner', sharedWithCaller: true }),
+    ).not.toThrow();
   });
 
   it('assertCanPublish: 404 for a non-owner of any role, 403 for a learner owner', () => {
@@ -183,12 +193,12 @@ describe('assert helpers answer 404 with one message for missing and unreachable
     expect(thrown(() => assertOwner(owner, null, 'Task'))).toBeInstanceOf(NotFoundError);
     expect(thrown(() => assertOwner(owner, undefined, 'Task'))).toBeInstanceOf(NotFoundError);
     expect(() => assertOwner(admin, 'owner', 'Decision', { adminToo: true })).not.toThrow();
-    expect(thrown(() => assertOwner(reviewer, 'owner', 'Decision', { adminToo: true }))).toBeInstanceOf(
-      NotFoundError,
-    );
-    expect(thrown(() => assertOwner(admin, 'owner', 'Decision', { adminToo: false }))).toBeInstanceOf(
-      NotFoundError,
-    );
+    expect(
+      thrown(() => assertOwner(reviewer, 'owner', 'Decision', { adminToo: true })),
+    ).toBeInstanceOf(NotFoundError);
+    expect(
+      thrown(() => assertOwner(admin, 'owner', 'Decision', { adminToo: false })),
+    ).toBeInstanceOf(NotFoundError);
   });
 
   it('ensureVisible returns a visible value and throws otherwise', () => {
@@ -199,7 +209,9 @@ describe('assert helpers answer 404 with one message for missing and unreachable
       void user;
       expect(thrown(() => ensureVisible(null, true, 'Thing')).message).toBe('Thing not found');
       expect(thrown(() => ensureVisible(value, false, 'Thing')).message).toBe('Thing not found');
-      expect(thrown(() => ensureVisible(value, () => false, 'Thing'))).toBeInstanceOf(NotFoundError);
+      expect(thrown(() => ensureVisible(value, () => false, 'Thing'))).toBeInstanceOf(
+        NotFoundError,
+      );
     }
   });
 });

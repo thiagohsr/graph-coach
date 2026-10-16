@@ -48,8 +48,6 @@ export class AppModule implements NestModule {
   }
 
   configure(consumer: MiddlewareConsumer): void {
-    consumer
-      .apply(RequestLoggerMiddleware)
-      .forRoutes({ path: '*path', method: RequestMethod.ALL });
+    consumer.apply(RequestLoggerMiddleware).forRoutes({ path: '*path', method: RequestMethod.ALL });
   }
 }

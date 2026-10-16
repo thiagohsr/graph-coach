@@ -52,7 +52,8 @@ function orderBy(model: ResolvedAdminModel): string {
     return `${columnOf(model.fields[desc ? entry.slice(1) : entry]!)} ${desc ? 'DESC' : 'ASC'}`;
   });
   const idColumn = columnOf(model.fields[model.idField]!);
-  if (!parts.includes(`${idColumn} ASC`) && !parts.includes(`${idColumn} DESC`)) parts.push(`${idColumn} ASC`);
+  if (!parts.includes(`${idColumn} ASC`) && !parts.includes(`${idColumn} DESC`))
+    parts.push(`${idColumn} ASC`);
   return `ORDER BY ${parts.join(', ')}`;
 }
 
@@ -61,7 +62,8 @@ export function buildSqlList(
   params: { search?: string; page: number; pageSize: number },
 ): BuiltSql {
   sqlModel(model);
-  const search = params.search !== undefined && params.search !== '' && model.searchFields.length > 0;
+  const search =
+    params.search !== undefined && params.search !== '' && model.searchFields.length > 0;
   const values: unknown[] = [];
   const lines = [`SELECT ${selectColumns(model, listKeys(model))} FROM ${quote(model.entity)}`];
   if (search) {
@@ -76,7 +78,8 @@ export function buildSqlList(
 
 export function buildSqlCount(model: ResolvedAdminModel, params: { search?: string }): BuiltSql {
   sqlModel(model);
-  const search = params.search !== undefined && params.search !== '' && model.searchFields.length > 0;
+  const search =
+    params.search !== undefined && params.search !== '' && model.searchFields.length > 0;
   const lines = [`SELECT count(*)::int AS total FROM ${quote(model.entity)}`];
   const values: unknown[] = [];
   if (search) {

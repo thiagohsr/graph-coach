@@ -20,7 +20,8 @@ export function briefForConcepts(concepts: { name: string; description: string }
   const names = concepts.map((concept) => concept.name.trim()).filter((name) => name !== '');
   let subject = clip(names.join(', '), SUBJECT_MAX);
   // A very short name (such as "Go") is below the subject minimum; give it some context.
-  if (Array.from(subject).length < 3 || !/\p{L}{3,}/u.test(subject)) subject = clip(`About ${subject}`.trim(), SUBJECT_MAX);
+  if (Array.from(subject).length < 3 || !/\p{L}{3,}/u.test(subject))
+    subject = clip(`About ${subject}`.trim(), SUBJECT_MAX);
   if (!/\p{L}{3,}/u.test(subject)) subject = 'Missing concepts';
 
   const focus = clip(

@@ -3,7 +3,8 @@ import type { AllowanceDto, CreationKind } from '@coach/types';
 // Pure view state of the creation allowance (data-model.md §8). The numbers shown are the server's; the only
 // arithmetic is "left = allowance - used, not below zero".
 
-export type ChoiceStateName = 'paused' | 'unlimited' | 'hourly_reached' | 'available' | 'bonus_only' | 'exhausted';
+export type ChoiceStateName =
+  'paused' | 'unlimited' | 'hourly_reached' | 'available' | 'bonus_only' | 'exhausted';
 
 export interface ChoiceState {
   state: ChoiceStateName;
@@ -28,7 +29,8 @@ export function choiceState(allowance: AllowanceDto, kind: CreationKind, now: Da
   const k = allowance[kind];
   const left = k.allowance === null ? 0 : Math.max(0, k.allowance - k.used);
   const common = { left, bonus: k.bonus, resetsAt: k.resetsAt };
-  if (!allowance.creationEnabled) return { state: 'paused', ...common, line: 'Puzzle creation is paused.' };
+  if (!allowance.creationEnabled)
+    return { state: 'paused', ...common, line: 'Puzzle creation is paused.' };
   if (k.allowance === null) return { state: 'unlimited', ...common, line: 'Unlimited' };
   const { hourly } = allowance;
   if (hourly.limit !== null && hourly.used >= hourly.limit && !liftActive(allowance, now)) {
@@ -38,9 +40,17 @@ export function choiceState(allowance: AllowanceDto, kind: CreationKind, now: Da
     return { state: 'available', ...common, line: `${left} of ${k.allowance} left this month` };
   }
   if (k.bonus > 0) {
-    return { state: 'bonus_only', ...common, line: `0 of ${k.allowance} left this month · ${runs(k.bonus)}` };
+    return {
+      state: 'bonus_only',
+      ...common,
+      line: `0 of ${k.allowance} left this month · ${runs(k.bonus)}`,
+    };
   }
-  return { state: 'exhausted', ...common, line: `Nothing left this month. Resets on ${formatDate(k.resetsAt)}.` };
+  return {
+    state: 'exhausted',
+    ...common,
+    line: `Nothing left this month. Resets on ${formatDate(k.resetsAt)}.`,
+  };
 }
 
 /** The allowance line shown on a choice before any submit. */

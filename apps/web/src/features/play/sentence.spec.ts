@@ -32,13 +32,18 @@ describe('splitSentence', () => {
   });
 
   it('accepts a sentence with no blank when none are declared', () => {
-    expect(splitSentence('No blanks.', 0)).toEqual({ ok: true, segments: [{ kind: 'text', text: 'No blanks.' }] });
+    expect(splitSentence('No blanks.', 0)).toEqual({
+      ok: true,
+      segments: [{ kind: 'text', text: 'No blanks.' }],
+    });
   });
 });
 
 describe('findSentenceMismatch', () => {
   it('is null when every question matches and a message otherwise', () => {
     expect(findSentenceMismatch([{ id: 'q', order: 1, sentence: 'a ___', blanks: 1 }])).toBeNull();
-    expect(findSentenceMismatch([{ id: 'q', order: 1, sentence: 'a ___', blanks: 2 }])).toMatch(/blank/);
+    expect(findSentenceMismatch([{ id: 'q', order: 1, sentence: 'a ___', blanks: 2 }])).toMatch(
+      /blank/,
+    );
   });
 });

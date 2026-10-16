@@ -1,6 +1,14 @@
 import type { ReactNode } from 'react';
 
-export function EmptyState({ title, children, action }: { title: string; children?: ReactNode; action?: ReactNode }) {
+export function EmptyState({
+  title,
+  children,
+  action,
+}: {
+  title: string;
+  children?: ReactNode;
+  action?: ReactNode;
+}) {
   return (
     <div className="flex flex-col items-start gap-2 rounded-lg border border-dashed border-input bg-card p-6">
       <svg width="48" height="32" viewBox="0 0 48 32" aria-hidden="true" className="mb-1">

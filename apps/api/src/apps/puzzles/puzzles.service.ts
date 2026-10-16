@@ -24,7 +24,9 @@ const PlayRow = z.object({
   id: z.string(),
   name: z.string(),
   origin: PuzzleOrigin,
-  questions: z.array(z.object({ id: z.string(), order: z.number(), sentence: z.string(), blanks: z.number() })),
+  questions: z.array(
+    z.object({ id: z.string(), order: z.number(), sentence: z.string(), blanks: z.number() }),
+  ),
   words: z.array(z.string()),
 });
 
@@ -46,7 +48,11 @@ export class PuzzlesService {
 
   /** The answer-free play payload with a freshly shuffled word bank. */
   async play(user: AuthUser, puzzleId: string): Promise<PlayPuzzleDto> {
-    const rows = await this.graph.query('play_puzzle', { puzzleId, ...callerParams(user) }, { schema: PlayRow });
+    const rows = await this.graph.query(
+      'play_puzzle',
+      { puzzleId, ...callerParams(user) },
+      { schema: PlayRow },
+    );
     const row = rows[0];
     if (!row) throw new NotFoundError('Puzzle');
     return PlayPuzzleDto.parse({

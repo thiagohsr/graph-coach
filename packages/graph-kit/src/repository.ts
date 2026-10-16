@@ -50,7 +50,10 @@ export function createRepository<T extends Record<string, CypherValue>>(
     async upsert(entity) {
       const key = entity[keyName];
       if (typeof key !== 'string' || key === '') {
-        throw new GraphKitError('INVALID_IDENTIFIER', `${label} entity needs a non-empty "${keyName}" property`);
+        throw new GraphKitError(
+          'INVALID_IDENTIFIER',
+          `${label} entity needs a non-empty "${keyName}" property`,
+        );
       }
       // A null inside a list is refused by the server (spike V6); drop them.
       const props: Record<string, CypherValue> = {};

@@ -40,7 +40,11 @@ describe('loadSeed', () => {
       'MATCH (q:Question) RETURN q.id AS id, q.sentence AS sentence, q.answers AS answers, q.distractors AS distractors, q.status AS status',
     );
     const tested = new Set(
-      (await tg.cypher<{ id: string }>('MATCH (q:Question)-[:TESTS]->(:Concept) RETURN DISTINCT q.id AS id')).map((r) => r.id),
+      (
+        await tg.cypher<{ id: string }>(
+          'MATCH (q:Question)-[:TESTS]->(:Concept) RETURN DISTINCT q.id AS id',
+        )
+      ).map((r) => r.id),
     );
     const reviewed = (
       await tg.cypher<{ id: string; reason: string }>(
@@ -60,12 +64,22 @@ describe('loadSeed', () => {
   });
 
   it('publishes all puzzles publicly, owned by the admin, with origin seed', async () => {
-    const rows = await graph().cypher<{ status: string; visibility: string; origin: string; owner: string }>(
+    const rows = await graph().cypher<{
+      status: string;
+      visibility: string;
+      origin: string;
+      owner: string;
+    }>(
       'MATCH (o:Learner)-[:OWNS]->(p:Puzzle) RETURN p.status AS status, p.visibility AS visibility, p.origin AS origin, o.id AS owner',
     );
     expect(rows).toHaveLength(6);
     for (const row of rows) {
-      expect(row).toEqual({ status: 'published', visibility: 'public', origin: 'seed', owner: seedIds.user('admin') });
+      expect(row).toEqual({
+        status: 'published',
+        visibility: 'public',
+        origin: 'seed',
+        owner: seedIds.user('admin'),
+      });
     }
   });
 
@@ -85,7 +99,13 @@ describe('loadSeed', () => {
 
   it('stores the 16 CHANGED_MASTERY edges of §5.6 and chains each concept from 0.5 to its final score', async () => {
     const tg = graph();
-    const rows = await tg.cypher<{ session: string; slug: string; before: number; after: number; at: number }>(
+    const rows = await tg.cypher<{
+      session: string;
+      slug: string;
+      before: number;
+      after: number;
+      at: number;
+    }>(
       `MATCH (s:Session)-[r:CHANGED_MASTERY]->(c:Concept)
        RETURN s.id AS session, c.slug AS slug, r.before AS before, r.after AS after, s.submittedAt AS at`,
     );
@@ -97,7 +117,8 @@ describe('loadSeed', () => {
       near(find('D', slug).before, 0.5);
       near(find('D', slug).after, 0.8285);
     }
-    for (const slug of ['sql-select', 'sql-where', 'sql-joins', 'aggregation']) near(find('E', slug).after, 0.8285);
+    for (const slug of ['sql-select', 'sql-where', 'sql-joins', 'aggregation'])
+      near(find('E', slug).after, 0.8285);
     near(find('A', 'storage-pages').after, 0.8285);
     near(find('A', 'b-trees').after, 0.12005);
     near(find('B', 'indexes').after, 0.3185);
@@ -124,7 +145,12 @@ describe('loadSeed', () => {
   });
 
   it('stores the 13 HAS_MASTERY edges of the demo learner with the scores, attempts and lastSeen of §5.6', async () => {
-    const rows = await graph().cypher<{ slug: string; score: number; attempts: number; lastSeen: number }>(
+    const rows = await graph().cypher<{
+      slug: string;
+      score: number;
+      attempts: number;
+      lastSeen: number;
+    }>(
       `MATCH (:Learner {id: $id})-[m:HAS_MASTERY]->(c:Concept)
        RETURN c.slug AS slug, m.score AS score, m.attempts AS attempts, m.lastSeen AS lastSeen`,
       { id: seedIds.user('learner') },
@@ -155,7 +181,13 @@ describe('loadSeed', () => {
 
   it('reproduces the mastery scores by replaying the ANSWERED edges with the canonical rule', async () => {
     const tg = graph();
-    const answers = await tg.cypher<{ at: number; order: number; blank: number; correct: boolean; concepts: string[] }>(
+    const answers = await tg.cypher<{
+      at: number;
+      order: number;
+      blank: number;
+      correct: boolean;
+      concepts: string[];
+    }>(
       `MATCH (s:Session)-[a:ANSWERED]->(q:Question)
        MATCH (p:Puzzle)-[c:CONTAINS]->(q)
        MATCH (q)-[:TESTS]->(k:Concept)
@@ -203,7 +235,9 @@ describe('loadSeed', () => {
     expect(await tg.count('Learner')).toBe(4);
     expect(await tg.countEdges('SHARED_WITH')).toBe(0);
     expect(await tg.count('Source')).toBe(0);
-    const userIds = (['learner', 'learner2', 'reviewer', 'admin'] as const).map((k) => seedIds.user(k));
+    const userIds = (['learner', 'learner2', 'reviewer', 'admin'] as const).map((k) =>
+      seedIds.user(k),
+    );
     const rows = await tg.graph.run(creationCountsQuery, {
       userIds,
       monthStart: Date.UTC(2026, 9, 1),

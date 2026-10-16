@@ -1,5 +1,12 @@
 import { randomUUID } from 'node:crypto';
-import type { CallRecord, ContentCapture, RunHandle, RunKind, StepHandle, UsageTracer } from './usage-tracer';
+import type {
+  CallRecord,
+  ContentCapture,
+  RunHandle,
+  RunKind,
+  StepHandle,
+  UsageTracer,
+} from './usage-tracer';
 
 type Metadata = Record<string, string | number | boolean>;
 type Level = 'DEFAULT' | 'ERROR';
@@ -7,7 +14,14 @@ type Level = 'DEFAULT' | 'ERROR';
 /** The subset of the Langfuse client the tracer uses, so tests inject a fake transport. */
 export interface LangfuseClientLike {
   trace(body: { id: string; name: string; userId: string; metadata?: Metadata }): void;
-  span(body: { id: string; traceId: string; name: string; startTime: Date; endTime?: Date; level?: Level }): void;
+  span(body: {
+    id: string;
+    traceId: string;
+    name: string;
+    startTime: Date;
+    endTime?: Date;
+    level?: Level;
+  }): void;
   generation(body: {
     traceId: string;
     parentObservationId: string;
@@ -61,7 +75,12 @@ export class LangfuseUsageTracer implements UsageTracer {
 
   startRun(run: { id: string; kind: RunKind; userId: string }): RunHandle {
     this.safe(() =>
-      this.client.trace({ id: run.id, name: run.kind, userId: run.userId, metadata: { kind: run.kind } }),
+      this.client.trace({
+        id: run.id,
+        name: run.kind,
+        userId: run.userId,
+        metadata: { kind: run.kind },
+      }),
     );
     return { runId: run.id };
   }
@@ -112,7 +131,11 @@ export class LangfuseUsageTracer implements UsageTracer {
     }
   }
 
-  private generation(step: StepHandle, call: CallRecord, content?: { input: string; output: string }): void {
+  private generation(
+    step: StepHandle,
+    call: CallRecord,
+    content?: { input: string; output: string },
+  ): void {
     const state = this.steps.get(step);
     const end = this.clock.now();
     const start = new Date(end.getTime() - Math.max(0, call.durationMs));

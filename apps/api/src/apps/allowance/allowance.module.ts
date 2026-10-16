@@ -12,7 +12,11 @@ import { UsageTotals } from './usage-totals';
 @Module({
   controllers: [AllowanceController],
   providers: [
-    { provide: ALLOWANCE_STORE, inject: [DB], useFactory: (db: Db) => new DrizzleAllowanceStore(db) },
+    {
+      provide: ALLOWANCE_STORE,
+      inject: [DB],
+      useFactory: (db: Db) => new DrizzleAllowanceStore(db),
+    },
     AllowanceService,
     CodesService,
     CreationCounts,

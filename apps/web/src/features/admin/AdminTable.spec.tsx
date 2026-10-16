@@ -2,7 +2,9 @@ import { render, screen, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { describe, expect, it, vi } from 'vitest';
 
-vi.mock('@tanstack/react-router', async (orig) => (await import('~/test/router-mock')).routerMock(await orig()));
+vi.mock('@tanstack/react-router', async (orig) =>
+  (await import('~/test/router-mock')).routerMock(await orig()),
+);
 
 import { AdminTable, type AdminTableProps } from './AdminTable';
 import { widgetItems, widgetModel } from './fixtures';
@@ -27,17 +29,30 @@ describe('AdminTable', () => {
   it('has columns equal to listDisplay, headers from labels, cells from values, and a caption', () => {
     setup();
     const table = screen.getByRole('table', { name: 'Widgets' });
-    const headers = within(table).getAllByRole('columnheader').map((h) => h.textContent);
+    const headers = within(table)
+      .getAllByRole('columnheader')
+      .map((h) => h.textContent);
     expect(headers).toEqual(['Name', 'Status', 'Size']);
     const rows = within(table).getAllByRole('row');
     expect(rows).toHaveLength(3);
-    expect(within(rows[1]!).getAllByRole('cell').map((c) => c.textContent)).toEqual(['Sprocket', 'active', '3']);
-    expect(within(rows[2]!).getAllByRole('cell').map((c) => c.textContent)).toEqual(['Cog', 'blocked', '5']);
+    expect(
+      within(rows[1]!)
+        .getAllByRole('cell')
+        .map((c) => c.textContent),
+    ).toEqual(['Sprocket', 'active', '3']);
+    expect(
+      within(rows[2]!)
+        .getAllByRole('cell')
+        .map((c) => c.textContent),
+    ).toEqual(['Cog', 'blocked', '5']);
   });
 
   it('links each row to /admin/<model>/<id>', () => {
     setup();
-    expect(screen.getByRole('link', { name: 'Sprocket' })).toHaveAttribute('href', '/admin/widget/w-1');
+    expect(screen.getByRole('link', { name: 'Sprocket' })).toHaveAttribute(
+      'href',
+      '/admin/widget/w-1',
+    );
     expect(screen.getByRole('link', { name: 'Cog' })).toHaveAttribute('href', '/admin/widget/w-2');
   });
 

@@ -112,7 +112,9 @@ describe('update_draft', () => {
 
 describe('approve_question and reject_question', () => {
   it('approve sets the status and records the decision once', async () => {
-    expect(await q('approve_question', { questionId: 'q-1', userId: A, now: NOW })).toEqual([{ id: 'q-1' }]);
+    expect(await q('approve_question', { questionId: 'q-1', userId: A, now: NOW })).toEqual([
+      { id: 'q-1' },
+    ]);
     const [row] = await tg.cypher<{ s: string; at: number; d: string; ra: number }>(
       `MATCH (:Learner {id: $A})-[r:REVIEWED]->(qq:Question {id: 'q-1'})
        RETURN qq.status AS s, qq.reviewedAt AS at, r.decision AS d, r.at AS ra`,
@@ -122,17 +124,19 @@ describe('approve_question and reject_question', () => {
 
     const before = await signature();
     expect(await q('approve_question', { questionId: 'q-1', userId: A, now: NOW + 1 })).toEqual([]);
-    expect(await q('reject_question', { questionId: 'q-1', userId: A, reason: 'x', now: NOW + 1 })).toEqual([]);
+    expect(
+      await q('reject_question', { questionId: 'q-1', userId: A, reason: 'x', now: NOW + 1 }),
+    ).toEqual([]);
     expect(await signature()).toBe(before);
   });
 
   it('reject stores the reason, or none', async () => {
-    expect(await q('reject_question', { questionId: 'q-2', userId: A, reason: 'Too easy', now: NOW })).toEqual([
-      { id: 'q-2' },
-    ]);
-    expect(await q('reject_question', { questionId: 'q-3', userId: A, reason: null, now: NOW })).toEqual([
-      { id: 'q-3' },
-    ]);
+    expect(
+      await q('reject_question', { questionId: 'q-2', userId: A, reason: 'Too easy', now: NOW }),
+    ).toEqual([{ id: 'q-2' }]);
+    expect(
+      await q('reject_question', { questionId: 'q-3', userId: A, reason: null, now: NOW }),
+    ).toEqual([{ id: 'q-3' }]);
     const rows = await tg.cypher<{ id: string; s: string; d: string; reason: string | null }>(
       `MATCH (:Learner {id: $A})-[r:REVIEWED]->(qq:Question) RETURN qq.id AS id, qq.status AS s, r.decision AS d, r.reason AS reason ORDER BY id`,
       { A },
@@ -147,10 +151,14 @@ describe('approve_question and reject_question', () => {
     const before = await signature();
     for (const userId of [B, R, M]) {
       expect(await q('approve_question', { questionId: 'q-1', userId, now: NOW })).toEqual([]);
-      expect(await q('reject_question', { questionId: 'q-1', userId, reason: null, now: NOW })).toEqual([]);
+      expect(
+        await q('reject_question', { questionId: 'q-1', userId, reason: null, now: NOW }),
+      ).toEqual([]);
     }
     expect(await signature()).toBe(before);
-    const [row] = await tg.cypher<{ s: string }>(`MATCH (qq:Question {id: 'q-1'}) RETURN qq.status AS s`);
+    const [row] = await tg.cypher<{ s: string }>(
+      `MATCH (qq:Question {id: 'q-1'}) RETURN qq.status AS s`,
+    );
     expect(row!.s).toBe('draft');
   });
 });
@@ -189,7 +197,9 @@ describe('remaining_drafts and publish_puzzle', () => {
       { ...shape, status: 'published', approved: 3 },
     ]);
     expect(await signature()).toBe(before);
-    const [row] = await tg.cypher<{ s: string }>(`MATCH (p:Puzzle {id: 'PZ1'}) RETURN p.status AS s`);
+    const [row] = await tg.cypher<{ s: string }>(
+      `MATCH (p:Puzzle {id: 'PZ1'}) RETURN p.status AS s`,
+    );
     expect(row!.s).toBe('published');
   });
 

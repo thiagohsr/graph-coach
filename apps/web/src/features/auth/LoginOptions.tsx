@@ -5,7 +5,13 @@ import { cn } from '~/lib/utils';
 
 export type LoginError = 'state' | 'provider' | 'exchange' | 'unverified' | 'account';
 
-export const LOGIN_ERROR_VALUES: readonly LoginError[] = ['state', 'provider', 'exchange', 'unverified', 'account'];
+export const LOGIN_ERROR_VALUES: readonly LoginError[] = [
+  'state',
+  'provider',
+  'exchange',
+  'unverified',
+  'account',
+];
 
 /** Fixed messages: the provider's own error text is never shown (contracts/web-server.md §3.3). */
 export const LOGIN_ERROR_MESSAGES: Record<LoginError, string> = {
@@ -39,13 +45,25 @@ export function LoginErrorAlert({ error }: { error: LoginError }) {
 }
 
 /** Provider mode: two plain links to the web server's sign-in route. No credential field anywhere. */
-export function LoginOptions({ redirect, error, onSignOut }: { redirect: string; error?: LoginError | undefined; onSignOut: () => void }) {
-  const query = (provider: 'google' | 'email') => `/auth/login?provider=${provider}&redirect=${encodeURIComponent(redirect)}`;
+export function LoginOptions({
+  redirect,
+  error,
+  onSignOut,
+}: {
+  redirect: string;
+  error?: LoginError | undefined;
+  onSignOut: () => void;
+}) {
+  const query = (provider: 'google' | 'email') =>
+    `/auth/login?provider=${provider}&redirect=${encodeURIComponent(redirect)}`;
   const unverified = error === 'unverified';
 
   return (
     <section className="mx-auto my-10 flex max-w-md flex-col gap-5 rounded-xl border bg-card p-6 shadow-sm max-sm:mx-4 max-sm:my-6">
-      <h1 className="text-2xl leading-[30px] font-bold tracking-tight sm:text-[30px] sm:leading-9" tabIndex={-1}>
+      <h1
+        className="text-2xl leading-[30px] font-bold tracking-tight sm:text-[30px] sm:leading-9"
+        tabIndex={-1}
+      >
         Sign in
       </h1>
       {error && <LoginErrorAlert error={error} />}
@@ -60,7 +78,10 @@ export function LoginOptions({ redirect, error, onSignOut }: { redirect: string;
             <a href={query('google')} className={cn(buttonVariants({ size: 'lg' }), 'w-full')}>
               Continue with Google
             </a>
-            <a href={query('email')} className={cn(buttonVariants({ size: 'lg', variant: 'outline' }), 'w-full')}>
+            <a
+              href={query('email')}
+              className={cn(buttonVariants({ size: 'lg', variant: 'outline' }), 'w-full')}
+            >
               Continue with e-mail
             </a>
           </div>

@@ -18,7 +18,10 @@ export class UserDirectory {
   constructor(@Inject(DB) private readonly db: Db) {}
 
   /** Id of the account with that address (trimmed, lower-cased), or null. By default only accounts that have signed in. */
-  async findIdByEmail(email: string, options: { signedInOnly?: boolean } = {}): Promise<string | null> {
+  async findIdByEmail(
+    email: string,
+    options: { signedInOnly?: boolean } = {},
+  ): Promise<string | null> {
     const signedInOnly = options.signedInOnly ?? true;
     const normalized = email.trim().toLowerCase();
     const [row] = await this.db
@@ -63,6 +66,8 @@ export class UserDirectory {
       .select({ email: users.email, name: users.displayName, role: users.role })
       .from(users)
       .where(inArray(users.email, [...DEMO_EMAILS]));
-    return rows.sort((a, b) => DEMO_EMAILS.indexOf(a.email as never) - DEMO_EMAILS.indexOf(b.email as never));
+    return rows.sort(
+      (a, b) => DEMO_EMAILS.indexOf(a.email as never) - DEMO_EMAILS.indexOf(b.email as never),
+    );
   }
 }

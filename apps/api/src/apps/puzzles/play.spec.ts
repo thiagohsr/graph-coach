@@ -9,7 +9,9 @@ const FORBIDDEN = /answer|expected|correct|solution|distractor|key/i;
 const SENTINEL = '__x';
 function arrayPaths(schema: unknown, prefix = ''): string[] {
   // Collect "leaf or array-of-leaf" key paths, listing an array of objects as `name[].child`.
-  const s = schema as { _def: { typeName: string; shape?: () => Record<string, unknown>; type?: unknown } };
+  const s = schema as {
+    _def: { typeName: string; shape?: () => Record<string, unknown>; type?: unknown };
+  };
   if (s._def.typeName === 'ZodObject') {
     return Object.entries(s._def.shape!()).flatMap(([k, v]) => {
       const inner = v as { _def: { typeName: string; type?: unknown } };
@@ -27,7 +29,16 @@ describe('PlayPuzzleDto', () => {
   it('has exactly the allowed key paths and no answer-like key', () => {
     const keys = arrayPaths(PlayPuzzleDto).sort();
     expect(keys).toEqual(
-      ['id', 'name', 'origin', 'questions[].blanks', 'questions[].id', 'questions[].order', 'questions[].sentence', 'wordBank'].sort(),
+      [
+        'id',
+        'name',
+        'origin',
+        'questions[].blanks',
+        'questions[].id',
+        'questions[].order',
+        'questions[].sentence',
+        'wordBank',
+      ].sort(),
     );
     for (const key of keys) expect(key).not.toMatch(FORBIDDEN);
   });
@@ -80,7 +91,9 @@ describe('PuzzlesService.play', () => {
 
   it('throws NotFoundError on zero rows', async () => {
     const { graph } = fakeGraph([]);
-    await expect(new PuzzlesService(graph).play(USER, 'nope')).rejects.toBeInstanceOf(NotFoundError);
+    await expect(new PuzzlesService(graph).play(USER, 'nope')).rejects.toBeInstanceOf(
+      NotFoundError,
+    );
   });
 });
 
@@ -99,7 +112,10 @@ describe('PuzzlesService.list', () => {
   };
 
   it('items parse with PuzzleSummaryDto; sourceId omitted when null, present when sourceShared', async () => {
-    const { graph } = fakeGraph([base, { ...base, id: 'P2', access: 'shared', sourceShared: true, sourceId: 'S2' }]);
+    const { graph } = fakeGraph([
+      base,
+      { ...base, id: 'P2', access: 'shared', sourceShared: true, sourceId: 'S2' },
+    ]);
     const items = await new PuzzlesService(graph).list(USER);
     for (const item of items) expect(PuzzleSummaryDto.safeParse(item).success).toBe(true);
     expect('sourceId' in items[0]!).toBe(false);

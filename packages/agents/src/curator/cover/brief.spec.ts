@@ -3,8 +3,14 @@ import { PromptBrief, guardBrief } from '@coach/types';
 import { briefForConcepts } from './brief';
 
 const two = [
-  { name: 'B-tree indexes', description: 'A balanced tree that keeps keys sorted for fast range lookups.' },
-  { name: 'Write-ahead logging', description: 'Changes are appended to a log before the data pages are updated.' },
+  {
+    name: 'B-tree indexes',
+    description: 'A balanced tree that keeps keys sorted for fast range lookups.',
+  },
+  {
+    name: 'Write-ahead logging',
+    description: 'Changes are appended to a log before the data pages are updated.',
+  },
 ];
 
 describe('briefForConcepts', () => {
@@ -31,7 +37,10 @@ describe('briefForConcepts', () => {
 
   it('asks for between 3 and 10 sentences whatever the number of concepts', () => {
     for (const n of [1, 2, 3, 5, 20]) {
-      const list = Array.from({ length: n }, (_, i) => ({ name: `Concept ${i}`, description: 'Something true.' }));
+      const list = Array.from({ length: n }, (_, i) => ({
+        name: `Concept ${i}`,
+        description: 'Something true.',
+      }));
       const { sentences } = briefForConcepts(list);
       expect(sentences).toBeGreaterThanOrEqual(3);
       expect(sentences).toBeLessThanOrEqual(10);

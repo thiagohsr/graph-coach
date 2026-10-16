@@ -77,7 +77,6 @@ export class PublishService {
     if (!puzzle) throw new Error(`Puzzle ${puzzleId} does not exist`);
     return puzzle;
   }
-
 }
 
 function toPuzzle(puzzle: PuzzleState): ReviewOutcome['puzzle'] {

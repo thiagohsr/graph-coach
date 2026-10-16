@@ -34,9 +34,14 @@ export interface TaskProgressProps {
 
 function TransportLine({ transport }: { transport: PipelineState['transport'] }) {
   if (transport === 'live') return <p className="text-sm text-muted-foreground">Live</p>;
-  if (transport === 'reconnecting') return <p className="text-sm text-muted-foreground">Reconnecting…</p>;
+  if (transport === 'reconnecting')
+    return <p className="text-sm text-muted-foreground">Reconnecting…</p>;
   if (transport === 'polling') {
-    return <p className="text-sm text-muted-foreground">Live updates unavailable. Refreshing every 3 seconds.</p>;
+    return (
+      <p className="text-sm text-muted-foreground">
+        Live updates unavailable. Refreshing every 3 seconds.
+      </p>
+    );
   }
   return null;
 }
@@ -50,7 +55,8 @@ export function TaskProgress({ task, state, playablePuzzleIds, onRetried }: Task
       void queryClient.invalidateQueries({ queryKey: keys.tasks.detail(task.id) });
     },
     onError: (error) => {
-      if (isCode(error, 'TASK_NOT_FAILED')) void queryClient.invalidateQueries({ queryKey: keys.tasks.detail(task.id) });
+      if (isCode(error, 'TASK_NOT_FAILED'))
+        void queryClient.invalidateQueries({ queryKey: keys.tasks.detail(task.id) });
     },
   });
 
@@ -62,7 +68,17 @@ export function TaskProgress({ task, state, playablePuzzleIds, onRetried }: Task
     <section aria-label="Run progress" className="flex flex-col gap-4">
       <LiveRegion message={`Run status: ${statusLabel}`} />
       <div className="flex flex-wrap items-center gap-3">
-        <Badge variant={task.status === 'failed' ? 'destructive' : task.status === 'done' ? 'success' : 'secondary'}>{statusLabel}</Badge>
+        <Badge
+          variant={
+            task.status === 'failed'
+              ? 'destructive'
+              : task.status === 'done'
+                ? 'success'
+                : 'secondary'
+          }
+        >
+          {statusLabel}
+        </Badge>
         <p className="text-sm text-muted-foreground">
           {task.produced.concepts} concepts · {task.produced.questions} questions
         </p>
@@ -100,9 +116,17 @@ export function TaskProgress({ task, state, playablePuzzleIds, onRetried }: Task
         <Alert variant="destructive">
           <AlertDescription className="flex flex-col gap-3">
             <p>{task.error ?? 'The run failed.'}</p>
-            {retry.isError && !isCode(retry.error, 'TASK_NOT_FAILED') && <p>{describeError(retry.error).message}</p>}
+            {retry.isError && !isCode(retry.error, 'TASK_NOT_FAILED') && (
+              <p>{describeError(retry.error).message}</p>
+            )}
             <div>
-              <Button type="button" variant="outline" size="sm" disabled={retry.isPending} onClick={() => retry.mutate()}>
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                disabled={retry.isPending}
+                onClick={() => retry.mutate()}
+              >
                 Retry
               </Button>
             </div>
@@ -120,7 +144,11 @@ export function TaskProgress({ task, state, playablePuzzleIds, onRetried }: Task
             <p>
               The run is finished.{' '}
               {puzzleId && playablePuzzleIds?.has(puzzleId) && (
-                <Link to="/puzzles/$puzzleId/play" params={{ puzzleId }} className="font-medium text-primary underline underline-offset-4 hover:text-primary-hover">
+                <Link
+                  to="/puzzles/$puzzleId/play"
+                  params={{ puzzleId }}
+                  className="font-medium text-primary underline underline-offset-4 hover:text-primary-hover"
+                >
                   Play
                 </Link>
               )}

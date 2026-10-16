@@ -5,7 +5,12 @@ import { StubEmbeddingsProvider, stubTokens } from '../llm/stub';
 import type { EmbeddingsProvider } from '../llm/types';
 import type { CoachDeps } from './deps';
 import { coverTaskId, goalId } from './ids';
-import { buildCoachGraph, routeAfterCheckRecent, routeAfterRecordDecision, runCoach } from './graph';
+import {
+  buildCoachGraph,
+  routeAfterCheckRecent,
+  routeAfterRecordDecision,
+  runCoach,
+} from './graph';
 import type { GoalConceptRow, PuzzleRow } from './rows';
 import { DEFAULT_COACH_SETTINGS } from './settings';
 import {
@@ -32,7 +37,8 @@ const nameRow = (over: Partial<GoalConceptRow> = {}): GoalConceptRow => ({
 });
 
 const allowed = () => Promise.resolve({ allowed: true as const });
-const refused = (reason: 'no_allowance' | 'paused' | 'hourly_limit') => () => Promise.resolve({ allowed: false as const, reason });
+const refused = (reason: 'no_allowance' | 'paused' | 'hourly_limit') => () =>
+  Promise.resolve({ allowed: false as const, reason });
 
 function makeDeps(queries: StubCoachQueries, over: Partial<CoachDeps> = {}): CoachDeps {
   return {
@@ -87,13 +93,23 @@ describe('resolveGoal', () => {
 
   it('passes the scope (targets plus prerequisites) to the signal queries', async () => {
     const queries = goalQueries({
-      upsertGoal: async (p) => ({ goalId: p.goalId, targetIds: [ZETA], prerequisiteIds: ['c-zz', 'c-aa'] }),
+      upsertGoal: async (p) => ({
+        goalId: p.goalId,
+        targetIds: [ZETA],
+        prerequisiteIds: ['c-zz', 'c-aa'],
+      }),
     });
     await runCoach(makeDeps(queries), input);
-    expect((queries.callsTo('weakConceptsWithWeakPrereqs')[0]!.params as { scopeIds: string[] }).scopeIds).toEqual([ZETA, 'c-aa', 'c-zz']);
+    expect(
+      (queries.callsTo('weakConceptsWithWeakPrereqs')[0]!.params as { scopeIds: string[] })
+        .scopeIds,
+    ).toEqual([ZETA, 'c-aa', 'c-zz']);
 
     // tier 2 and 3 use the same scope
-    const empty = goalQueries({ weakConceptsWithWeakPrereqs: async () => [], decayedOrUnseenConcepts: async () => [] });
+    const empty = goalQueries({
+      weakConceptsWithWeakPrereqs: async () => [],
+      decayedOrUnseenConcepts: async () => [],
+    });
     await runCoach(makeDeps(empty), input);
     const decayed = empty.callsTo('decayedOrUnseenConcepts');
     expect(decayed).toHaveLength(2);
@@ -110,9 +126,14 @@ describe('resolveGoal', () => {
     expect(recorded.summary).toContain('No concept matches your goal');
     expect(recorded.kind).toBe('recommendation');
     // the goal is written with no targets, linked to the decision, and the candidate queries are unscoped
-    expect((queries.callsTo('upsertGoal')[0]!.params as { targets: unknown[] }).targets).toEqual([]);
+    expect((queries.callsTo('upsertGoal')[0]!.params as { targets: unknown[] }).targets).toEqual(
+      [],
+    );
     expect(recorded.goalId).toBe(goalId(WORKED_IDS.learner, 'learn zeta widgets'));
-    expect((queries.callsTo('weakConceptsWithWeakPrereqs')[0]!.params as { scopeIds: string[] }).scopeIds).toEqual([]);
+    expect(
+      (queries.callsTo('weakConceptsWithWeakPrereqs')[0]!.params as { scopeIds: string[] })
+        .scopeIds,
+    ).toEqual([]);
     expect(queries.callsTo('playablePuzzlesCovering')).toHaveLength(1);
     expect(queries.callsTo('createCoverTask')).toHaveLength(0);
     expect(result.coverageTaskId).toBeNull();
@@ -122,12 +143,23 @@ describe('resolveGoal', () => {
     const queries = goalQueries({
       resolveGoalConcepts: async () => [
         nameRow({ conceptId: 'c-bt', slug: 'b-trees', name: 'B-trees', score: 1, via: 'name' }),
-        nameRow({ conceptId: 'c-bt', slug: 'b-trees', name: 'B-trees', score: 0.82, bestChunkId: 'chunk-1', via: 'passage' }),
+        nameRow({
+          conceptId: 'c-bt',
+          slug: 'b-trees',
+          name: 'B-trees',
+          score: 0.82,
+          bestChunkId: 'chunk-1',
+          via: 'passage',
+        }),
         nameRow({ conceptId: 'c-ix', slug: 'indexes', name: 'Indexes', score: 1, via: 'name' }),
       ],
     });
     await runCoach(makeDeps(queries), input);
-    const targets = (queries.callsTo('upsertGoal')[0]!.params as { targets: Array<{ conceptId: string; score: number }> }).targets;
+    const targets = (
+      queries.callsTo('upsertGoal')[0]!.params as {
+        targets: Array<{ conceptId: string; score: number }>;
+      }
+    ).targets;
     // highest score per concept (the name match beats the 0.82 passage); ties by name
     expect(targets).toEqual([
       { conceptId: 'c-bt', score: 1 },
@@ -135,7 +167,13 @@ describe('resolveGoal', () => {
     ]);
     const passages = queries.recorded[0]!.evidence.filter((e) => e.role === 'passage');
     expect(passages).toEqual([
-      { label: 'Chunk', nodeId: 'chunk-1', role: 'passage', reason: 'matched the goal (similarity 0.82)', weight: 0.41 },
+      {
+        label: 'Chunk',
+        nodeId: 'chunk-1',
+        role: 'passage',
+        reason: 'matched the goal (similarity 0.82)',
+        weight: 0.41,
+      },
     ]);
 
     const nameOnly = goalQueries();
@@ -163,16 +201,32 @@ describe('resolveGoal', () => {
     const result = await runCoach(makeDeps(queries), input);
     expect(result.outcome).toBe('recorded');
     const recorded = queries.recorded[0]!;
-    expect(recorded.evidence[0]).toMatchObject({ nodeId: ZETA, role: 'target', reason: 'target: concept of your goal' });
+    expect(recorded.evidence[0]).toMatchObject({
+      nodeId: ZETA,
+      role: 'target',
+      reason: 'target: concept of your goal',
+    });
     expect(recorded.summary).toContain('Your goal points to "Zeta"');
   });
 
   it('routes to resolveGoal only for a non-blank goal that is not reused', () => {
     const base = { outcome: null } as never;
-    expect(routeAfterCheckRecent({ ...(base as object), goalText: 'learn x', outcome: null } as never)).toBe('resolveGoal');
-    expect(routeAfterCheckRecent({ ...(base as object), goalText: '  ', outcome: null } as never)).toBe('collectSignals');
-    expect(routeAfterCheckRecent({ ...(base as object), goalText: null, outcome: null } as never)).toBe('collectSignals');
-    expect(routeAfterCheckRecent({ ...(base as object), goalText: 'learn x', outcome: 'reused' } as never)).toBe('reuse');
+    expect(
+      routeAfterCheckRecent({ ...(base as object), goalText: 'learn x', outcome: null } as never),
+    ).toBe('resolveGoal');
+    expect(
+      routeAfterCheckRecent({ ...(base as object), goalText: '  ', outcome: null } as never),
+    ).toBe('collectSignals');
+    expect(
+      routeAfterCheckRecent({ ...(base as object), goalText: null, outcome: null } as never),
+    ).toBe('collectSignals');
+    expect(
+      routeAfterCheckRecent({
+        ...(base as object),
+        goalText: 'learn x',
+        outcome: 'reused',
+      } as never),
+    ).toBe('reuse');
   });
 
   it('reuse is skipped when the goal text changes and kept when only spacing and case differ', async () => {
@@ -194,7 +248,9 @@ describe('resolveGoal', () => {
     expect(same.calls.map((c) => c.name)).toEqual(['recentDecision']);
 
     const goalDropped = goalQueries({ recentDecision: recent('learn zeta widgets') });
-    expect((await runCoach(makeDeps(goalDropped), { ...input, goalText: null })).outcome).toBe('recorded');
+    expect((await runCoach(makeDeps(goalDropped), { ...input, goalText: null })).outcome).toBe(
+      'recorded',
+    );
   });
 });
 
@@ -218,8 +274,14 @@ describe('requestCoverage and the allowance', () => {
     expect(recorded.flags).toEqual(expect.arrayContaining(['coverage_requested', 'coverage_gap']));
     expect(recorded.flags).not.toContain('coverage_not_requested');
     expect(recorded.kind).toBe('recommendation');
-    expect(recorded.summary).toContain('No puzzle covers "Zeta" yet, so I requested new puzzles for it.');
-    expect(result).toEqual({ outcome: 'recorded', decisionId: 'run-1', coverageTaskId: coverTaskId(WORKED_IDS.learner, [ZETA]) });
+    expect(recorded.summary).toContain(
+      'No puzzle covers "Zeta" yet, so I requested new puzzles for it.',
+    );
+    expect(result).toEqual({
+      outcome: 'recorded',
+      decisionId: 'run-1',
+      coverageTaskId: coverTaskId(WORKED_IDS.learner, [ZETA]),
+    });
     // the allowance is only ever read: one call, no arguments
     expect(coverageAllowance).toHaveBeenCalledTimes(1);
     expect(coverageAllowance).toHaveBeenCalledWith();
@@ -229,19 +291,24 @@ describe('requestCoverage and the allowance', () => {
     ['no_allowance', 'no puzzle-creation allowance left'],
     ['paused', 'puzzle creation is paused'],
     ['hourly_limit', 'hourly limit'],
-  ] as const)('with %s no task is created, the flags say so, and the summary names the reason', async (reason, phrase) => {
-    const queries = goalQueries();
-    const coverageAllowance = vi.fn(refused(reason));
-    const result = await runCoach(makeDeps(queries, { coverageAllowance }), input);
-    expect(queries.callsTo('createCoverTask')).toHaveLength(0);
-    const recorded = queries.recorded[0]!;
-    expect(recorded.flags).toEqual(expect.arrayContaining(['coverage_not_requested', 'coverage_gap']));
-    expect(recorded.flags).not.toContain('coverage_requested');
-    expect(recorded.kind).toBe('recommendation');
-    expect(recorded.summary).toContain(phrase);
-    expect(result.coverageTaskId).toBeNull();
-    expect(coverageAllowance).toHaveBeenCalledTimes(1);
-  });
+  ] as const)(
+    'with %s no task is created, the flags say so, and the summary names the reason',
+    async (reason, phrase) => {
+      const queries = goalQueries();
+      const coverageAllowance = vi.fn(refused(reason));
+      const result = await runCoach(makeDeps(queries, { coverageAllowance }), input);
+      expect(queries.callsTo('createCoverTask')).toHaveLength(0);
+      const recorded = queries.recorded[0]!;
+      expect(recorded.flags).toEqual(
+        expect.arrayContaining(['coverage_not_requested', 'coverage_gap']),
+      );
+      expect(recorded.flags).not.toContain('coverage_requested');
+      expect(recorded.kind).toBe('recommendation');
+      expect(recorded.summary).toContain(phrase);
+      expect(result.coverageTaskId).toBeNull();
+      expect(coverageAllowance).toHaveBeenCalledTimes(1);
+    },
+  );
 
   it('a missing coverageAllowance behaves as no allowance', async () => {
     const queries = goalQueries();
@@ -251,17 +318,25 @@ describe('requestCoverage and the allowance', () => {
   });
 
   it('no puzzle plus an allowed task gives kind coverage_request and no RECOMMENDED puzzle', async () => {
-    const queries = goalQueries({ playablePuzzlesCovering: async () => [], introPuzzles: async () => [] });
+    const queries = goalQueries({
+      playablePuzzlesCovering: async () => [],
+      introPuzzles: async () => [],
+    });
     const result = await runCoach(makeDeps(queries), input);
     const recorded = queries.recorded[0]!;
     expect(recorded.kind).toBe('coverage_request');
     expect(recorded.puzzleId).toBe('');
-    expect(recorded.flags).toEqual(expect.arrayContaining(['no_puzzle', 'coverage_gap', 'coverage_requested']));
+    expect(recorded.flags).toEqual(
+      expect.arrayContaining(['no_puzzle', 'coverage_gap', 'coverage_requested']),
+    );
     expect(result.coverageTaskId).not.toBeNull();
   });
 
   it('no puzzle and a refusal stays a recommendation', async () => {
-    const queries = goalQueries({ playablePuzzlesCovering: async () => [], introPuzzles: async () => [] });
+    const queries = goalQueries({
+      playablePuzzlesCovering: async () => [],
+      introPuzzles: async () => [],
+    });
     await runCoach(makeDeps(queries, { coverageAllowance: refused('paused') }), input);
     expect(queries.recorded[0]!.kind).toBe('recommendation');
     expect(queries.callsTo('createCoverTask')).toHaveLength(0);
@@ -272,7 +347,9 @@ describe('requestCoverage and the allowance', () => {
     const coverageAllowance = vi.fn(allowed);
     const queries = goalQueries({
       playablePuzzlesCovering: async (p) =>
-        p.targetIds.includes(ZETA) ? [{ ...rows.puzzles[0]!, coveredTargetIds: [ZETA] }] : rows.puzzles,
+        p.targetIds.includes(ZETA)
+          ? [{ ...rows.puzzles[0]!, coveredTargetIds: [ZETA] }]
+          : rows.puzzles,
     });
     await runCoach(makeDeps(queries, { coverageAllowance }), input);
     expect(coverageAllowance).not.toHaveBeenCalled();
@@ -290,14 +367,26 @@ describe('requestCoverage and the allowance', () => {
   });
 
   it('routeAfterRecordDecision requests coverage only for coverage_requested with missing concepts', () => {
-    expect(routeAfterRecordDecision({ flags: ['coverage_requested'], missingConceptIds: ['c'] } as never)).toBe('requestCoverage');
-    expect(routeAfterRecordDecision({ flags: ['coverage_not_requested'], missingConceptIds: ['c'] } as never)).toBe('end');
+    expect(
+      routeAfterRecordDecision({
+        flags: ['coverage_requested'],
+        missingConceptIds: ['c'],
+      } as never),
+    ).toBe('requestCoverage');
+    expect(
+      routeAfterRecordDecision({
+        flags: ['coverage_not_requested'],
+        missingConceptIds: ['c'],
+      } as never),
+    ).toBe('end');
     expect(routeAfterRecordDecision({ flags: [], missingConceptIds: [] } as never)).toBe('end');
   });
 
   it('a cover task the graph refuses to link fails the run', async () => {
     const queries = goalQueries({ createCoverTask: async () => null });
-    await expect(runCoach(makeDeps(queries), input)).rejects.toMatchObject({ name: 'DecisionNotRecordedError' });
+    await expect(runCoach(makeDeps(queries), input)).rejects.toMatchObject({
+      name: 'DecisionNotRecordedError',
+    });
   });
 });
 
@@ -348,7 +437,9 @@ describe('goal usage and tracing', () => {
     };
     const queries = goalQueries();
     await runCoach(makeDeps(queries, { embeddings }), input);
-    expect((queries.callsTo('resolveGoalConcepts')[0]!.params as { embedding: number[] }).embedding).toEqual(vector);
+    expect(
+      (queries.callsTo('resolveGoalConcepts')[0]!.params as { embedding: number[] }).embedding,
+    ).toEqual(vector);
     expect(queries.recorded[0]!.embeddingTokens).toBe(7);
   });
 
@@ -362,16 +453,22 @@ describe('goal usage and tracing', () => {
       },
     };
     const queries = goalQueries();
-    await expect(runCoach(makeDeps(queries, { embeddings }), input)).rejects.toBeInstanceOf(ProviderUnavailableError);
+    await expect(runCoach(makeDeps(queries, { embeddings }), input)).rejects.toBeInstanceOf(
+      ProviderUnavailableError,
+    );
     expect(queries.callsTo('recordDecision')).toHaveLength(0);
     expect(queries.callsTo('upsertGoal')).toHaveLength(0);
   });
 
   it('a missing embeddings provider fails a run that has a goal, not one without', async () => {
     const queries = goalQueries();
-    await expect(runCoach(makeDeps(queries, { embeddings: undefined }), input)).rejects.toBeInstanceOf(ProviderUnavailableError);
+    await expect(
+      runCoach(makeDeps(queries, { embeddings: undefined }), input),
+    ).rejects.toBeInstanceOf(ProviderUnavailableError);
     const plain = createStubCoachQueries();
-    await expect(runCoach(makeDeps(plain, { embeddings: undefined }), { ...input, goalText: null })).resolves.toMatchObject({ outcome: 'recorded' });
+    await expect(
+      runCoach(makeDeps(plain, { embeddings: undefined }), { ...input, goalText: null }),
+    ).resolves.toMatchObject({ outcome: 'recorded' });
   });
 
   it('the graph still builds and invokes through buildCoachGraph', async () => {

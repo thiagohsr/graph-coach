@@ -65,7 +65,12 @@ export const PuzzleRow = z.object({
 });
 export type PuzzleRow = z.infer<typeof PuzzleRow>;
 
-const ConceptCount = z.object({ conceptId: z.string(), slug: z.string(), name: z.string(), questions: z.number() });
+const ConceptCount = z.object({
+  conceptId: z.string(),
+  slug: z.string(),
+  name: z.string(),
+  questions: z.number(),
+});
 export type IntroConcept = z.infer<typeof ConceptCount>;
 
 export const IntroPuzzleRow = z.object({

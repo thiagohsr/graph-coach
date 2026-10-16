@@ -10,7 +10,8 @@ import { CLI_OUTPUT, CLI_PROMPT, CliError, type CliOutput, type CliPrompt } from
 
 @Command({
   name: 'reset',
-  description: 'Delete the graph and, unless --graph-only, empty the users and admin_settings tables',
+  description:
+    'Delete the graph and, unless --graph-only, empty the users and admin_settings tables',
 })
 export class ResetCommand extends CommandRunner {
   constructor(
@@ -34,10 +35,13 @@ export class ResetCommand extends CommandRunner {
   }
 
   async run(_args: string[], options: { yes?: boolean; graphOnly?: boolean } = {}): Promise<void> {
-    if (this.env.NODE_ENV === 'production') throw new CliError('reset is not allowed when NODE_ENV=production');
+    if (this.env.NODE_ENV === 'production')
+      throw new CliError('reset is not allowed when NODE_ENV=production');
 
     if (!options.yes) {
-      const answer = await this.prompt(`This deletes the graph "${this.env.GRAPH_NAME}". Type its name to confirm: `);
+      const answer = await this.prompt(
+        `This deletes the graph "${this.env.GRAPH_NAME}". Type its name to confirm: `,
+      );
       if (answer !== this.env.GRAPH_NAME) throw new CliError('Cancelled: nothing was changed', 2);
     }
 
@@ -46,7 +50,11 @@ export class ResetCommand extends CommandRunner {
       this.out.line(`graph ${this.env.GRAPH_NAME}: deleted`);
     } catch (error) {
       // A graph that was never created has nothing to delete.
-      if (!/empty key|does not exist|not found/i.test(error instanceof Error ? error.message : String(error))) {
+      if (
+        !/empty key|does not exist|not found/i.test(
+          error instanceof Error ? error.message : String(error),
+        )
+      ) {
         throw error;
       }
       this.out.line(`graph ${this.env.GRAPH_NAME}: did not exist`);

@@ -47,8 +47,7 @@ describe('PromptBrief and the request union', () => {
       true,
     );
     expect(
-      SourceCreateRequest.safeParse({ title: 'T', kind: 'markdown', content: 'some text' })
-        .success,
+      SourceCreateRequest.safeParse({ title: 'T', kind: 'markdown', content: 'some text' }).success,
     ).toBe(true);
     expect(
       SourceCreateRequest.safeParse({ title: 'T', kind: 'prompt', brief: ok, content: 'text' })
@@ -103,9 +102,21 @@ describe('guardBrief', () => {
     ['a URL', { subject: 'https://example.com/page', sentences }, 'brief_not_a_topic'],
     ['an e-mail address', { subject: 'someone@example.com', sentences }, 'brief_not_a_topic'],
     ['a control character', { subject: 'SQL\u0007 joins', sentences }, 'brief_not_a_topic'],
-    ['subject over 120', { subject: 'database '.repeat(14).trim() + 'x', sentences }, 'brief_too_long'],
-    ['focus over 300', { subject: 'SQL joins', focus: 'inner joins '.repeat(30), sentences }, 'brief_too_long'],
-    ['focus a URL', { subject: 'SQL joins', focus: 'www.example.com/x', sentences }, 'brief_not_a_topic'],
+    [
+      'subject over 120',
+      { subject: 'database '.repeat(14).trim() + 'x', sentences },
+      'brief_too_long',
+    ],
+    [
+      'focus over 300',
+      { subject: 'SQL joins', focus: 'inner joins '.repeat(30), sentences },
+      'brief_too_long',
+    ],
+    [
+      'focus a URL',
+      { subject: 'SQL joins', focus: 'www.example.com/x', sentences },
+      'brief_not_a_topic',
+    ],
     ['sentences 2', { subject: 'SQL joins', sentences: 2 }, 'brief_sentences_out_of_range'],
     ['sentences 11', { subject: 'SQL joins', sentences: 11 }, 'brief_sentences_out_of_range'],
   ])('refuses %s', (_name, input, code) => {
@@ -125,7 +136,11 @@ describe('guardBrief', () => {
   it('reports every failed rule together', () => {
     const found = codes({ subject: '!!', sentences: 99 });
     expect(found).toEqual(
-      expect.arrayContaining(['brief_too_short', 'brief_no_letters', 'brief_sentences_out_of_range']),
+      expect.arrayContaining([
+        'brief_too_short',
+        'brief_no_letters',
+        'brief_sentences_out_of_range',
+      ]),
     );
   });
 

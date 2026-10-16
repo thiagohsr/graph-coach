@@ -18,9 +18,13 @@ const newUser = (options: { signedIn?: boolean; name?: string } = {}) =>
   app.createUser({ role: 'learner', ...options });
 const put = (owner: TestUser, puzzleId: string, body: object) =>
   app.http.put(`/puzzles/${puzzleId}/shares`).set(owner.auth).send(body);
-const listShares = (owner: TestUser, puzzleId: string) => app.http.get(`/puzzles/${puzzleId}/shares`).set(owner.auth);
+const listShares = (owner: TestUser, puzzleId: string) =>
+  app.http.get(`/puzzles/${puzzleId}/shares`).set(owner.auth);
 
-async function publishedRun(owner: TestUser, options: { kind?: 'upload' | 'prompt' } = {}): Promise<SeededRun> {
+async function publishedRun(
+  owner: TestUser,
+  options: { kind?: 'upload' | 'prompt' } = {},
+): Promise<SeededRun> {
   const run = await seedRun(app, owner, { drafts: 3, ...options });
   await publishDirectly(app, run.puzzleId);
   return run;
@@ -32,9 +36,17 @@ describe('sharing a puzzle (S5.1 to S5.4)', () => {
     const friend = await newUser({ name: 'Friend' });
     const run = await publishedRun(owner);
 
-    const first = await put(owner, run.puzzleId, { email: ` ${friend.email.toUpperCase()} `, withSource: false });
+    const first = await put(owner, run.puzzleId, {
+      email: ` ${friend.email.toUpperCase()} `,
+      withSource: false,
+    });
     expect(first.status).toBe(200);
-    expect(first.body).toMatchObject({ userId: friend.id, name: 'Friend', email: friend.email, withSource: false });
+    expect(first.body).toMatchObject({
+      userId: friend.id,
+      name: 'Friend',
+      email: friend.email,
+      withSource: false,
+    });
     expect(first.body.sharedAt).toMatch(/Z$/);
 
     app.clock.advance(60_000);
@@ -69,7 +81,9 @@ describe('sharing a puzzle (S5.1 to S5.4)', () => {
       expect(res.body.error.code).toBe('VALIDATION_FAILED');
       expect(res.body.error.details.issues[0].path).toBe('email');
     }
-    expect((await put(owner, run.puzzleId, { email: 'not-an-address', withSource: false })).status).toBe(422);
+    expect(
+      (await put(owner, run.puzzleId, { email: 'not-an-address', withSource: false })).status,
+    ).toBe(422);
     expect((await put(owner, run.puzzleId, { email: owner.email })).status).toBe(422);
   });
 
@@ -77,11 +91,15 @@ describe('sharing a puzzle (S5.1 to S5.4)', () => {
     const owner = await newUser();
     const friend = await newUser();
     const run = await publishedRun(owner);
-    await app.testGraph.cypher(`MATCH (:Source {id: $id})-[y:YIELDED]->(:Puzzle) DELETE y`, { id: run.sourceId });
+    await app.testGraph.cypher(`MATCH (:Source {id: $id})-[y:YIELDED]->(:Puzzle) DELETE y`, {
+      id: run.sourceId,
+    });
     const res = await put(owner, run.puzzleId, { email: friend.email, withSource: true });
     expect(res.status).toBe(422);
     expect(res.body.error.details.issues[0].path).toBe('withSource');
-    expect((await put(owner, run.puzzleId, { email: friend.email, withSource: false })).status).toBe(200);
+    expect(
+      (await put(owner, run.puzzleId, { email: friend.email, withSource: false })).status,
+    ).toBe(200);
   });
 
   it('the 21st attempt in an hour is 429 RATE_LIMITED with Retry-After, failed attempts counting too', async () => {
@@ -99,7 +117,10 @@ describe('sharing a puzzle (S5.1 to S5.4)', () => {
     expect(Number(res.headers['retry-after'])).toBeGreaterThan(0);
     // Reading and revoking are not limited.
     expect((await listShares(owner, run.puzzleId)).status).toBe(200);
-    expect((await app.http.delete(`/puzzles/${run.puzzleId}/shares/${friend.id}`).set(owner.auth)).status).toBe(204);
+    expect(
+      (await app.http.delete(`/puzzles/${run.puzzleId}/shares/${friend.id}`).set(owner.auth))
+        .status,
+    ).toBe(204);
   });
 
   it('a non-owner is 404 before any directory lookup', async () => {
@@ -126,7 +147,10 @@ describe('sharing a puzzle (S5.1 to S5.4)', () => {
     await put(owner, run.puzzleId, { email: friend.email, withSource: false });
     expect((await read()).status).toBe(404);
     expect(await sources()).toEqual([]);
-    expect((await app.http.get('/review/questions').query({ taskId: run.taskId }).set(friend.auth)).status).toBe(404);
+    expect(
+      (await app.http.get('/review/questions').query({ taskId: run.taskId }).set(friend.auth))
+        .status,
+    ).toBe(404);
 
     await put(owner, run.puzzleId, { email: friend.email, withSource: true });
     const detail = await read();
@@ -154,12 +178,21 @@ describe('sharing a puzzle (S5.1 to S5.4)', () => {
 
     await put(owner, run.puzzleId, { email: friend.email, withSource: true });
     expect((await read()).status).toBe(200);
-    expect((await app.http.delete(`/puzzles/${run.puzzleId}/shares/${friend.id}`).set(owner.auth)).status).toBe(204);
+    expect(
+      (await app.http.delete(`/puzzles/${run.puzzleId}/shares/${friend.id}`).set(owner.auth))
+        .status,
+    ).toBe(204);
     expect((await read()).status).toBe(404);
     expect(await sources()).toEqual([]);
     // Revoking again, or for an unknown user, is still 204.
-    expect((await app.http.delete(`/puzzles/${run.puzzleId}/shares/${friend.id}`).set(owner.auth)).status).toBe(204);
-    expect((await app.http.delete(`/puzzles/${run.puzzleId}/shares/unknown-user`).set(owner.auth)).status).toBe(204);
+    expect(
+      (await app.http.delete(`/puzzles/${run.puzzleId}/shares/${friend.id}`).set(owner.auth))
+        .status,
+    ).toBe(204);
+    expect(
+      (await app.http.delete(`/puzzles/${run.puzzleId}/shares/unknown-user`).set(owner.auth))
+        .status,
+    ).toBe(204);
   });
 
   it('a prompt puzzle shared with its source gives the brief, and no passages', async () => {
@@ -169,7 +202,11 @@ describe('sharing a puzzle (S5.1 to S5.4)', () => {
     await put(owner, run.puzzleId, { email: friend.email, withSource: true });
     const res = await app.http.get(`/sources/${run.sourceId}`).set(friend.auth);
     expect(res.status).toBe(200);
-    expect(res.body).toMatchObject({ kind: 'prompt', origin: 'prompt', brief: { subject: 'indexes' } });
+    expect(res.body).toMatchObject({
+      kind: 'prompt',
+      origin: 'prompt',
+      brief: { subject: 'indexes' },
+    });
     expect(res.body.content).toBeUndefined();
   });
 
@@ -180,14 +217,33 @@ describe('sharing a puzzle (S5.1 to S5.4)', () => {
     const run = await publishedRun(owner);
     await put(owner, run.puzzleId, { email: friend.email, withSource: true });
     const q = run.questionIds[0];
-    expect((await app.http.get('/review/questions').query({ taskId: run.taskId }).set(friend.auth)).status).toBe(404);
+    expect(
+      (await app.http.get('/review/questions').query({ taskId: run.taskId }).set(friend.auth))
+        .status,
+    ).toBe(404);
     expect((await app.http.get('/review/questions').set(friend.auth)).body).toEqual([]);
-    expect((await app.http.patch(`/review/questions/${q}`).set(friend.auth).send({ distractors: ['a1', 'b1'] })).status).toBe(404);
-    expect((await app.http.post(`/review/questions/${q}/approve`).set(friend.auth)).status).toBe(404);
-    expect((await app.http.post(`/review/questions/${q}/reject`).set(friend.auth).send({})).status).toBe(404);
-    expect((await put(friend, run.puzzleId, { email: third.email, withSource: false })).status).toBe(404);
+    expect(
+      (
+        await app.http
+          .patch(`/review/questions/${q}`)
+          .set(friend.auth)
+          .send({ distractors: ['a1', 'b1'] })
+      ).status,
+    ).toBe(404);
+    expect((await app.http.post(`/review/questions/${q}/approve`).set(friend.auth)).status).toBe(
+      404,
+    );
+    expect(
+      (await app.http.post(`/review/questions/${q}/reject`).set(friend.auth).send({})).status,
+    ).toBe(404);
+    expect(
+      (await put(friend, run.puzzleId, { email: third.email, withSource: false })).status,
+    ).toBe(404);
     expect((await listShares(friend, run.puzzleId)).status).toBe(404);
-    expect((await app.http.delete(`/puzzles/${run.puzzleId}/shares/${friend.id}`).set(friend.auth)).status).toBe(404);
+    expect(
+      (await app.http.delete(`/puzzles/${run.puzzleId}/shares/${friend.id}`).set(friend.auth))
+        .status,
+    ).toBe(404);
   });
 
   it('no e-mail address is in the graph', async () => {
@@ -195,8 +251,12 @@ describe('sharing a puzzle (S5.1 to S5.4)', () => {
     const friend = await newUser();
     const run = await publishedRun(owner);
     await put(owner, run.puzzleId, { email: friend.email, withSource: true });
-    const nodes = await app.testGraph.cypher<{ p: Record<string, unknown> }>('MATCH (n) RETURN properties(n) AS p');
-    const edges = await app.testGraph.cypher<{ p: Record<string, unknown> }>('MATCH ()-[r]->() RETURN properties(r) AS p');
+    const nodes = await app.testGraph.cypher<{ p: Record<string, unknown> }>(
+      'MATCH (n) RETURN properties(n) AS p',
+    );
+    const edges = await app.testGraph.cypher<{ p: Record<string, unknown> }>(
+      'MATCH ()-[r]->() RETURN properties(r) AS p',
+    );
     expect(JSON.stringify([...nodes, ...edges])).not.toContain('@');
   });
 });
@@ -222,7 +282,10 @@ describeAccessMatrix(
   [
     {
       name: 'GET /puzzles/:id/shares',
-      request: ({ run }: { run: SeededRun }) => ({ method: 'GET', path: `/puzzles/${run.puzzleId}/shares` }),
+      request: ({ run }: { run: SeededRun }) => ({
+        method: 'GET',
+        path: `/puzzles/${run.puzzleId}/shares`,
+      }),
       expect: ACCESS.ownerOnly,
     },
     {
@@ -244,7 +307,10 @@ describeAccessMatrix(
     },
     {
       name: 'GET /sources/:id',
-      request: ({ run }: { run: SeededRun }) => ({ method: 'GET', path: `/sources/${run.sourceId}` }),
+      request: ({ run }: { run: SeededRun }) => ({
+        method: 'GET',
+        path: `/sources/${run.sourceId}`,
+      }),
       expect: ACCESS.ownerAndSourceShared,
     },
   ],

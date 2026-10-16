@@ -35,7 +35,11 @@ function LoginPage() {
   const queryClient = useQueryClient();
   const navigate = useNavigate();
   const signOut = useSignOut();
-  const mode = useQuery({ queryKey: keys.authMode, queryFn: () => getAuthModeFn(), staleTime: Infinity });
+  const mode = useQuery({
+    queryKey: keys.authMode,
+    queryFn: () => getAuthModeFn(),
+    staleTime: Infinity,
+  });
 
   return (
     <main id="main">
@@ -46,7 +50,9 @@ function LoginPage() {
           <ErrorState error={mode.error} onRetry={() => void mode.refetch()} />
         </div>
       )}
-      {mode.data === 'cognito' && <LoginOptions redirect={target} error={search.error} onSignOut={() => void signOut()} />}
+      {mode.data === 'cognito' && (
+        <LoginOptions redirect={target} error={search.error} onSignOut={() => void signOut()} />
+      )}
       {mode.data === 'dev' && (
         <DevAccountPicker
           redirect={target}

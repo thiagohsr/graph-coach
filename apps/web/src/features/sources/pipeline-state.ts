@@ -51,7 +51,14 @@ export const INGEST_STEPS = [
   'validate',
   'publish',
 ] as const;
-export const GENERATE_STEPS = ['outline', 'draftQuestions', 'critique', 'refine', 'validate', 'publish'] as const;
+export const GENERATE_STEPS = [
+  'outline',
+  'draftQuestions',
+  'critique',
+  'refine',
+  'validate',
+  'publish',
+] as const;
 
 const INGEST_LABELS: Record<string, string> = {
   chunk: 'Chunk',
@@ -87,10 +94,14 @@ function mergeLines(existing: string[], incoming: string[]): string[] {
   return out;
 }
 
-const isRecord = (value: unknown): value is Record<string, unknown> => typeof value === 'object' && value !== null;
+const isRecord = (value: unknown): value is Record<string, unknown> =>
+  typeof value === 'object' && value !== null;
 
 /** Does not let a late `active` replay undo a step that already finished. */
-function nextStatus(previous: StepViewStatus | undefined, incoming: StepViewStatus): StepViewStatus {
+function nextStatus(
+  previous: StepViewStatus | undefined,
+  incoming: StepViewStatus,
+): StepViewStatus {
   if (previous && previous !== 'active' && incoming === 'active') return previous;
   return incoming;
 }
@@ -112,7 +123,11 @@ function snapshotSteps(state: PipelineState, steps: readonly StepDto[]): Record<
       status: nextStatus(previous?.status, step.status),
       lines: mergeLines(previous?.lines ?? [], lines),
       startedAt: step.startedAt,
-      ...(step.finishedAt ? { finishedAt: step.finishedAt } : previous?.finishedAt ? { finishedAt: previous.finishedAt } : {}),
+      ...(step.finishedAt
+        ? { finishedAt: step.finishedAt }
+        : previous?.finishedAt
+          ? { finishedAt: previous.finishedAt }
+          : {}),
     };
   }
   return next;
@@ -129,7 +144,8 @@ function stepEvent(state: PipelineState, event: AgentEvent): PipelineState {
   const order = typeof payload.order === 'number' ? payload.order : (previous?.order ?? 0);
   const attempt = typeof payload.attempt === 'number' ? payload.attempt : previous?.attempt;
   const startedAt = typeof payload.startedAt === 'string' ? payload.startedAt : previous?.startedAt;
-  const finishedAt = typeof payload.finishedAt === 'string' ? payload.finishedAt : previous?.finishedAt;
+  const finishedAt =
+    typeof payload.finishedAt === 'string' ? payload.finishedAt : previous?.finishedAt;
   const view: StepView = {
     stepId,
     node: event.node,
@@ -143,7 +159,13 @@ function stepEvent(state: PipelineState, event: AgentEvent): PipelineState {
   return { ...state, steps: { ...state.steps, [stepId]: view } };
 }
 
-const TASK_STATUSES: readonly string[] = ['queued', 'in_progress', 'awaiting_review', 'done', 'failed'];
+const TASK_STATUSES: readonly string[] = [
+  'queued',
+  'in_progress',
+  'awaiting_review',
+  'done',
+  'failed',
+];
 
 export function pipelineReducer(state: PipelineState, action: PipelineAction): PipelineState {
   switch (action.type) {
@@ -158,7 +180,9 @@ export function pipelineReducer(state: PipelineState, action: PipelineAction): P
     case 'TASK_EVENT': {
       const status = isRecord(action.event.payload) ? action.event.payload.taskStatus : undefined;
       const taskStatus =
-        typeof status === 'string' && TASK_STATUSES.includes(status) ? (status as TaskStatus) : state.taskStatus;
+        typeof status === 'string' && TASK_STATUSES.includes(status)
+          ? (status as TaskStatus)
+          : state.taskStatus;
       return { ...state, taskStatus, transport: 'closed' };
     }
     case 'DROPPED': {
@@ -240,7 +264,9 @@ export function logLines(kind: TaskKind, state: PipelineState): LogLine[] {
   const steps = Object.values(state.steps).sort((a, b) => a.order - b.order);
   for (const step of steps) {
     const prefix = `${stepLabel(kind, step.node)}${step.attempt !== undefined && step.attempt > 1 ? ` (attempt ${step.attempt})` : ''}`;
-    step.lines.forEach((line, index) => out.push({ key: `${step.stepId}#${index}`, text: `${prefix}: ${line}` }));
+    step.lines.forEach((line, index) =>
+      out.push({ key: `${step.stepId}#${index}`, text: `${prefix}: ${line}` }),
+    );
   }
   return out;
 }

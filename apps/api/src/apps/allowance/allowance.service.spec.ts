@@ -117,7 +117,10 @@ describe('rule 3: hourly limit', () => {
     expect((await service.begin(learner, 'upload')).via).toBe('allowance');
 
     store.account.limitsLiftedUntil = new Date(clock.ms - 1);
-    expect(await service.check(learner, 'upload')).toEqual({ allowed: false, reason: 'hourly_limit' });
+    expect(await service.check(learner, 'upload')).toEqual({
+      allowed: false,
+      reason: 'hourly_limit',
+    });
   });
 });
 
@@ -172,10 +175,16 @@ describe('check and assertAllowed', () => {
     expect(await service.check(learner, 'upload')).toEqual({ allowed: true });
 
     counts.uploadsThisMonth = settings.monthlySourceAllowance;
-    expect(await service.check(learner, 'upload')).toEqual({ allowed: false, reason: 'no_allowance' });
+    expect(await service.check(learner, 'upload')).toEqual({
+      allowed: false,
+      reason: 'no_allowance',
+    });
 
     counts.creationsLastHour = settings.hourlyCreationLimit;
-    expect(await service.check(learner, 'upload')).toEqual({ allowed: false, reason: 'hourly_limit' });
+    expect(await service.check(learner, 'upload')).toEqual({
+      allowed: false,
+      reason: 'hourly_limit',
+    });
 
     settings.creationEnabled = false;
     expect(await service.check(learner, 'upload')).toEqual({ allowed: false, reason: 'paused' });

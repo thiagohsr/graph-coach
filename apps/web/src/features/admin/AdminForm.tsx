@@ -1,4 +1,9 @@
-import type { AdminAction, AdminDetailResponse, AdminFieldMeta, AdminModelMeta } from '@coach/types';
+import type {
+  AdminAction,
+  AdminDetailResponse,
+  AdminFieldMeta,
+  AdminModelMeta,
+} from '@coach/types';
 import { useEffect, useMemo, useState } from 'react';
 import { describeError } from '~/components/states/error-messages';
 import { Alert, AlertDescription } from '~/components/ui/alert';
@@ -42,8 +47,13 @@ type Pending =
 
 const shown = (text: string) => (text === '' ? '(empty)' : text);
 
-function initialValues(model: AdminModelMeta, detail: AdminDetailResponse): Record<string, FormValue> {
-  return Object.fromEntries(model.fields.map((f) => [f.name, toFormValue(f, detail.record.values[f.name])]));
+function initialValues(
+  model: AdminModelMeta,
+  detail: AdminDetailResponse,
+): Record<string, FormValue> {
+  return Object.fromEntries(
+    model.fields.map((f) => [f.name, toFormValue(f, detail.record.values[f.name])]),
+  );
 }
 
 export function AdminForm({ model, detail, onSave }: AdminFormProps) {
@@ -63,7 +73,8 @@ export function AdminForm({ model, detail, onSave }: AdminFormProps) {
     // Deliberately keyed on recordKey (the serialized record), not on `initial`.
   }, [recordKey]);
 
-  const fieldByName = (name: string): AdminFieldMeta | undefined => model.fields.find((f) => f.name === name);
+  const fieldByName = (name: string): AdminFieldMeta | undefined =>
+    model.fields.find((f) => f.name === name);
 
   function clearErrors() {
     setFieldErrors({});
@@ -86,7 +97,9 @@ export function AdminForm({ model, detail, onSave }: AdminFormProps) {
           const field = name ? fieldByName(name) : undefined;
           if (name && field) {
             byField[name] =
-              error.issueCodes[issue.path] === 'out_of_range' ? (boundsMessage(field) ?? issue.message) : issue.message;
+              error.issueCodes[issue.path] === 'out_of_range'
+                ? (boundsMessage(field) ?? issue.message)
+                : issue.message;
           } else {
             general.push(issue.message);
           }
@@ -131,7 +144,11 @@ export function AdminForm({ model, detail, onSave }: AdminFormProps) {
         continue;
       }
       payload[field.name] = parsed.value;
-      changes.push({ name: field.name, from: displayFormValue(field, before), to: displayFormValue(field, now) });
+      changes.push({
+        name: field.name,
+        from: displayFormValue(field, before),
+        to: displayFormValue(field, now),
+      });
     }
     if (Object.keys(errors).length > 0) {
       setFieldErrors(errors);

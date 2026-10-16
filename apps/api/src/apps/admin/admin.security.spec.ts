@@ -22,17 +22,42 @@ const HOSTILE = [
 
 /** Rows rich enough for every model; the adapters pick the declared columns only. */
 const ROW = {
-  id: 'id-1', key: 'minQuestions', value: 3, email: 'e@example.test', display_name: 'D', role: 'learner', status: 'active',
-  created_at: new Date(0), last_seen_at: null, bonus_source_runs: 0, bonus_prompt_runs: 0, limits_lifted_until: null,
-  label: 'L', source_runs: 1, prompt_runs: 1, lift_days: 0, redeemed_count: 0, max_redemptions: 5, expires_at: null,
-  disabled: false, updated_at: new Date(0), total: 1,
-  slug: 's', name: 'N', description: 'd', createdAt: 0,
+  id: 'id-1',
+  key: 'minQuestions',
+  value: 3,
+  email: 'e@example.test',
+  display_name: 'D',
+  role: 'learner',
+  status: 'active',
+  created_at: new Date(0),
+  last_seen_at: null,
+  bonus_source_runs: 0,
+  bonus_prompt_runs: 0,
+  limits_lifted_until: null,
+  label: 'L',
+  source_runs: 1,
+  prompt_runs: 1,
+  lift_days: 0,
+  redeemed_count: 0,
+  max_redemptions: 5,
+  expires_at: null,
+  disabled: false,
+  updated_at: new Date(0),
+  total: 1,
+  slug: 's',
+  name: 'N',
+  description: 'd',
+  createdAt: 0,
 };
 
 function setup() {
   const graph = createRecordingGraphPort({
-    admin_concept_list: [ROW], admin_concept_list_search: [ROW], admin_concept_count: [{ total: 1 }],
-    admin_concept_count_search: [{ total: 1 }], admin_concept_detail: [ROW], admin_concept_update: [ROW],
+    admin_concept_list: [ROW],
+    admin_concept_list_search: [ROW],
+    admin_concept_count: [{ total: 1 }],
+    admin_concept_count_search: [{ total: 1 }],
+    admin_concept_detail: [ROW],
+    admin_concept_update: [ROW],
   });
   const sql: RecordingSqlPort = {
     calls: [],
@@ -45,7 +70,10 @@ function setup() {
     { creationCountsFor: vi.fn(async () => new Map()) } as never,
     { usageTotalsFor: vi.fn(async () => new Map()) } as never,
     {
-      assertCanChangeStatus: vi.fn(), assertCanChangeRole: vi.fn(), setStatus: vi.fn(), setRole: vi.fn(),
+      assertCanChangeStatus: vi.fn(),
+      assertCanChangeRole: vi.fn(),
+      setStatus: vi.fn(),
+      setRole: vi.fn(),
       setBonusRuns: vi.fn(),
     } as never,
     { disable: vi.fn() } as never,
@@ -72,7 +100,10 @@ async function swallow(promise: Promise<unknown>): Promise<void> {
 describe('SC-A04: hostile input stays in parameters', () => {
   const sqlModels = adminRegistry.list().filter((m) => m.source === 'sql');
   const allowedIdentifiers = new Set(
-    sqlModels.flatMap((m) => [m.entity, ...m.fieldKeys.filter((k) => !m.fields[k]!.computed).map((k) => m.fields[k]!.column ?? k)]),
+    sqlModels.flatMap((m) => [
+      m.entity,
+      ...m.fieldKeys.filter((k) => !m.fields[k]!.computed).map((k) => m.fields[k]!.column ?? k),
+    ]),
   );
   const slugs = adminRegistry.list().map((m) => m.name);
 
@@ -86,17 +117,37 @@ describe('SC-A04: hostile input stays in parameters', () => {
       for (const slug of slugs) {
         // Id
         await swallow(admin.get(slug, hostile));
-        await swallow(admin.update(slug, hostile, { values: { name: 'x', value: 1, disabled: true } }, ADMIN));
+        await swallow(
+          admin.update(slug, hostile, { values: { name: 'x', value: 1, disabled: true } }, ADMIN),
+        );
         // Search and paging
         await swallow(admin.list(slug, { search: hostile }));
         await swallow(admin.list(slug, { page: hostile, pageSize: hostile }));
-        await swallow(admin.list(slug, { page: '1', pageSize: '9999', search: hostile.slice(0, 50) }));
+        await swallow(
+          admin.list(slug, { page: '1', pageSize: '9999', search: hostile.slice(0, 50) }),
+        );
       }
       // PATCH keys and values
       for (const slug of ['concept', 'user', 'admin-setting', 'access-code']) {
         await swallow(admin.update(slug, 'x', { values: { [hostile]: 'v' } }, ADMIN));
-        await swallow(admin.update(slug, 'x', { values: { name: hostile, description: hostile, value: hostile, label: hostile } }, ADMIN));
-        await swallow(admin.update(slug, 'x', { values: JSON.parse(`{"__proto__": "${hostile.slice(0, 20).replace(/["\\]/g, '')}"}`) }, ADMIN));
+        await swallow(
+          admin.update(
+            slug,
+            'x',
+            { values: { name: hostile, description: hostile, value: hostile, label: hostile } },
+            ADMIN,
+          ),
+        );
+        await swallow(
+          admin.update(
+            slug,
+            'x',
+            {
+              values: JSON.parse(`{"__proto__": "${hostile.slice(0, 20).replace(/["\\]/g, '')}"}`),
+            },
+            ADMIN,
+          ),
+        );
       }
     }
     return { graph, sql };
@@ -126,14 +177,26 @@ describe('SC-A04: hostile input stays in parameters', () => {
 
   it('hostile strings appear only inside parameter values', async () => {
     const { graph, sql } = await driveEverything();
-    const seen = [...graph.calls.map((c) => JSON.stringify(c.params)), ...sql.calls.map((c) => JSON.stringify(c.params))].join('\n');
+    const seen = [
+      ...graph.calls.map((c) => JSON.stringify(c.params)),
+      ...sql.calls.map((c) => JSON.stringify(c.params)),
+    ].join('\n');
     expect(seen).toContain('DETACH DELETE');
   });
 
   it('a request for a slug that is not registered runs no query at all', async () => {
     const { admin, graph, sql } = setup();
     const before = graph.calls.length + sql.calls.length;
-    for (const slug of ['question', 'chunk', 'Concept', 'user ', 'user-identities', 'code-redemptions', 'models', ...HOSTILE]) {
+    for (const slug of [
+      'question',
+      'chunk',
+      'Concept',
+      'user ',
+      'user-identities',
+      'code-redemptions',
+      'models',
+      ...HOSTILE,
+    ]) {
       await expect(admin.list(slug, {})).rejects.toMatchObject({ status: 404 });
     }
     expect(graph.calls.length + sql.calls.length).toBe(before);

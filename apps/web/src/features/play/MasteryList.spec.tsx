@@ -1,13 +1,27 @@
 import { render, screen, within } from '@testing-library/react';
 import { describe, expect, it, vi } from 'vitest';
 
-vi.mock('@tanstack/react-router', async (orig) => (await import('~/test/router-mock')).routerMock(await orig()));
+vi.mock('@tanstack/react-router', async (orig) =>
+  (await import('~/test/router-mock')).routerMock(await orig()),
+);
 
 import { MasteryList } from './MasteryList';
 
 const items = [
-  { conceptId: 'c-b', name: 'B-trees', score: 0.8, attempts: 3, lastSeen: '2026-10-11T14:03:22.000Z' },
-  { conceptId: 'c-a', name: 'Indexes', score: 0.25, attempts: 1, lastSeen: '2026-10-10T10:00:00.000Z' },
+  {
+    conceptId: 'c-b',
+    name: 'B-trees',
+    score: 0.8,
+    attempts: 3,
+    lastSeen: '2026-10-11T14:03:22.000Z',
+  },
+  {
+    conceptId: 'c-a',
+    name: 'Indexes',
+    score: 0.25,
+    attempts: 1,
+    lastSeen: '2026-10-10T10:00:00.000Z',
+  },
 ];
 
 describe('MasteryList', () => {

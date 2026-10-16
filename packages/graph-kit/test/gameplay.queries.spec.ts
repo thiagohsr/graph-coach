@@ -8,7 +8,8 @@ const NOW = 1_760_000_000_000;
 
 let tg: TestGraph;
 const run: Run = (text, params) => tg.cypher(text, params as QueryParams);
-const q = <T = Record<string, unknown>>(name: string, params: QueryParams) => tg.graph.query<T>(name, params);
+const q = <T = Record<string, unknown>>(name: string, params: QueryParams) =>
+  tg.graph.query<T>(name, params);
 
 beforeAll(async () => {
   tg = await createTestGraph();
@@ -22,7 +23,12 @@ beforeEach(async () => {
 });
 
 async function startSession(learner = A, puzzle = 'P1', id = 's1') {
-  await q('create_session', { sessionId: id, userId: learner, puzzleId: puzzle, now: NOW } as never);
+  await q('create_session', {
+    sessionId: id,
+    userId: learner,
+    puzzleId: puzzle,
+    now: NOW,
+  } as never);
   return id;
 }
 
@@ -60,7 +66,8 @@ describe('list_puzzles', () => {
   });
 
   it('shows private puzzles only to owner and shared users; drafts to nobody; no staff exception', async () => {
-    const ids = async (u: string) => (await q<{ id: string }>('list_puzzles', { userId: u })).map((r) => r.id).sort();
+    const ids = async (u: string) =>
+      (await q<{ id: string }>('list_puzzles', { userId: u })).map((r) => r.id).sort();
     expect(await ids(A)).toEqual(['P1', 'P4', 'P5']);
     expect(await ids(B)).toEqual(['P1', 'P2', 'P4']);
     expect(await ids(M)).toEqual(['P1', 'P4']);
@@ -73,15 +80,34 @@ describe('list_puzzles', () => {
 
   it('sourceShared / sourceId follow canReadSource', async () => {
     const find = async (u: string, id: string) =>
-      (await q<{ id: string; access: string; sourceShared: boolean; sourceId: string | null }>('list_puzzles', { userId: u })).find(
-        (r) => r.id === id,
-      )!;
-    expect(await find(B, 'P2')).toMatchObject({ access: 'owner', sourceShared: true, sourceId: 'S2' });
+      (
+        await q<{ id: string; access: string; sourceShared: boolean; sourceId: string | null }>(
+          'list_puzzles',
+          { userId: u },
+        )
+      ).find((r) => r.id === id)!;
+    expect(await find(B, 'P2')).toMatchObject({
+      access: 'owner',
+      sourceShared: true,
+      sourceId: 'S2',
+    });
     await share(run, 'P2', A, false);
-    expect(await find(A, 'P2')).toMatchObject({ access: 'shared', sourceShared: false, sourceId: null });
+    expect(await find(A, 'P2')).toMatchObject({
+      access: 'shared',
+      sourceShared: false,
+      sourceId: null,
+    });
     await share(run, 'P2', A, true);
-    expect(await find(A, 'P2')).toMatchObject({ access: 'shared', sourceShared: true, sourceId: 'S2' });
-    expect(await find(A, 'P4')).toMatchObject({ access: 'public', sourceShared: false, sourceId: null });
+    expect(await find(A, 'P2')).toMatchObject({
+      access: 'shared',
+      sourceShared: true,
+      sourceId: 'S2',
+    });
+    expect(await find(A, 'P4')).toMatchObject({
+      access: 'public',
+      sourceShared: false,
+      sourceId: null,
+    });
   });
 
   it('access precedence: shared beats public', async () => {
@@ -98,7 +124,8 @@ describe('play_puzzle', () => {
     const row = rows[0]!;
     expect(Object.keys(row).sort()).toEqual(['id', 'name', 'origin', 'questions', 'words']);
     const questions = row.questions as Array<Record<string, unknown>>;
-    for (const question of questions) expect(Object.keys(question).sort()).toEqual(['blanks', 'id', 'order', 'sentence']);
+    for (const question of questions)
+      expect(Object.keys(question).sort()).toEqual(['blanks', 'id', 'order', 'sentence']);
     expect(questions.map((x) => [x.id, x.blanks])).toEqual([
       ['q1', 2],
       ['q2', 1],
@@ -120,19 +147,30 @@ describe('play_puzzle', () => {
 
 describe('create_session / get_session / puzzle_answer_key / learner_mastery', () => {
   it('create_session creates PLAYED and OF with startedAt and no submittedAt; two calls make two sessions', async () => {
-    const rows = await q<{ sessionId: string }>('create_session', { sessionId: 's1', userId: A, puzzleId: 'P1', now: NOW });
+    const rows = await q<{ sessionId: string }>('create_session', {
+      sessionId: 's1',
+      userId: A,
+      puzzleId: 'P1',
+      now: NOW,
+    });
     expect(rows).toEqual([{ sessionId: 's1' }]);
     await startSession(A, 'P1', 's2');
     expect(await tg.count('Session')).toBe(2);
     expect(await tg.countEdges('PLAYED')).toBe(2);
     expect(await tg.countEdges('OF')).toBe(2);
-    const [s] = await tg.cypher<{ p: Record<string, unknown> }>(`MATCH (s:Session {id: 's1'}) RETURN properties(s) AS p`);
+    const [s] = await tg.cypher<{ p: Record<string, unknown> }>(
+      `MATCH (s:Session {id: 's1'}) RETURN properties(s) AS p`,
+    );
     expect(s!.p).toEqual({ id: 's1', startedAt: NOW });
   });
 
   it('create_session refuses an unplayable puzzle', async () => {
-    expect(await q('create_session', { sessionId: 'x', userId: A, puzzleId: 'P2', now: NOW })).toHaveLength(0);
-    expect(await q('create_session', { sessionId: 'x', userId: A, puzzleId: 'P3', now: NOW })).toHaveLength(0);
+    expect(
+      await q('create_session', { sessionId: 'x', userId: A, puzzleId: 'P2', now: NOW }),
+    ).toHaveLength(0);
+    expect(
+      await q('create_session', { sessionId: 'x', userId: A, puzzleId: 'P3', now: NOW }),
+    ).toHaveLength(0);
     expect(await tg.count('Session')).toBe(0);
   });
 
@@ -156,10 +194,13 @@ describe('create_session / get_session / puzzle_answer_key / learner_mastery', (
   });
 
   it('puzzle_answer_key lists approved questions in order with answers and concepts', async () => {
-    const rows = await q<{ questionId: string; order: number; sentence: string; answers: string[]; concepts: Array<{ id: string }> }>(
-      'puzzle_answer_key',
-      { puzzleId: 'P1' },
-    );
+    const rows = await q<{
+      questionId: string;
+      order: number;
+      sentence: string;
+      answers: string[];
+      concepts: Array<{ id: string }>;
+    }>('puzzle_answer_key', { puzzleId: 'P1' });
     expect(rows.map((r) => r.questionId)).toEqual(['q1', 'q2', 'q3']);
     expect(rows[0]!.answers).toEqual(['index', 'writes']);
     expect(rows[0]!.sentence).toContain('___');
@@ -176,9 +217,15 @@ describe('create_session / get_session / puzzle_answer_key / learner_mastery', (
         { conceptId: 'c-sql', score: 0.6, attempts: 1, lastSeen: NOW },
       ],
     });
-    const all = await q<{ conceptId: string }>('learner_mastery', { learnerId: A, conceptIds: null });
+    const all = await q<{ conceptId: string }>('learner_mastery', {
+      learnerId: A,
+      conceptIds: null,
+    });
     expect(all.map((r) => r.conceptId)).toEqual(['c-index', 'c-sql']);
-    const some = await q<{ conceptId: string }>('learner_mastery', { learnerId: A, conceptIds: ['c-sql'] });
+    const some = await q<{ conceptId: string }>('learner_mastery', {
+      learnerId: A,
+      conceptIds: ['c-sql'],
+    });
     expect(some.map((r) => r.conceptId)).toEqual(['c-sql']);
     expect(await q('learner_mastery', { learnerId: B, conceptIds: null })).toHaveLength(0);
   });
@@ -221,7 +268,9 @@ describe('record_answers', () => {
       { id: 'c-btree', before: 0.5, after: 0.35 },
       { id: 'c-index', before: 0.5, after: 0.3185 },
     ]);
-    const edge = await tg.cypher(`MATCH (:Session {id: 's1'})-[r:ANSWERED]->(q:Question {id: 'q1'}) RETURN r.blank AS blank, r.word AS word, r.correct AS correct ORDER BY blank`);
+    const edge = await tg.cypher(
+      `MATCH (:Session {id: 's1'})-[r:ANSWERED]->(q:Question {id: 'q1'}) RETURN r.blank AS blank, r.word AS word, r.correct AS correct ORDER BY blank`,
+    );
     expect(edge).toEqual([
       { blank: 0, word: 'index', correct: true },
       { blank: 1, word: '', correct: false },
@@ -233,7 +282,9 @@ describe('record_answers', () => {
     await call();
     expect(await call({ score: 40 })).toHaveLength(0);
     expect(await tg.countEdges('ANSWERED')).toBe(4);
-    const [s] = await tg.cypher<{ score: number }>(`MATCH (s:Session {id: 's1'}) RETURN s.score AS score`);
+    const [s] = await tg.cypher<{ score: number }>(
+      `MATCH (s:Session {id: 's1'}) RETURN s.score AS score`,
+    );
     expect(s!.score).toBe(10);
   });
 
@@ -260,7 +311,9 @@ describe('record_answers', () => {
     expect(await tg.countEdges('ANSWERED')).toBe(0);
     expect(await tg.countEdges('HAS_MASTERY')).toBe(0);
     expect(await tg.countEdges('CHANGED_MASTERY')).toBe(0);
-    const [s] = await tg.cypher<{ submittedAt: number | null }>(`MATCH (s:Session {id: 's1'}) RETURN s.submittedAt AS submittedAt`);
+    const [s] = await tg.cypher<{ submittedAt: number | null }>(
+      `MATCH (s:Session {id: 's1'}) RETURN s.submittedAt AS submittedAt`,
+    );
     expect(s!.submittedAt).toBeNull();
   });
 
@@ -296,17 +349,25 @@ describe('upsert_mastery', () => {
 
   it('creates, updates in place, and is idempotent', async () => {
     const first = await q<Record<string, unknown>>('upsert_mastery', rows(0.4, 2));
-    expect(first).toEqual([{ conceptId: 'c-index', name: 'Indexes', score: 0.4, attempts: 2, lastSeen: NOW }]);
+    expect(first).toEqual([
+      { conceptId: 'c-index', name: 'Indexes', score: 0.4, attempts: 2, lastSeen: NOW },
+    ]);
     await q('upsert_mastery', rows(0.4, 2));
     expect(await tg.countEdges('HAS_MASTERY')).toBe(1);
     await q('upsert_mastery', rows(0.7, 3));
     expect(await tg.countEdges('HAS_MASTERY')).toBe(1);
-    const [row] = await q<{ score: number; attempts: number }>('learner_mastery', { learnerId: A, conceptIds: null });
+    const [row] = await q<{ score: number; attempts: number }>('learner_mastery', {
+      learnerId: A,
+      conceptIds: null,
+    });
     expect(row).toMatchObject({ score: 0.7, attempts: 3 });
   });
 
   it('writes nothing for an unknown concept and does not touch other learners', async () => {
-    const none = await q('upsert_mastery', { learnerId: A, rows: [{ conceptId: 'c-nope', score: 1, attempts: 1, lastSeen: NOW }] });
+    const none = await q('upsert_mastery', {
+      learnerId: A,
+      rows: [{ conceptId: 'c-nope', score: 1, attempts: 1, lastSeen: NOW }],
+    });
     expect(none).toHaveLength(0);
     await q('upsert_mastery', rows(0.4, 2));
     expect(await q('learner_mastery', { learnerId: B, conceptIds: null })).toHaveLength(0);
@@ -314,13 +375,27 @@ describe('upsert_mastery', () => {
   });
 });
 
-type ListRow = { id: string; access: string; ownerName: string; sourceShared: boolean; sourceId: string | null };
+type ListRow = {
+  id: string;
+  access: string;
+  ownerName: string;
+  sourceShared: boolean;
+  sourceId: string | null;
+};
 const CALLERS = { A, B, C, R, M } as const;
 const listFor = (u: string) => q<ListRow>('list_puzzles', { userId: u });
 const canOpen = async (u: string, puzzle: string) => ({
   list: (await listFor(u)).some((r) => r.id === puzzle),
   play: (await q('play_puzzle', { puzzleId: puzzle, userId: u })).length === 1,
-  start: (await q('create_session', { sessionId: `probe-${u}-${puzzle}`, userId: u, puzzleId: puzzle, now: NOW })).length === 1,
+  start:
+    (
+      await q('create_session', {
+        sessionId: `probe-${u}-${puzzle}`,
+        userId: u,
+        puzzleId: puzzle,
+        now: NOW,
+      })
+    ).length === 1,
 });
 const ALL_OK = { list: true, play: true, start: true };
 const NONE = { list: false, play: false, start: false };
@@ -335,7 +410,9 @@ describe('US4: access rule (canPlay) as a table', () => {
     };
     for (const [puzzle, who] of Object.entries(expected)) {
       for (const [name, id] of Object.entries(CALLERS)) {
-        expect(await canOpen(id, puzzle), `${name} on ${puzzle}`).toEqual(who[name] ? ALL_OK : NONE);
+        expect(await canOpen(id, puzzle), `${name} on ${puzzle}`).toEqual(
+          who[name] ? ALL_OK : NONE,
+        );
       }
     }
     expect(await tg.count('Session')).toBe(
@@ -355,8 +432,15 @@ describe('US4: access rule (canPlay) as a table', () => {
       sourceId: null,
     });
     await share(run, 'P2', A, true);
-    expect((await listFor(A)).find((r) => r.id === 'P2')).toMatchObject({ sourceShared: true, sourceId: 'S2' });
-    expect((await listFor(B)).find((r) => r.id === 'P2')).toMatchObject({ access: 'owner', sourceShared: true, sourceId: 'S2' });
+    expect((await listFor(A)).find((r) => r.id === 'P2')).toMatchObject({
+      sourceShared: true,
+      sourceId: 'S2',
+    });
+    expect((await listFor(B)).find((r) => r.id === 'P2')).toMatchObject({
+      access: 'owner',
+      sourceShared: true,
+      sourceId: 'S2',
+    });
     await unshare(run, 'P2', A);
     expect(await canOpen(A, 'P2')).toEqual({ ...NONE, start: false });
   });
@@ -370,9 +454,16 @@ describe('US4: access rule (canPlay) as a table', () => {
       }
     }
     for (const id of [A, B, C, M]) {
-      expect((await listFor(id)).find((r) => r.id === 'P4')).toMatchObject({ sourceShared: false, sourceId: null });
+      expect((await listFor(id)).find((r) => r.id === 'P4')).toMatchObject({
+        sourceShared: false,
+        sourceId: null,
+      });
     }
-    expect((await listFor(R)).find((r) => r.id === 'P4')).toMatchObject({ access: 'owner', sourceShared: true, sourceId: 'S4' });
+    expect((await listFor(R)).find((r) => r.id === 'P4')).toMatchObject({
+      access: 'owner',
+      sourceShared: true,
+      sourceId: 'S4',
+    });
   });
 
   it('access precedence: owner, then shared, then public', async () => {
@@ -432,7 +523,10 @@ describe('US5: question_grounding', () => {
     } as never);
   };
   const grounding = (sessionId: string, userId: string) =>
-    q<{ questionId: string; chunkId: string; sourceId: string; text: string }>('question_grounding', { sessionId, userId });
+    q<{ questionId: string; chunkId: string; sourceId: string; text: string }>(
+      'question_grounding',
+      { sessionId, userId },
+    );
 
   it('returns nothing while the session is unsubmitted', async () => {
     await startSession(B, 'P2', 'u1');

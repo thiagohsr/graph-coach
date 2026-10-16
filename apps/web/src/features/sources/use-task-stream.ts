@@ -5,7 +5,11 @@ import { sourcesListOptions, taskEventsUrl, taskOptions } from '~/lib/api/curato
 import { keys } from '~/lib/query/keys';
 import { initialPipelineState, pipelineReducer } from './pipeline-state';
 
-const TERMINAL: ReadonlySet<TaskStatus> = new Set<TaskStatus>(['awaiting_review', 'done', 'failed']);
+const TERMINAL: ReadonlySet<TaskStatus> = new Set<TaskStatus>([
+  'awaiting_review',
+  'done',
+  'failed',
+]);
 const LIVE: ReadonlySet<TaskStatus> = new Set<TaskStatus>(['queued', 'in_progress']);
 export const POLL_MS = 3000;
 const MAX_FAILURES = 3;
@@ -33,11 +37,13 @@ export function useTaskStream(taskId: string) {
   // A finished task, and every poll, are shown from the stored steps.
   useEffect(() => {
     if (!task.data) return;
-    if (terminal || state.transport === 'polling') dispatch({ type: 'SNAPSHOT', steps: task.data.steps });
+    if (terminal || state.transport === 'polling')
+      dispatch({ type: 'SNAPSHOT', steps: task.data.steps });
     if (terminal) {
       dispatch({ type: 'CLOSED' });
       void queryClient.invalidateQueries({ queryKey: sourcesListOptions().queryKey });
-      if (task.data.status === 'awaiting_review') void queryClient.invalidateQueries({ queryKey: keys.review.all });
+      if (task.data.status === 'awaiting_review')
+        void queryClient.invalidateQueries({ queryKey: keys.review.all });
     }
     // Deliberately keyed on task.data and terminal only.
   }, [task.data, terminal]);
@@ -53,7 +59,8 @@ export function useTaskStream(taskId: string) {
     const finish = (taskStatus: TaskStatus | undefined) => {
       void queryClient.invalidateQueries({ queryKey: keys.tasks.detail(taskId) });
       void queryClient.invalidateQueries({ queryKey: sourcesListOptions().queryKey });
-      if (taskStatus === 'awaiting_review') void queryClient.invalidateQueries({ queryKey: keys.review.all });
+      if (taskStatus === 'awaiting_review')
+        void queryClient.invalidateQueries({ queryKey: keys.review.all });
     };
 
     const onDrop = async () => {

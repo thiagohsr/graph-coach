@@ -27,10 +27,17 @@ const cover = (id: string, patch: Partial<Cover> = {}): Cover => ({
 
 const CONCEPTS = [
   { id: 'c1', name: 'B-tree indexes', description: 'A balanced tree that keeps keys sorted.' },
-  { id: 'c2', name: 'Write-ahead logging', description: 'Changes are logged before pages are written.' },
+  {
+    id: 'c2',
+    name: 'Write-ahead logging',
+    description: 'Changes are logged before pages are written.',
+  },
 ];
 
-function harness(initial: Cover[], options: { nodeEnv?: 'test' | 'development'; poll?: number } = {}) {
+function harness(
+  initial: Cover[],
+  options: { nodeEnv?: 'test' | 'development'; poll?: number } = {},
+) {
   const tasks = new Map(initial.map((t) => [t.id, t]));
   const state = {
     blocked: new Set<string>(),
@@ -47,14 +54,17 @@ function harness(initial: Cover[], options: { nodeEnv?: 'test' | 'development'; 
     started: [] as string[],
   };
   const graph = {
-    openCoverTasks: async (statuses: string[]) => [...tasks.values()].filter((t) => statuses.includes(t.status)),
+    openCoverTasks: async (statuses: string[]) =>
+      [...tasks.values()].filter((t) => statuses.includes(t.status)),
     coverConcepts: async (ids: string[]) => CONCEPTS.filter((c) => ids.includes(c.id)),
     createSource: async (input: Record<string, unknown>) => {
       if (state.createSourceFails) throw new Error('graph down: secret text');
       calls.sources.push(input);
       return true;
     },
-    linkCoverTaskToSource: async (input: { taskId: string; sourceId: string } & Record<string, unknown>) => {
+    linkCoverTaskToSource: async (
+      input: { taskId: string; sourceId: string } & Record<string, unknown>,
+    ) => {
       calls.links.push(input);
       tasks.get(input.taskId)!.sourceId = input.sourceId;
       return true;
@@ -117,7 +127,12 @@ describe('pick-up of a queued cover task', () => {
     expect(h.calls.begin).toEqual([{ user: { id: 'learner-1', role: 'learner' }, kind: 'prompt' }]);
     expect(h.calls.sources).toHaveLength(1);
     const source = h.calls.sources[0]!;
-    expect(source).toMatchObject({ ownerId: 'learner-1', kind: 'prompt', content: null, fingerprint: null });
+    expect(source).toMatchObject({
+      ownerId: 'learner-1',
+      kind: 'prompt',
+      content: null,
+      fingerprint: null,
+    });
     const brief = JSON.parse(source.brief as string);
     expect(brief).toMatchObject({ difficulty: 'medium', sentences: 4 });
     expect(brief.subject).toBe('B-tree indexes, Write-ahead logging');
@@ -137,21 +152,25 @@ describe('pick-up of a queued cover task', () => {
     expect(h.tasks.get('t1')!.status).toBe('failed');
     expect(h.tasks.get('t1')!.error).not.toContain('secret');
     expect(h.calls.started).toEqual([]);
-    for (const call of vi.mocked(Logger.prototype.error).mock.calls) expect(String(call[0])).not.toContain('secret');
+    for (const call of vi.mocked(Logger.prototype.error).mock.calls)
+      expect(String(call[0])).not.toContain('secret');
   });
 
   it.each([
     ['CREATION_LIMIT_REACHED', 429],
     ['CREATION_PAUSED', 503],
-  ] as const)('marks the task failed with %s and creates no source when begin refuses', async (code, status) => {
-    const h = harness([cover('t1')]);
-    h.state.refusal = new AppError(code, 'refused', status);
-    await h.service.runOnce();
-    expect(h.tasks.get('t1')).toMatchObject({ status: 'failed' });
-    expect(h.tasks.get('t1')!.error).toContain(code);
-    expect(h.calls.sources).toEqual([]);
-    expect(h.calls.started).toEqual([]);
-  });
+  ] as const)(
+    'marks the task failed with %s and creates no source when begin refuses',
+    async (code, status) => {
+      const h = harness([cover('t1')]);
+      h.state.refusal = new AppError(code, 'refused', status);
+      await h.service.runOnce();
+      expect(h.tasks.get('t1')).toMatchObject({ status: 'failed' });
+      expect(h.tasks.get('t1')!.error).toContain(code);
+      expect(h.calls.sources).toEqual([]);
+      expect(h.calls.started).toEqual([]);
+    },
+  );
 
   it('asks begin again when a refused task is retried through the same path', async () => {
     const h = harness([cover('t1')]);
@@ -217,7 +236,10 @@ describe('the poller', () => {
   it('is inert when NODE_ENV is test, and when COVER_POLL_SECONDS is 0', async () => {
     vi.useFakeTimers();
     try {
-      for (const options of [{ nodeEnv: 'test' as const }, { nodeEnv: 'development' as const, poll: 0 }]) {
+      for (const options of [
+        { nodeEnv: 'test' as const },
+        { nodeEnv: 'development' as const, poll: 0 },
+      ]) {
         const h = harness([cover('t1')], options);
         h.service.onApplicationBootstrap();
         await vi.advanceTimersByTimeAsync(120_000);

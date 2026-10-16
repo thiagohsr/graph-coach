@@ -79,7 +79,11 @@ export const PassageExcerptDto = z.object({
 });
 export type PassageExcerptDto = z.infer<typeof PassageExcerptDto>;
 
-export const ResultQuestionDto = z.object({ id: GId, order: z.number().int(), sentence: z.string() });
+export const ResultQuestionDto = z.object({
+  id: GId,
+  order: z.number().int(),
+  sentence: z.string(),
+});
 export type ResultQuestionDto = z.infer<typeof ResultQuestionDto>;
 
 export const ReviewItemDto = z.object({

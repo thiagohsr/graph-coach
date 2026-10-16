@@ -4,7 +4,9 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { summaries } from '~/features/play/fixtures';
 import { renderWithQuery } from '~/test/render';
 
-vi.mock('@tanstack/react-router', async (orig) => (await import('~/test/router-mock')).routerMock(await orig()));
+vi.mock('@tanstack/react-router', async (orig) =>
+  (await import('~/test/router-mock')).routerMock(await orig()),
+);
 // RouteFocus reads router state; its behaviour is covered with the routes.
 vi.mock('~/components/a11y/RouteFocus', () => ({ RouteFocus: () => null }));
 
@@ -20,7 +22,8 @@ function route(handlers: Record<string, () => Response>) {
     return handler();
   });
 }
-const json = (status: number, body: unknown) => () => new Response(JSON.stringify(body), { status });
+const json = (status: number, body: unknown) => () =>
+  new Response(JSON.stringify(body), { status });
 
 const playable = [{ ...summaries[0]!, id: 'pz-1' }];
 
@@ -33,18 +36,26 @@ describe('SourceView', () => {
   it('shows title, kind, date, "Yours", and the content as read-only text with no edit control', async () => {
     route({ '/api/sources/src-1': json(200, uploadDetail), '/api/puzzles': json(200, playable) });
     renderWithQuery(<SourceView sourceId="src-1" />);
-    expect(await screen.findByRole('heading', { level: 1, name: 'Interview notes' })).toBeInTheDocument();
+    expect(
+      await screen.findByRole('heading', { level: 1, name: 'Interview notes' }),
+    ).toBeInTheDocument();
     expect(screen.getByText(/Yours/)).toBeInTheDocument();
     expect(screen.getByText(/Markdown/)).toBeInTheDocument();
     expect(screen.getByLabelText('Source text')).toHaveTextContent('First line of the notes.');
-    expect(screen.getByLabelText('Source text')).toHaveTextContent('Second line, with **markdown** kept as text.');
+    expect(screen.getByLabelText('Source text')).toHaveTextContent(
+      'Second line, with **markdown** kept as text.',
+    );
     expect(screen.queryByRole('textbox')).not.toBeInTheDocument();
     expect(screen.queryByRole('button')).not.toBeInTheDocument();
   });
 
   it('marks a shared source "Shared by <ownerName>"', async () => {
     route({
-      '/api/sources/src-1': json(200, { ...uploadDetail, access: 'shared', ownerName: 'Bea Souza' }),
+      '/api/sources/src-1': json(200, {
+        ...uploadDetail,
+        access: 'shared',
+        ownerName: 'Bea Souza',
+      }),
       '/api/puzzles': json(200, []),
     });
     renderWithQuery(<SourceView sourceId="src-1" />);
@@ -54,7 +65,10 @@ describe('SourceView', () => {
   it('links Play only when the puzzle is in the playable list', async () => {
     route({ '/api/sources/src-1': json(200, uploadDetail), '/api/puzzles': json(200, playable) });
     const first = renderWithQuery(<SourceView sourceId="src-1" />);
-    expect(await screen.findByRole('link', { name: 'Play' })).toHaveAttribute('href', '/puzzles/pz-1/play');
+    expect(await screen.findByRole('link', { name: 'Play' })).toHaveAttribute(
+      'href',
+      '/puzzles/pz-1/play',
+    );
     first.unmount();
 
     route({ '/api/sources/src-1': json(200, uploadDetail), '/api/puzzles': json(200, []) });
@@ -66,7 +80,9 @@ describe('SourceView', () => {
   it('shows the brief of a prompt as a description list with the origin notice, and no passage text', async () => {
     route({ '/api/sources/src-3': json(200, promptDetail), '/api/puzzles': json(200, []) });
     renderWithQuery(<SourceView sourceId="src-3" />);
-    expect(await screen.findByRole('heading', { level: 2, name: 'What was asked for' })).toBeInTheDocument();
+    expect(
+      await screen.findByRole('heading', { level: 2, name: 'What was asked for' }),
+    ).toBeInTheDocument();
     expect(screen.getByText(PROMPT_ORIGIN_NOTICE)).toBeInTheDocument();
     expect(screen.getByText('B-tree indexes')).toBeInTheDocument();
     expect(screen.getByText('page splits')).toBeInTheDocument();

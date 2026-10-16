@@ -3,7 +3,15 @@ import { Button } from '~/components/ui/button';
 import { describeError } from './error-messages';
 
 /** Presents a failed primary query: a message chosen by code, and Retry. */
-export function ErrorState({ error, onRetry, title = 'Something went wrong' }: { error: unknown; onRetry?: () => void; title?: string }) {
+export function ErrorState({
+  error,
+  onRetry,
+  title = 'Something went wrong',
+}: {
+  error: unknown;
+  onRetry?: () => void;
+  title?: string;
+}) {
   const { kind, message } = describeError(error);
   if (kind === 'contract') {
     return (

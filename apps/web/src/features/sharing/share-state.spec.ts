@@ -14,7 +14,13 @@ const owner = { access: 'owner', sourceShared: true } as const;
 const shared = { access: 'shared', sourceShared: true } as const;
 const publicPz = { access: 'public', sourceShared: false } as const;
 
-const bea = { userId: 'u-2', name: 'Bea Souza', email: 'bea@example.com', withSource: false, sharedAt: '2026-10-12T10:00:00.000Z' };
+const bea = {
+  userId: 'u-2',
+  name: 'Bea Souza',
+  email: 'bea@example.com',
+  withSource: false,
+  sharedAt: '2026-10-12T10:00:00.000Z',
+};
 
 const err = (init: ConstructorParameters<typeof ApiClientError>[0]) => new ApiClientError(init);
 
@@ -46,17 +52,26 @@ describe('checkShareAddress', () => {
 
   it('trims and lower-cases the address', () => {
     expect(normaliseEmail('  Carl@Example.COM ')).toBe('carl@example.com');
-    expect(checkShareAddress({ ...base, email: '  Carl@Example.COM ' })).toEqual({ ok: true, email: 'carl@example.com' });
+    expect(checkShareAddress({ ...base, email: '  Carl@Example.COM ' })).toEqual({
+      ok: true,
+      email: 'carl@example.com',
+    });
   });
 
   it('rejects an empty or malformed address', () => {
     for (const email of ['', '   ', 'plain', 'a@b', 'a b@c.de']) {
-      expect(checkShareAddress({ ...base, email })).toEqual({ ok: false, message: 'Enter an e-mail address.' });
+      expect(checkShareAddress({ ...base, email })).toEqual({
+        ok: false,
+        message: 'Enter an e-mail address.',
+      });
     }
   });
 
   it('rejects the signed-in user own address, ignoring case', () => {
-    expect(checkShareAddress({ ...base, email: 'ME@example.com' })).toEqual({ ok: false, message: 'You already own this puzzle.' });
+    expect(checkShareAddress({ ...base, email: 'ME@example.com' })).toEqual({
+      ok: false,
+      message: 'You already own this puzzle.',
+    });
   });
 
   it('rejects an address already in the list, naming the person', () => {
@@ -69,7 +84,10 @@ describe('checkShareAddress', () => {
 
 describe('sortShares', () => {
   it('sorts by name without changing the input', () => {
-    const list = [{ ...bea, name: 'Zed' }, { ...bea, userId: 'u-3', name: 'Ana' }];
+    const list = [
+      { ...bea, name: 'Zed' },
+      { ...bea, userId: 'u-3', name: 'Ana' },
+    ];
     expect(sortShares(list).map((s) => s.name)).toEqual(['Ana', 'Zed']);
     expect(list[0]!.name).toBe('Zed');
   });
@@ -77,7 +95,12 @@ describe('sortShares', () => {
 
 describe('mapShareError', () => {
   it('maps a 422 email issue to the address field', () => {
-    const e = err({ status: 422, code: 'VALIDATION_FAILED', message: 'Invalid', issues: [{ path: 'email', message: 'x' }] });
+    const e = err({
+      status: 422,
+      code: 'VALIDATION_FAILED',
+      message: 'Invalid',
+      issues: [{ path: 'email', message: 'x' }],
+    });
     expect(mapShareError(e, 'add')).toMatchObject({
       target: 'email',
       message: 'Nobody has signed in with that address yet. Ask them to sign in once.',
@@ -85,13 +108,29 @@ describe('mapShareError', () => {
   });
 
   it('maps a 422 withSource issue to the control, or to the row for a toggle', () => {
-    const e = err({ status: 422, code: 'VALIDATION_FAILED', message: 'Invalid', issues: [{ path: 'withSource', message: 'x' }] });
-    expect(mapShareError(e, 'add')).toMatchObject({ target: 'withSource', message: 'This puzzle has no source to share.' });
-    expect(mapShareError(e, 'toggle', 'u-2')).toMatchObject({ target: { row: 'u-2' }, message: 'This puzzle has no source to share.' });
+    const e = err({
+      status: 422,
+      code: 'VALIDATION_FAILED',
+      message: 'Invalid',
+      issues: [{ path: 'withSource', message: 'x' }],
+    });
+    expect(mapShareError(e, 'add')).toMatchObject({
+      target: 'withSource',
+      message: 'This puzzle has no source to share.',
+    });
+    expect(mapShareError(e, 'toggle', 'u-2')).toMatchObject({
+      target: { row: 'u-2' },
+      message: 'This puzzle has no source to share.',
+    });
   });
 
   it('maps another 422 to the form with the error message', () => {
-    const e = err({ status: 422, code: 'VALIDATION_FAILED', message: 'Something is off', issues: [] });
+    const e = err({
+      status: 422,
+      code: 'VALIDATION_FAILED',
+      message: 'Something is off',
+      issues: [],
+    });
     expect(mapShareError(e, 'add')).toMatchObject({ target: 'form', message: 'Something is off' });
   });
 
@@ -106,7 +145,11 @@ describe('mapShareError', () => {
   it('maps 429 to the retry notice with the time', () => {
     const retryAt = new Date('2026-10-12T10:30:00.000Z');
     const e = err({ status: 429, code: 'RATE_LIMITED', message: 'Too many', retryAt });
-    expect(mapShareError(e, 'add')).toMatchObject({ target: 'form', message: 'You are sharing too fast.', retryAt });
+    expect(mapShareError(e, 'add')).toMatchObject({
+      target: 'form',
+      message: 'You are sharing too fast.',
+      retryAt,
+    });
   });
 
   it('maps 404 to "no longer available" and asks for the list to be refreshed', () => {
@@ -120,8 +163,14 @@ describe('mapShareError', () => {
 
   it('maps anything else to the form, or to the row for a toggle or revoke', () => {
     const e = err({ status: 503, code: 'SQL_UNAVAILABLE', message: 'down' });
-    expect(mapShareError(e, 'add')).toMatchObject({ target: 'form', message: 'Accounts are unavailable.' });
+    expect(mapShareError(e, 'add')).toMatchObject({
+      target: 'form',
+      message: 'Accounts are unavailable.',
+    });
     expect(mapShareError(e, 'revoke', 'u-2')).toMatchObject({ target: { row: 'u-2' } });
-    expect(mapShareError(new Error('boom'), 'add')).toMatchObject({ target: 'form', message: 'Service unavailable.' });
+    expect(mapShareError(new Error('boom'), 'add')).toMatchObject({
+      target: 'form',
+      message: 'Service unavailable.',
+    });
   });
 });

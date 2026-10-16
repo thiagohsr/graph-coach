@@ -1,7 +1,9 @@
 import type { AdminDetailResponse, AdminFieldMeta, AdminModelMeta } from '@coach/types';
 
 // An invented model that exists nowhere in the code: the admin screens render from metadata alone.
-const f = (over: Partial<AdminFieldMeta> & Pick<AdminFieldMeta, 'name' | 'type'>): AdminFieldMeta => ({
+const f = (
+  over: Partial<AdminFieldMeta> & Pick<AdminFieldMeta, 'name' | 'type'>,
+): AdminFieldMeta => ({
   label: over.name.charAt(0).toUpperCase() + over.name.slice(1),
   required: false,
   readonly: false,

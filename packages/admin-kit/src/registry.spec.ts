@@ -48,7 +48,11 @@ function expectRule(rule: string, ...decls: AdminDeclaration[]) {
   expect(problems.find((p) => p.rule === rule)?.model).toBe(decls[0]!.name);
 }
 
-function withField(key: string, field: object, extra: Partial<AdminDeclaration> = {}): AdminDeclaration {
+function withField(
+  key: string,
+  field: object,
+  extra: Partial<AdminDeclaration> = {},
+): AdminDeclaration {
   const decl = base();
   decl.fields = { ...decl.fields, [key]: field };
   return { ...decl, ...extra };
@@ -120,24 +124,45 @@ describe('registry', () => {
     it.each(['Chunk', 'Question'])('refuses a records link to %s', (targetLabel) => {
       expectRule('V5', {
         ...base(),
-        links: [{ kind: 'records', name: 'l', label: 'L', rel: 'TESTS', direction: 'in', targetLabel, titleProperty: 'name' }],
+        links: [
+          {
+            kind: 'records',
+            name: 'l',
+            label: 'L',
+            rel: 'TESTS',
+            direction: 'in',
+            targetLabel,
+            titleProperty: 'name',
+          },
+        ],
       });
     });
 
     it('refuses a count link to Chunk but allows Question', () => {
       const link = (targetLabel: string) =>
-        ({ ...base(), links: [{ kind: 'count', name: 'l', label: 'L', rel: 'TESTS', direction: 'in', targetLabel }] }) as AdminDeclaration;
+        ({
+          ...base(),
+          links: [
+            { kind: 'count', name: 'l', label: 'L', rel: 'TESTS', direction: 'in', targetLabel },
+          ],
+        }) as AdminDeclaration;
       expectRule('V5', link('Chunk'));
       expect(problemsOf(link('Question'))).toEqual([]);
     });
 
-    it.each(['content', 'embedding', 'cognito_sub', 'answers', 'distractors', 'brief', 'outline', 'code_hash'])(
-      'refuses a field named %s',
-      (key) => {
-        expectRule('V5', withField(key, {}));
-        expectRule('V5', sqlWith(key));
-      },
-    );
+    it.each([
+      'content',
+      'embedding',
+      'cognito_sub',
+      'answers',
+      'distractors',
+      'brief',
+      'outline',
+      'code_hash',
+    ])('refuses a field named %s', (key) => {
+      expectRule('V5', withField(key, {}));
+      expectRule('V5', sqlWith(key));
+    });
 
     function sqlWith(column: string): AdminDeclaration {
       const sql = sqlBase();
@@ -148,7 +173,17 @@ describe('registry', () => {
     it('refuses a sensitive title property', () => {
       expectRule('V5', {
         ...base(),
-        links: [{ kind: 'records', name: 'l', label: 'L', rel: 'X', direction: 'out', targetLabel: 'Concept', titleProperty: 'content' }],
+        links: [
+          {
+            kind: 'records',
+            name: 'l',
+            label: 'L',
+            rel: 'X',
+            direction: 'out',
+            targetLabel: 'Concept',
+            titleProperty: 'content',
+          },
+        ],
       });
     });
   });
@@ -196,7 +231,15 @@ describe('registry', () => {
   });
 
   it('V14 links', () => {
-    const records = { kind: 'records', name: 'l', label: 'L', rel: 'X', direction: 'out', targetLabel: 'Concept', titleProperty: 'name' };
+    const records = {
+      kind: 'records',
+      name: 'l',
+      label: 'L',
+      rel: 'X',
+      direction: 'out',
+      targetLabel: 'Concept',
+      titleProperty: 'name',
+    };
     expectRule('V14', { ...sqlBase(), links: [records as never] });
     expectRule('V14', { ...base(), links: [{ ...records, rel: 'bad rel' } as never] });
     expectRule('V14', { ...base(), links: [{ ...records, titleProperty: 'bad-prop' } as never] });
@@ -204,14 +247,35 @@ describe('registry', () => {
     expectRule('V14', { ...base(), links: [{ kind: 'route', name: 'r', label: 'R', href: '/a' }] });
     expectRule('V14', {
       ...base(),
-      links: [{ kind: 'count', name: 'c', label: 'C', rel: 'X', direction: 'out', targetLabel: 'Task', model: 'concept' } as never],
+      links: [
+        {
+          kind: 'count',
+          name: 'c',
+          label: 'C',
+          rel: 'X',
+          direction: 'out',
+          targetLabel: 'Task',
+          model: 'concept',
+        } as never,
+      ],
     });
   });
 
   it('V15 link model must be registered', () => {
     expectRule('V15', {
       ...base(),
-      links: [{ kind: 'records', name: 'l', label: 'L', rel: 'X', direction: 'out', targetLabel: 'Concept', titleProperty: 'name', model: 'ghost' }],
+      links: [
+        {
+          kind: 'records',
+          name: 'l',
+          label: 'L',
+          rel: 'X',
+          direction: 'out',
+          targetLabel: 'Concept',
+          titleProperty: 'name',
+          model: 'ghost',
+        },
+      ],
     });
   });
 
@@ -234,7 +298,11 @@ describe('registry', () => {
   it('V18 computed fields', () => {
     const sql = (field: object, extra: Partial<AdminDeclaration> = {}): AdminDeclaration => ({
       ...sqlBase(),
-      fields: { id: { readonly: true }, title: {}, total: { type: 'integer', computed: true, ...field } },
+      fields: {
+        id: { readonly: true },
+        title: {},
+        total: { type: 'integer', computed: true, ...field },
+      },
       computeProvider: 'p',
       ...extra,
     });
@@ -254,13 +322,20 @@ describe('registry', () => {
     expect(problemsOf(withField('s', enumField))).toEqual([]);
     expectRule('V19', withField('s', { ...enumField, readonly: true }));
     expectRule('V19', withField('s', { type: 'string', quickActions: quick }));
-    expectRule('V19', withField('s', { ...enumField, quickActions: [{ value: 'zzz', label: 'Z' }] }));
+    expectRule(
+      'V19',
+      withField('s', { ...enumField, quickActions: [{ value: 'zzz', label: 'Z' }] }),
+    );
     expectRule('V19', withField('s', enumField, { readOnly: true }));
     expectRule('V19', withField('s', { ...enumField, quickActions: [{ value: 'b', label: '' }] }));
   });
 
   it('V20 update provider', () => {
-    const sql = (extra: Partial<AdminDeclaration>): AdminDeclaration => ({ ...sqlBase(), updateProvider: 'p', ...extra });
+    const sql = (extra: Partial<AdminDeclaration>): AdminDeclaration => ({
+      ...sqlBase(),
+      updateProvider: 'p',
+      ...extra,
+    });
     expect(problemsOf(sql({}))).toEqual([]);
     expectRule('V20', sql({ readOnly: true }));
     expectRule('V20', sql({ validate: () => undefined }));

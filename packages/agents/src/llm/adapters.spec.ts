@@ -18,7 +18,10 @@ const schema = z.object({ n: z.number() });
 
 beforeEach(() => resetUsageWarnings());
 
-function chatWith(responses: Array<{ text: string; inputTokens?: number; outputTokens?: number } | Error>, extras = {}) {
+function chatWith(
+  responses: Array<{ text: string; inputTokens?: number; outputTokens?: number } | Error>,
+  extras = {},
+) {
   const queue = [...responses];
   const transport: ChatTransport = {
     invoke: vi.fn(async () => {
@@ -64,7 +67,12 @@ describe('RemoteChatProvider', () => {
       const { provider } = chatWith([err]);
       const e = (await provider.complete(msgs).catch((x: unknown) => x)) as ProviderError;
       expect(e).toBeInstanceOf(cls);
-      expect(e.usage).toEqual({ modelCalls: 1, inputTokens: 0, outputTokens: 0, embeddingTokens: 0 });
+      expect(e.usage).toEqual({
+        modelCalls: 1,
+        inputTokens: 0,
+        outputTokens: 0,
+        embeddingTokens: 0,
+      });
     }
   });
 
@@ -81,7 +89,12 @@ describe('RemoteChatProvider', () => {
     const r = await provider.completeStructured(msgs, schema, { label: 'l', trace: step });
     expect(r.value).toEqual({ n: 2 });
     expect(r.attempts).toBe(2);
-    expect(r.usage).toEqual({ modelCalls: 2, inputTokens: 24, outputTokens: 7, embeddingTokens: 0 });
+    expect(r.usage).toEqual({
+      modelCalls: 2,
+      inputTokens: 24,
+      outputTokens: 7,
+      embeddingTokens: 0,
+    });
     expect(vi.mocked(transport.invoke).mock.calls[0]![0].json).toBe(true);
     expect(tracer.calls.map((c) => c.call.ok)).toEqual([false, true]);
     expect(tracer.totalUsage()).toEqual(r.usage);
@@ -92,13 +105,19 @@ describe('RemoteChatProvider', () => {
       { text: 'nope', inputTokens: 1, outputTokens: 1 },
       { text: 'still nope', inputTokens: 2, outputTokens: 2 },
     ]);
-    const e = (await provider.completeStructured(msgs, schema).catch((x: unknown) => x)) as ProviderOutputError;
+    const e = (await provider
+      .completeStructured(msgs, schema)
+      .catch((x: unknown) => x)) as ProviderOutputError;
     expect(e).toBeInstanceOf(ProviderOutputError);
     expect(e.usage).toEqual({ modelCalls: 2, inputTokens: 3, outputTokens: 3, embeddingTokens: 0 });
   });
 });
 
-function embedWith(dimension: number, results: Array<{ vectors: number[][]; tokens?: number } | Error>, extras = {}) {
+function embedWith(
+  dimension: number,
+  results: Array<{ vectors: number[][]; tokens?: number } | Error>,
+  extras = {},
+) {
   const queue = [...results];
   const transport: EmbedTransport = {
     embed: vi.fn(async () => {
@@ -107,12 +126,23 @@ function embedWith(dimension: number, results: Array<{ vectors: number[][]; toke
       return next;
     }),
   };
-  return { transport, provider: new RemoteEmbeddingsProvider('ollama', 'e', dimension, transport, extras) };
+  return {
+    transport,
+    provider: new RemoteEmbeddingsProvider('ollama', 'e', dimension, transport, extras),
+  };
 }
 
 describe('RemoteEmbeddingsProvider', () => {
   it('reports embedding tokens and one model call per request', async () => {
-    const { provider } = embedWith(2, [{ vectors: [[1, 0], [0, 1]], tokens: 9 }]);
+    const { provider } = embedWith(2, [
+      {
+        vectors: [
+          [1, 0],
+          [0, 1],
+        ],
+        tokens: 9,
+      },
+    ]);
     const r = await provider.embed(['a', 'b']);
     expect(r.usage).toEqual({ modelCalls: 1, inputTokens: 0, outputTokens: 0, embeddingTokens: 9 });
     expect(r.usageReported).toBe(true);

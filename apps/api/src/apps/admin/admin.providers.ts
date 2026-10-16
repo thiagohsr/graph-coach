@@ -1,5 +1,10 @@
 import { Inject, Injectable, Logger } from '@nestjs/common';
-import type { AdminComputeProvider, AdminHookContext, AdminHookResult, AdminUpdateProvider } from '@coach/admin-kit';
+import type {
+  AdminComputeProvider,
+  AdminHookContext,
+  AdminHookResult,
+  AdminUpdateProvider,
+} from '@coach/admin-kit';
 import type { Role, UserStatus } from '@coach/types';
 import { ConflictError, ValidationFailedError } from '../../common/errors/app-error';
 import { AccountsService } from '../accounts/accounts.service';
@@ -53,7 +58,9 @@ export class AdminProviders {
     }
     try {
       const usage = (await this.usage.usageTotalsFor([id])).get(id);
-      values.tokensThisMonth = usage ? usage.inputTokens + usage.outputTokens + usage.embeddingTokens : 0;
+      values.tokensThisMonth = usage
+        ? usage.inputTokens + usage.outputTokens + usage.embeddingTokens
+        : 0;
     } catch (error) {
       this.logger.warn(`Usage totals unavailable: ${errorName(error)}`);
     }
@@ -111,7 +118,11 @@ export class AdminProviders {
   }
 }
 
-async function refusal(fields: FieldErrors, field: string, check: () => Promise<void>): Promise<void> {
+async function refusal(
+  fields: FieldErrors,
+  field: string,
+  check: () => Promise<void>,
+): Promise<void> {
   try {
     await check();
   } catch (error) {

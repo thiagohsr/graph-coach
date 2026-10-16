@@ -4,7 +4,15 @@ import { tableFeatures, useTable, type ColumnDef } from '@tanstack/react-table';
 import { useMemo, useState } from 'react';
 import { Button } from '~/components/ui/button';
 import { Input } from '~/components/ui/input';
-import { Table, TableBody, TableCaption, TableCell, TableHead, TableHeader, TableRow } from '~/components/ui/table';
+import {
+  Table,
+  TableBody,
+  TableCaption,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from '~/components/ui/table';
 import { displayFormValue, toFormValue } from './fields';
 
 // Pagination is manual: the server pages, the table only renders the page it is given.
@@ -21,7 +29,16 @@ export interface AdminTableProps {
   onPage: (page: number) => void;
 }
 
-export function AdminTable({ model, items, total, page, pageSize, search, onSearch, onPage }: AdminTableProps) {
+export function AdminTable({
+  model,
+  items,
+  total,
+  page,
+  pageSize,
+  search,
+  onSearch,
+  onPage,
+}: AdminTableProps) {
   const [term, setTerm] = useState(search);
 
   // Columns are `listDisplay`, headers are field labels; computed fields are never columns.
@@ -37,7 +54,11 @@ export function AdminTable({ model, items, total, page, pageSize, search, onSear
           // The first column carries the link to the record.
           if (index === 0) {
             return (
-              <Link to="/admin/$model/$id" params={{ model: model.name, id: row.original.id }} className="font-medium text-primary underline underline-offset-4 hover:text-primary-hover">
+              <Link
+                to="/admin/$model/$id"
+                params={{ model: model.name, id: row.original.id }}
+                className="font-medium text-primary underline underline-offset-4 hover:text-primary-hover"
+              >
                 {text || row.original.title}
               </Link>
             );
@@ -129,13 +150,25 @@ export function AdminTable({ model, items, total, page, pageSize, search, onSear
       )}
 
       <nav aria-label="Pagination" className="flex items-center gap-3">
-        <Button type="button" variant="outline" size="sm" disabled={page <= 1} onClick={() => onPage(page - 1)}>
+        <Button
+          type="button"
+          variant="outline"
+          size="sm"
+          disabled={page <= 1}
+          onClick={() => onPage(page - 1)}
+        >
           Previous
         </Button>
         <span aria-live="polite">
           Page {page} of {pages}
         </span>
-        <Button type="button" variant="outline" size="sm" disabled={page >= pages} onClick={() => onPage(page + 1)}>
+        <Button
+          type="button"
+          variant="outline"
+          size="sm"
+          disabled={page >= pages}
+          onClick={() => onPage(page + 1)}
+        >
           Next
         </Button>
       </nav>

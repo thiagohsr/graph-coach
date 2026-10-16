@@ -4,14 +4,28 @@ import userEvent from '@testing-library/user-event';
 import { describe, expect, it, vi } from 'vitest';
 import { ApiClientError } from '~/lib/api/errors';
 
-vi.mock('@tanstack/react-router', async (orig) => (await import('~/test/router-mock')).routerMock(await orig()));
+vi.mock('@tanstack/react-router', async (orig) =>
+  (await import('~/test/router-mock')).routerMock(await orig()),
+);
 
 import { AdminForm } from './AdminForm';
 import { widgetDetail, widgetModel } from './fixtures';
 
-function setup(over: { model?: AdminModelMeta; detail?: AdminDetailResponse; onSave?: () => Promise<unknown> } = {}) {
+function setup(
+  over: {
+    model?: AdminModelMeta;
+    detail?: AdminDetailResponse;
+    onSave?: () => Promise<unknown>;
+  } = {},
+) {
   const onSave = vi.fn(over.onSave ?? (() => Promise.resolve({})));
-  render(<AdminForm model={over.model ?? widgetModel} detail={over.detail ?? widgetDetail} onSave={onSave} />);
+  render(
+    <AdminForm
+      model={over.model ?? widgetModel}
+      detail={over.detail ?? widgetDetail}
+      onSave={onSave}
+    />,
+  );
   return onSave;
 }
 
@@ -44,7 +58,9 @@ describe('AdminForm', () => {
     const onSave = setup();
     await userEvent.type(screen.getByRole('textbox', { name: /Name/ }), 'X');
     await userEvent.click(screen.getByRole('button', { name: 'Save' }));
-    await userEvent.click(within(screen.getByRole('dialog')).getByRole('button', { name: 'Cancel' }));
+    await userEvent.click(
+      within(screen.getByRole('dialog')).getByRole('button', { name: 'Cancel' }),
+    );
     expect(onSave).not.toHaveBeenCalled();
     expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
   });
@@ -80,7 +96,12 @@ describe('AdminForm', () => {
   });
 
   it('shows a 422 out_of_range issue as the bounds message at its field', async () => {
-    setup({ onSave: () => Promise.reject(unprocessable([{ path: 'values.size', message: 'server text', code: 'out_of_range' }])) });
+    setup({
+      onSave: () =>
+        Promise.reject(
+          unprocessable([{ path: 'values.size', message: 'server text', code: 'out_of_range' }]),
+        ),
+    });
     const size = screen.getByRole('spinbutton', { name: 'Size' });
     await userEvent.clear(size);
     await userEvent.type(size, '7');
@@ -110,7 +131,14 @@ describe('AdminForm', () => {
 
   it('shows the alert for 405 ADMIN_MODEL_READ_ONLY', async () => {
     setup({
-      onSave: () => Promise.reject(new ApiClientError({ status: 405, code: 'ADMIN_MODEL_READ_ONLY' as never, message: 'ro' })),
+      onSave: () =>
+        Promise.reject(
+          new ApiClientError({
+            status: 405,
+            code: 'ADMIN_MODEL_READ_ONLY' as never,
+            message: 'ro',
+          }),
+        ),
     });
     await userEvent.type(screen.getByRole('textbox', { name: /Name/ }), 'X');
     await userEvent.click(screen.getByRole('button', { name: 'Save' }));
@@ -156,8 +184,21 @@ describe('AdminForm', () => {
       detail: {
         ...widgetDetail,
         links: [
-          { kind: 'records', name: 'parts', label: 'Parts', model: 'part', items: [{ id: 'p-1', title: 'Bolt' }], truncated: true },
-          { kind: 'records', name: 'notes', label: 'Notes', items: [{ id: 'n-1', title: 'Plain note' }], truncated: false },
+          {
+            kind: 'records',
+            name: 'parts',
+            label: 'Parts',
+            model: 'part',
+            items: [{ id: 'p-1', title: 'Bolt' }],
+            truncated: true,
+          },
+          {
+            kind: 'records',
+            name: 'notes',
+            label: 'Notes',
+            items: [{ id: 'n-1', title: 'Plain note' }],
+            truncated: false,
+          },
           { kind: 'count', name: 'n', label: 'Produced', count: 6 },
           { kind: 'route', name: 'why', label: 'Why this?', href: '/decisions/d-9' },
         ],
@@ -167,6 +208,9 @@ describe('AdminForm', () => {
     expect(screen.getByText('Plain note').closest('a')).toBeNull();
     expect(screen.getByText('More exist.')).toBeInTheDocument();
     expect(screen.getByText('6')).toBeInTheDocument();
-    expect(screen.getByRole('link', { name: 'Why this?' })).toHaveAttribute('href', '/decisions/d-9');
+    expect(screen.getByRole('link', { name: 'Why this?' })).toHaveAttribute(
+      'href',
+      '/decisions/d-9',
+    );
   });
 });

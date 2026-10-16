@@ -938,7 +938,9 @@ describe('usage of a run (FR-U38)', () => {
   });
 
   it('GET /tasks/:id and the completing step events carry the same numbers', () => {
-    const completes = stream.frames.filter((f) => f.event.node !== 'task' && f.event.status === 'complete');
+    const completes = stream.frames.filter(
+      (f) => f.event.node !== 'task' && f.event.status === 'complete',
+    );
     expect(completes).toHaveLength(STEP_NODES.length);
     for (const frame of completes) {
       const step = task.steps.find((s: any) => s.stepId === frame.event.payload!.stepId);
@@ -950,7 +952,8 @@ describe('usage of a run (FR-U38)', () => {
 
   it('every step equals what its calls returned: stub token rule, zeros for chunk and validate, embed in embedding tokens only', async () => {
     const calls = app.tracer.calls.filter((c) => c.runId === taskId);
-    const byNode = (node: string) => sumUsage(calls.filter((c) => c.node === node).map((c) => c.call.usage));
+    const byNode = (node: string) =>
+      sumUsage(calls.filter((c) => c.node === node).map((c) => c.call.usage));
     for (const step of task.steps) expect(numbers(step.usage)).toEqual(numbers(byNode(step.node)));
     expect(numbers(byNode('chunk'))).toEqual(numbers(ZERO_USAGE));
     expect(numbers(byNode('validate'))).toEqual(numbers(ZERO_USAGE));
@@ -985,7 +988,8 @@ describe('usage of a run (FR-U38)', () => {
     expect(seen).not.toContain('@');
     expect(seen).not.toContain(owner.email);
     expect(seen).not.toContain('___');
-    for (let i = 0; i + 30 <= text.length; i += 11) expect(seen).not.toContain(text.slice(i, i + 30));
+    for (let i = 0; i + 30 <= text.length; i += 11)
+      expect(seen).not.toContain(text.slice(i, i + 30));
     const concepts = await app.testGraph.cypher<{ n: string }>(
       `MATCH (:Task {id: $id})-[:PRODUCED]->(c:Concept) RETURN c.name AS n`,
       { id: taskId },

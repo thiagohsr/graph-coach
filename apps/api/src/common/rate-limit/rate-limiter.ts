@@ -96,7 +96,11 @@ export class RateLimiter {
     await this.store.delete(storeKey(ruleName, key));
   }
 
-  private async evaluate(rule: RateLimitRule, key: string, count: boolean): Promise<RateLimitResult> {
+  private async evaluate(
+    rule: RateLimitRule,
+    key: string,
+    count: boolean,
+  ): Promise<RateLimitResult> {
     const now = this.clock.now().getTime();
     const longest = Math.max(...rule.windows.map((w) => w.windowMs));
     const events = await this.store.list(storeKey(rule.name, key), now, longest);

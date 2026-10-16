@@ -2,7 +2,13 @@ import { describe, expect, it } from 'vitest';
 import { createAdminRegistry } from '../registry';
 import { createRecordingSqlPort, sampleGraphDeclaration, sampleSqlDeclaration } from '../testing';
 import { createSqlAdapter } from './sql.adapter';
-import { buildSqlCount, buildSqlDetail, buildSqlList, buildSqlUpdate, likePattern } from './sql.builder';
+import {
+  buildSqlCount,
+  buildSqlDetail,
+  buildSqlList,
+  buildSqlUpdate,
+  likePattern,
+} from './sql.builder';
 
 const registry = createAdminRegistry();
 registry.register(sampleSqlDeclaration);
@@ -37,7 +43,10 @@ describe('sql builders', () => {
   });
 
   it('count', () => {
-    expect(buildSqlCount(model, {})).toEqual({ text: 'SELECT count(*)::int AS total FROM "sample_items"', params: [] });
+    expect(buildSqlCount(model, {})).toEqual({
+      text: 'SELECT count(*)::int AS total FROM "sample_items"',
+      params: [],
+    });
     const searched = buildSqlCount(model, { search: 'x' });
     expect(searched.text).toContain(`WHERE "item_title"::text ILIKE $1 ESCAPE '\\'`);
     expect(searched.params).toEqual(['%x%']);

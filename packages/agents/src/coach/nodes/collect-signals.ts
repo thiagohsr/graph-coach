@@ -5,7 +5,9 @@ import type { CoachDeps, CoachNode } from '../deps';
  * Tier 1 (weak concepts), then tier 2 (unseen or decayed), then tier 3 (practised longest ago). Stores rows only; no
  * ranking. Runs no query when the learner has no mastery edge (cold start). Cyclic rows are dropped and logged.
  */
-export function createCollectSignalsNode(deps: Pick<CoachDeps, 'queries' | 'settings' | 'logger'>): CoachNode {
+export function createCollectSignalsNode(
+  deps: Pick<CoachDeps, 'queries' | 'settings' | 'logger'>,
+): CoachNode {
   return async (state) => {
     if ((state.recent?.masteryCount ?? 0) === 0) return { signals: null };
     const { queries, settings, logger } = deps;

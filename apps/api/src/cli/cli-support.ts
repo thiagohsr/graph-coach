@@ -48,7 +48,9 @@ export const readlinePrompt: CliPrompt = (question) =>
 export function describeFailure(error: unknown): { lines: string[]; exitCode: number } {
   if (error instanceof CliError) return { lines: [error.message], exitCode: error.exitCode };
   if (error instanceof ValidationFailedError) {
-    const issues = (error.details as { issues?: Array<{ path: string; message: string }> } | undefined)?.issues ?? [];
+    const issues =
+      (error.details as { issues?: Array<{ path: string; message: string }> } | undefined)
+        ?.issues ?? [];
     return {
       lines: [error.message, ...issues.map((issue) => `  ${issue.path}: ${issue.message}`)],
       exitCode: 1,
@@ -62,7 +64,9 @@ export function describeFailure(error: unknown): { lines: string[]; exitCode: nu
 /** Parses a non-negative integer flag value. */
 export function parseCount(flag: string, value: string, max?: number): number {
   if (!/^\d+$/.test(value) || (max !== undefined && Number(value) > max)) {
-    throw new CliError(`${flag}: must be a whole number${max !== undefined ? ` from 0 to ${max}` : ' (0 or more)'}`);
+    throw new CliError(
+      `${flag}: must be a whole number${max !== undefined ? ` from 0 to ${max}` : ' (0 or more)'}`,
+    );
   }
   return Number(value);
 }

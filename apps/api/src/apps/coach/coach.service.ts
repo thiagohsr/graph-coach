@@ -1,7 +1,18 @@
 import { randomUUID } from 'node:crypto';
 import { Inject, Injectable, Logger, Optional } from '@nestjs/common';
-import { buildDecisionPath, createCoachQueries, runCoach, type CoachQueries, type DecisionRow } from '@coach/agents/coach';
-import { chatForRun, type ChatProvider, type EmbeddingsProvider, type UsageTracer } from '@coach/agents/llm';
+import {
+  buildDecisionPath,
+  createCoachQueries,
+  runCoach,
+  type CoachQueries,
+  type DecisionRow,
+} from '@coach/agents/coach';
+import {
+  chatForRun,
+  type ChatProvider,
+  type EmbeddingsProvider,
+  type UsageTracer,
+} from '@coach/agents/llm';
 import { GraphKit, toIso, type QueryParams } from '@coach/graph-kit';
 import type { CoachFlag } from '@coach/types';
 import { assertOwner, callerParams } from '../../common/access/access';
@@ -31,7 +42,9 @@ export class CoachService {
     @Optional() @Inject(USAGE_TRACER) private readonly tracer?: UsageTracer,
     @Optional() @Inject(CHAT_PROVIDER) private readonly chat?: ChatProvider,
     @Optional() @Inject(EMBEDDINGS_PROVIDER) private readonly embeddings?: EmbeddingsProvider,
-    @Optional() @Inject(AllowanceService) private readonly allowance?: Pick<AllowanceService, 'check'>,
+    @Optional()
+    @Inject(AllowanceService)
+    private readonly allowance?: Pick<AllowanceService, 'check'>,
   ) {}
 
   private logEvent(event: string, data: object): void {
@@ -65,7 +78,9 @@ export class CoachService {
           ...(chat ? { chatModel: chat } : {}),
           ...(this.embeddings ? { embeddings: this.embeddings } : {}),
           ...(allowance ? { coverageAllowance: () => allowance.check(user, 'prompt') } : {}),
-          logger: { warn: (event, data) => this.logger.warn(`${event} ${JSON.stringify(data ?? {})}`) },
+          logger: {
+            warn: (event, data) => this.logger.warn(`${event} ${JSON.stringify(data ?? {})}`),
+          },
         },
         { learnerId, goalText: goal ?? null, now: this.clock.now().getTime() },
       );
@@ -74,10 +89,13 @@ export class CoachService {
     }
     if (result.outcome === 'no_content' || result.decisionId === null) {
       this.logEvent('coach.no_content', { learnerId });
-      throw new ConflictError('There is nothing playable for you yet', { code: 'NO_PLAYABLE_CONTENT' });
+      throw new ConflictError('There is nothing playable for you yet', {
+        code: 'NO_PLAYABLE_CONTENT',
+      });
     }
     const row = await queries.getDecision({ decisionId: result.decisionId });
-    if (!row) throw new UnavailableError('DECISION_NOT_RECORDED', 'The decision could not be read back');
+    if (!row)
+      throw new UnavailableError('DECISION_NOT_RECORDED', 'The decision could not be read back');
     // Ids and flags only: never the summary, display names, or e-mail addresses.
     this.logEvent(result.outcome === 'reused' ? 'coach.reused' : 'coach.recommended', {
       learnerId,
@@ -100,10 +118,13 @@ export class CoachService {
     if (!flags.includes('coverage_gap')) return undefined;
     const target = targetOf(row);
     const requested = flags.includes('coverage_requested');
-    if (!requested && !flags.includes('coverage_not_requested')) return target ? [target] : undefined;
+    if (!requested && !flags.includes('coverage_not_requested'))
+      return target ? [target] : undefined;
 
     const goalConcepts = row.goalConcepts;
-    const checkIds = [...new Set([...(target ? [target.conceptId] : []), ...goalConcepts.map((c) => c.conceptId)])];
+    const checkIds = [
+      ...new Set([...(target ? [target.conceptId] : []), ...goalConcepts.map((c) => c.conceptId)]),
+    ];
     const covered = new Set<string>();
     let puzzleCoversTarget = false;
     if (checkIds.length > 0) {
@@ -115,12 +136,18 @@ export class CoachService {
       });
       for (const r of rows) for (const id of r.coveredTargetIds) covered.add(id);
       puzzleCoversTarget =
-        target !== null && rows.some((r) => r.puzzleId === row.puzzleId && r.coveredTargetIds.includes(target.conceptId));
+        target !== null &&
+        rows.some(
+          (r) => r.puzzleId === row.puzzleId && r.coveredTargetIds.includes(target.conceptId),
+        );
     }
-    const extras = requested ? row.coverageConcepts : goalConcepts.filter((c) => !covered.has(c.conceptId));
+    const extras = requested
+      ? row.coverageConcepts
+      : goalConcepts.filter((c) => !covered.has(c.conceptId));
     const concepts: ConceptRef[] = [];
     for (const c of [...(target && !puzzleCoversTarget ? [target] : []), ...extras]) {
-      if (!concepts.some((known) => known.conceptId === c.conceptId)) concepts.push({ conceptId: c.conceptId, name: c.name });
+      if (!concepts.some((known) => known.conceptId === c.conceptId))
+        concepts.push({ conceptId: c.conceptId, name: c.name });
     }
     if (concepts.length === 0 && target) concepts.push(target);
     return concepts.length > 0 ? concepts : undefined;
@@ -164,14 +191,20 @@ export class CoachService {
 type ConceptRef = { conceptId: string; name: string };
 
 function targetOf(row: DecisionRow): ConceptRef | null {
-  return row.targetConceptId && row.targetName ? { conceptId: row.targetConceptId, name: row.targetName } : null;
+  return row.targetConceptId && row.targetName
+    ? { conceptId: row.targetConceptId, name: row.targetName }
+    : null;
 }
 
 function flagsOf(row: DecisionRow): CoachFlag[] {
   return row.flags.filter((flag): flag is CoachFlag => CoachFlagSchema.safeParse(flag).success);
 }
 
-function toRecommendation(row: DecisionRow, reused: boolean, gap: ConceptRef[] | undefined): RecommendationDto {
+function toRecommendation(
+  row: DecisionRow,
+  reused: boolean,
+  gap: ConceptRef[] | undefined,
+): RecommendationDto {
   const flags = flagsOf(row);
   const target = targetOf(row);
   return RecommendationDto.parse({

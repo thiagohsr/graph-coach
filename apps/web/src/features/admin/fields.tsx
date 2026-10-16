@@ -8,7 +8,16 @@ import { Textarea } from '~/components/ui/textarea';
 /** What a control holds: a boolean for a checkbox, text for every other control. */
 export type FormValue = string | boolean;
 
-const EDITABLE_TYPES: string[] = ['string', 'text', 'integer', 'number', 'boolean', 'enum', 'list', 'json'];
+const EDITABLE_TYPES: string[] = [
+  'string',
+  'text',
+  'integer',
+  'number',
+  'boolean',
+  'enum',
+  'list',
+  'json',
+];
 
 export function isEditable(field: AdminFieldMeta, modelReadOnly: boolean): boolean {
   if (modelReadOnly || field.readonly || field.computed) return false;
@@ -49,8 +58,12 @@ export function parseFormValue(field: AdminFieldMeta, raw: FormValue): ParseResu
       if (text === '') return { ok: true, value: null };
       const n = Number(text);
       if (!Number.isFinite(n)) return { ok: false, message: 'Must be a number.' };
-      if (field.type === 'integer' && !Number.isInteger(n)) return { ok: false, message: 'Must be a whole number.' };
-      if ((field.min !== undefined && n < field.min) || (field.max !== undefined && n > field.max)) {
+      if (field.type === 'integer' && !Number.isInteger(n))
+        return { ok: false, message: 'Must be a whole number.' };
+      if (
+        (field.min !== undefined && n < field.min) ||
+        (field.max !== undefined && n > field.max)
+      ) {
         return { ok: false, message: boundsMessage(field) ?? 'Out of range.' };
       }
       return { ok: true, value: n };
@@ -103,8 +116,13 @@ export function FieldControl({ field, value, editable, onChange, error }: FieldC
   const id = `field-${field.name}`;
   const errorId = `${id}-error`;
   const helpId = `${id}-help`;
-  const describedBy = [field.help ? helpId : null, error ? errorId : null].filter(Boolean).join(' ') || undefined;
-  const common = { id, 'aria-describedby': describedBy, 'aria-invalid': error ? true : undefined } as const;
+  const describedBy =
+    [field.help ? helpId : null, error ? errorId : null].filter(Boolean).join(' ') || undefined;
+  const common = {
+    id,
+    'aria-describedby': describedBy,
+    'aria-invalid': error ? true : undefined,
+  } as const;
 
   const footer = (
     <>
@@ -129,7 +147,9 @@ export function FieldControl({ field, value, editable, onChange, error }: FieldC
     return (
       <div className="flex flex-col gap-1" data-field={field.name}>
         <span className="text-sm font-medium">{field.label}</span>
-        <span className={multiline ? 'whitespace-pre-wrap break-words' : 'break-words'}>{shown}</span>
+        <span className={multiline ? 'whitespace-pre-wrap break-words' : 'break-words'}>
+          {shown}
+        </span>
         {footer}
       </div>
     );
@@ -146,12 +166,22 @@ export function FieldControl({ field, value, editable, onChange, error }: FieldC
   switch (field.type) {
     case 'text':
       control = (
-        <Textarea {...common} value={String(value)} maxLength={field.maxLength} onChange={(e) => onChange(e.target.value)} />
+        <Textarea
+          {...common}
+          value={String(value)}
+          maxLength={field.maxLength}
+          onChange={(e) => onChange(e.target.value)}
+        />
       );
       break;
     case 'list':
       control = (
-        <Textarea {...common} value={String(value)} rows={4} onChange={(e) => onChange(e.target.value)} />
+        <Textarea
+          {...common}
+          value={String(value)}
+          rows={4}
+          onChange={(e) => onChange(e.target.value)}
+        />
       );
       break;
     case 'json':
@@ -216,7 +246,13 @@ export function FieldControl({ field, value, editable, onChange, error }: FieldC
       break;
     default:
       control = (
-        <Input {...common} type="text" value={String(value)} maxLength={field.maxLength} onChange={(e) => onChange(e.target.value)} />
+        <Input
+          {...common}
+          type="text"
+          value={String(value)}
+          maxLength={field.maxLength}
+          onChange={(e) => onChange(e.target.value)}
+        />
       );
   }
 

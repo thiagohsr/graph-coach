@@ -71,7 +71,9 @@ function harness(initial: StoredTask[] = []) {
       return t ? ({ ...t, steps: [], usage: {}, createdAt: 0, updatedAt: 0 } as never) : null;
     },
     async openTasks(statuses: string[], kinds: string[]) {
-      return [...tasks.values()].filter((t) => statuses.includes(t.status) && kinds.includes(t.kind));
+      return [...tasks.values()].filter(
+        (t) => statuses.includes(t.status) && kinds.includes(t.kind),
+      );
     },
     async sourceChunks(sourceId: string) {
       const t = [...tasks.values()].find((x) => x.sourceId === sourceId);
@@ -141,7 +143,11 @@ describe('start', () => {
     const h = harness([task('t1')]);
     let release: () => void = () => undefined;
     runCuratorMock.mockImplementation(
-      () => new Promise((resolve) => (release = () => resolve({ outcome: 'awaiting_review', counts: {} as never }))),
+      () =>
+        new Promise(
+          (resolve) =>
+            (release = () => resolve({ outcome: 'awaiting_review', counts: {} as never })),
+        ),
     );
     h.orchestrator.start('t1');
     h.orchestrator.start('t1');
@@ -156,14 +162,27 @@ describe('start', () => {
   it('enters an upload run at the node after lastCompletedStep, and a prompt run through the prompt graph', async () => {
     const h = harness([
       task('up', { status: 'in_progress', lastCompletedStep: 'embed' }),
-      task('pr', { kind: 'generate', status: 'in_progress', lastCompletedStep: 'outline', hasOutline: true }),
-      task('pr2', { kind: 'generate', status: 'queued', lastCompletedStep: 'outline', hasOutline: false }),
+      task('pr', {
+        kind: 'generate',
+        status: 'in_progress',
+        lastCompletedStep: 'outline',
+        hasOutline: true,
+      }),
+      task('pr2', {
+        kind: 'generate',
+        status: 'queued',
+        lastCompletedStep: 'outline',
+        hasOutline: false,
+      }),
     ]);
     h.orchestrator.start('up');
     h.orchestrator.start('pr');
     h.orchestrator.start('pr2');
     await Promise.all(['up', 'pr', 'pr2'].map((id) => h.orchestrator.whenIdle(id)));
-    expect(runCuratorMock).toHaveBeenCalledWith(expect.anything(), expect.objectContaining({ entry: 'extractConcepts' }));
+    expect(runCuratorMock).toHaveBeenCalledWith(
+      expect.anything(),
+      expect.objectContaining({ entry: 'extractConcepts' }),
+    );
     expect(runPromptMock).toHaveBeenCalledWith(
       expect.anything(),
       expect.objectContaining({ taskId: 'pr', entry: 'draftQuestions', minQuestions: 3 }),
@@ -196,7 +215,12 @@ describe('start', () => {
     const h = harness([
       task('with', { status: 'in_progress', lastCompletedStep: 'validate', questions: 4 }),
       task('without', { status: 'in_progress', lastCompletedStep: 'validate', questions: 0 }),
-      task('prompt', { kind: 'generate', status: 'queued', lastCompletedStep: 'validate', questions: 2 }),
+      task('prompt', {
+        kind: 'generate',
+        status: 'queued',
+        lastCompletedStep: 'validate',
+        questions: 2,
+      }),
     ]);
     for (const id of ['with', 'without', 'prompt']) h.orchestrator.start(id);
     await Promise.all(['with', 'without', 'prompt'].map((id) => h.orchestrator.whenIdle(id)));
@@ -225,7 +249,10 @@ describe('a failing run', () => {
     expect(terminal[0]!.event).toMatchObject({
       id: 'task:failed',
       status: 'error',
-      payload: { taskStatus: 'failed', error: 'embed: PROVIDER_UNAVAILABLE: The model provider could not answer' },
+      payload: {
+        taskStatus: 'failed',
+        error: 'embed: PROVIDER_UNAVAILABLE: The model provider could not answer',
+      },
     });
     expect(h.orchestrator.isRunning('t1')).toBe(false);
   });
@@ -269,7 +296,9 @@ describe('a failing run', () => {
 
   it('an ACCOUNT_BLOCKED step error is stored with that tag', async () => {
     const h = harness([task('t1', { kind: 'generate' })]);
-    runPromptMock.mockRejectedValue(new CuratorStepError('refine', 'ACCOUNT_BLOCKED', 'account blocked'));
+    runPromptMock.mockRejectedValue(
+      new CuratorStepError('refine', 'ACCOUNT_BLOCKED', 'account blocked'),
+    );
     h.orchestrator.start('t1');
     await h.orchestrator.whenIdle('t1');
     expect(h.tasks.get('t1')!.error).toBe('refine: ACCOUNT_BLOCKED: account blocked');
@@ -279,18 +308,27 @@ describe('a failing run', () => {
 describe('retry', () => {
   it('moves failed to in_progress, clears the error, and enters at the failed node', async () => {
     const h = harness([
-      task('t1', { status: 'failed', error: 'embed: PROVIDER_UNAVAILABLE: x', lastCompletedStep: 'chunk' }),
+      task('t1', {
+        status: 'failed',
+        error: 'embed: PROVIDER_UNAVAILABLE: x',
+        lastCompletedStep: 'chunk',
+      }),
     ]);
     await h.orchestrator.retry(h.user, { id: 't1', kind: 'ingest' });
     await h.orchestrator.whenIdle('t1');
-    expect(runCuratorMock).toHaveBeenCalledWith(expect.anything(), expect.objectContaining({ entry: 'embed' }));
+    expect(runCuratorMock).toHaveBeenCalledWith(
+      expect.anything(),
+      expect.objectContaining({ entry: 'embed' }),
+    );
     expect(h.tasks.get('t1')).toMatchObject({ status: 'awaiting_review', error: null });
   });
 
   it('on any other status throws 409 TASK_NOT_FAILED and starts nothing', async () => {
     for (const status of ['queued', 'in_progress', 'awaiting_review', 'done'] as const) {
       const h = harness([task('t1', { status })]);
-      const error = await h.orchestrator.retry(h.user, { id: 't1', kind: 'ingest' }).catch((e: unknown) => e);
+      const error = await h.orchestrator
+        .retry(h.user, { id: 't1', kind: 'ingest' })
+        .catch((e: unknown) => e);
       expect(error).toBeInstanceOf(AppError);
       expect(error).toMatchObject({ code: 'TASK_NOT_FAILED', status: 409, details: { status } });
       expect(h.orchestrator.isRunning('t1')).toBe(false);
@@ -305,7 +343,10 @@ describe('retry', () => {
       code: 'CREATION_PAUSED',
       status: 503,
     });
-    expect(h.tasks.get('t1')).toMatchObject({ status: 'failed', error: 'embed: PROVIDER_UNAVAILABLE: x' });
+    expect(h.tasks.get('t1')).toMatchObject({
+      status: 'failed',
+      error: 'embed: PROVIDER_UNAVAILABLE: x',
+    });
   });
 
   it('a second concurrent retry loses the race with 409 and the graph runs once', async () => {
@@ -325,7 +366,13 @@ describe('resumeOpen', () => {
     const h = harness([
       task('q', { requesterId: 'blocked-1', status: 'queued' }),
       task('p', { requesterId: 'blocked-1', status: 'in_progress', lastCompletedStep: 'embed' }),
-      task('g', { requesterId: 'blocked-1', kind: 'generate', status: 'in_progress', lastCompletedStep: 'critique', hasOutline: true }),
+      task('g', {
+        requesterId: 'blocked-1',
+        kind: 'generate',
+        status: 'in_progress',
+        lastCompletedStep: 'critique',
+        hasOutline: true,
+      }),
     ]);
     h.blocked.add('blocked-1');
     const started = await h.orchestrator.resumeOpen();
@@ -333,11 +380,25 @@ describe('resumeOpen', () => {
     expect(started).toBe(0);
     expect(runCuratorMock).not.toHaveBeenCalled();
     expect(runPromptMock).not.toHaveBeenCalled();
-    expect(h.tasks.get('q')).toMatchObject({ status: 'failed', error: 'chunk: ACCOUNT_BLOCKED: account blocked' });
-    expect(h.tasks.get('p')).toMatchObject({ status: 'failed', error: 'extractConcepts: ACCOUNT_BLOCKED: account blocked' });
-    expect(h.tasks.get('g')).toMatchObject({ status: 'failed', error: 'draftQuestions: ACCOUNT_BLOCKED: account blocked' });
+    expect(h.tasks.get('q')).toMatchObject({
+      status: 'failed',
+      error: 'chunk: ACCOUNT_BLOCKED: account blocked',
+    });
+    expect(h.tasks.get('p')).toMatchObject({
+      status: 'failed',
+      error: 'extractConcepts: ACCOUNT_BLOCKED: account blocked',
+    });
+    expect(h.tasks.get('g')).toMatchObject({
+      status: 'failed',
+      error: 'draftQuestions: ACCOUNT_BLOCKED: account blocked',
+    });
     // Each got its terminal event.
-    expect(h.events.filter((e) => e.event.id === 'task:failed').map((e) => e.taskId).sort()).toEqual(['g', 'p', 'q']);
+    expect(
+      h.events
+        .filter((e) => e.event.id === 'task:failed')
+        .map((e) => e.taskId)
+        .sort(),
+    ).toEqual(['g', 'p', 'q']);
   });
 
   it('starts every other queued and in_progress task, at most MAX_CONCURRENT_RUNS at once', async () => {
@@ -367,7 +428,11 @@ describe('resumeOpen', () => {
     for (let finished = 0; finished < ids.length; finished += 1) {
       await vi.waitFor(() => expect(gates.length).toBeGreaterThan(finished));
       gates[finished]!();
-      await vi.waitFor(() => expect(runCuratorMock.mock.calls.length).toBe(Math.min(ids.length, MAX_CONCURRENT_RUNS + finished + 1)));
+      await vi.waitFor(() =>
+        expect(runCuratorMock.mock.calls.length).toBe(
+          Math.min(ids.length, MAX_CONCURRENT_RUNS + finished + 1),
+        ),
+      );
     }
     await h.orchestrator.whenResumed();
     expect(peak).toBe(MAX_CONCURRENT_RUNS);
@@ -389,7 +454,11 @@ describe('resumeOpen', () => {
     const h = harness([task('t1', { status: 'in_progress' })]);
     let release: () => void = () => undefined;
     runCuratorMock.mockImplementation(
-      () => new Promise((resolve) => (release = () => resolve({ outcome: 'awaiting_review', counts: {} as never }))),
+      () =>
+        new Promise(
+          (resolve) =>
+            (release = () => resolve({ outcome: 'awaiting_review', counts: {} as never })),
+        ),
     );
     h.orchestrator.start('t1');
     await vi.waitFor(() => expect(runCuratorMock).toHaveBeenCalledTimes(1));

@@ -46,8 +46,12 @@ describe('forwardedFor', () => {
   });
 
   it('keeps the incoming header and appends the peer when the peer is a trusted proxy', () => {
-    expect(forwardedFor('172.28.0.2', '198.51.100.4', '172.28.0.0/16')).toBe('198.51.100.4, 172.28.0.2');
-    expect(forwardedFor('127.0.0.1', '198.51.100.4, 10.0.0.1', 'loopback')).toBe('198.51.100.4, 10.0.0.1, 127.0.0.1');
+    expect(forwardedFor('172.28.0.2', '198.51.100.4', '172.28.0.0/16')).toBe(
+      '198.51.100.4, 172.28.0.2',
+    );
+    expect(forwardedFor('127.0.0.1', '198.51.100.4, 10.0.0.1', 'loopback')).toBe(
+      '198.51.100.4, 10.0.0.1, 127.0.0.1',
+    );
   });
 
   it('returns the peer alone from a trusted proxy that sent no header', () => {
@@ -61,15 +65,21 @@ describe('forwardedFor', () => {
 
 describe('peerAddress', () => {
   it('reads the internal header set by the server adapters', () => {
-    expect(peerAddress(new Request('http://x/', { headers: { 'x-coach-peer': '10.1.1.1' } }))).toBe('10.1.1.1');
+    expect(peerAddress(new Request('http://x/', { headers: { 'x-coach-peer': '10.1.1.1' } }))).toBe(
+      '10.1.1.1',
+    );
     expect(peerAddress(new Request('http://x/'))).toBeUndefined();
   });
 });
 
 describe('publicOrigin', () => {
   it('prefers WEB_ORIGIN and otherwise uses the request URL origin', () => {
-    expect(publicOrigin('http://web:3000/api/x?y=1', 'https://coach.example.com')).toBe('https://coach.example.com');
-    expect(publicOrigin('http://localhost:3000/api/x?y=1', undefined)).toBe('http://localhost:3000');
+    expect(publicOrigin('http://web:3000/api/x?y=1', 'https://coach.example.com')).toBe(
+      'https://coach.example.com',
+    );
+    expect(publicOrigin('http://localhost:3000/api/x?y=1', undefined)).toBe(
+      'http://localhost:3000',
+    );
   });
 });
 

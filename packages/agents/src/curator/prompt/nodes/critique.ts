@@ -1,12 +1,7 @@
 import { CuratorStepError } from '../../ports';
 import { withStep } from '../../steps';
 import { viewOutline } from '../outline-view';
-import {
-  promptRunOf,
-  readPromptSource,
-  type PromptDraft,
-  type PromptNodeFactory,
-} from '../state';
+import { promptRunOf, readPromptSource, type PromptDraft, type PromptNodeFactory } from '../state';
 import { judge } from './judge';
 
 /**

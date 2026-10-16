@@ -51,10 +51,16 @@ function rangeIndexStatements(): Array<{ item: SchemaItem; statement: string }> 
     if (statement === '' || statement.startsWith('//')) continue;
     const match = /^CREATE INDEX FOR \(n:([A-Za-z]+)\) ON \(n\.([A-Za-z_]+)\)$/.exec(statement);
     if (!match) {
-      throw new GraphKitError('INVALID_QUERY_FILE', `010_range_indexes.cypher: cannot read "${statement}"`);
+      throw new GraphKitError(
+        'INVALID_QUERY_FILE',
+        `010_range_indexes.cypher: cannot read "${statement}"`,
+      );
     }
     assertNodeLabel(match[1]!);
-    out.push({ item: { kind: 'range', label: match[1] as NodeLabel, property: match[2]! }, statement });
+    out.push({
+      item: { kind: 'range', label: match[1] as NodeLabel, property: match[2]! },
+      statement,
+    });
   }
   return out;
 }
@@ -76,10 +82,12 @@ function asLabel(value: unknown): NodeLabel | null {
   }
 }
 
-const sortItems =(items: SchemaItem[]): SchemaItem[] =>
+const sortItems = (items: SchemaItem[]): SchemaItem[] =>
   [...items].sort(
     (a, b) =>
-      a.kind.localeCompare(b.kind) || a.label.localeCompare(b.label) || a.property.localeCompare(b.property),
+      a.kind.localeCompare(b.kind) ||
+      a.label.localeCompare(b.label) ||
+      a.property.localeCompare(b.property),
   );
 
 /** What exists now, without changing anything. */
@@ -137,8 +145,10 @@ async function pollConstraints(graph: GraphKit, timeoutMs: number): Promise<void
       {},
       { readOnly: true },
     );
-    const ours = (rows as unknown as Array<{ label: string; properties: string[]; status: string }>).filter(
-      (row) => CONSTRAINTS.some((c) => c.label === row.label && row.properties?.includes(c.property)),
+    const ours = (
+      rows as unknown as Array<{ label: string; properties: string[]; status: string }>
+    ).filter((row) =>
+      CONSTRAINTS.some((c) => c.label === row.label && row.properties?.includes(c.property)),
     );
     const failed = ours.find((row) => row.status === 'FAILED');
     if (failed) {
@@ -165,12 +175,16 @@ async function countChunksWithEmbedding(graph: GraphKit): Promise<number> {
 }
 
 const isAlreadyThere = (error: unknown): boolean =>
-  error instanceof Error && /already indexed|already exists/i.test(error.message + String(error.cause ?? ''));
+  error instanceof Error &&
+  /already indexed|already exists/i.test(error.message + String(error.cause ?? ''));
 
 /** Idempotent: a second call returns `created = []`. Range indexes first, then constraints, then the vector index. */
 export async function setupGraph(graph: GraphKit, options: SetupOptions): Promise<SetupReport> {
   if (!Number.isInteger(options.embeddingDim) || options.embeddingDim < 1) {
-    throw new GraphKitError('INVALID_IDENTIFIER', `embeddingDim must be a positive integer, got ${options.embeddingDim}`);
+    throw new GraphKitError(
+      'INVALID_IDENTIFIER',
+      `embeddingDim must be a positive integer, got ${options.embeddingDim}`,
+    );
   }
   const created: SchemaItem[] = [];
   const existing: SchemaItem[] = [];
@@ -178,7 +192,9 @@ export async function setupGraph(graph: GraphKit, options: SetupOptions): Promis
 
   const before = await describeSchema(graph);
   const has = (item: SchemaItem) =>
-    before.items.some((i) => i.kind === item.kind && i.label === item.label && i.property === item.property);
+    before.items.some(
+      (i) => i.kind === item.kind && i.label === item.label && i.property === item.property,
+    );
 
   // 1. Range indexes.
   for (const { item, statement } of rangeIndexStatements()) {
@@ -212,7 +228,8 @@ export async function setupGraph(graph: GraphKit, options: SetupOptions): Promis
       existing.push(item);
     }
   }
-  if (issued) await pollConstraints(graph, options.constraintTimeoutMs ?? DEFAULT_CONSTRAINT_TIMEOUT_MS);
+  if (issued)
+    await pollConstraints(graph, options.constraintTimeoutMs ?? DEFAULT_CONSTRAINT_TIMEOUT_MS);
 
   // 3. Vector index.
   const vectorItem: SchemaItem = { kind: 'vector', ...VECTOR_TARGET };

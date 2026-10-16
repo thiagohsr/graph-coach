@@ -14,8 +14,18 @@ const rich: DecisionPathDto = {
     { id: 'bt', label: 'Concept', title: 'B-trees', props: {} },
     { id: 'wal', label: 'Concept', title: 'Write-ahead log', props: {} },
     { id: 'norm', label: 'Concept', title: 'Normalization', props: {} },
-    ...['q1', 'q2', 'q3'].map((id) => ({ id, label: 'Question' as const, title: `Sentence ${id}`, props: {} })),
-    ...['s1', 's2', 's3'].map((id) => ({ id, label: 'Session' as const, title: 'Session on Databases 101, 2026-10-16', props: {} })),
+    ...['q1', 'q2', 'q3'].map((id) => ({
+      id,
+      label: 'Question' as const,
+      title: `Sentence ${id}`,
+      props: {},
+    })),
+    ...['s1', 's2', 's3'].map((id) => ({
+      id,
+      label: 'Session' as const,
+      title: 'Session on Databases 101, 2026-10-16',
+      props: {},
+    })),
   ],
   edges: [
     { from: 'Coach', to: 'd', type: 'MADE', reason: 'decided by the Coach' },
@@ -42,9 +52,14 @@ const rich: DecisionPathDto = {
   steps: ['x'],
 };
 
-const build = (showAlternatives = false, orientation: 'LR' | 'TB' = 'LR') => buildDisplayGraph(buildWhyPath(rich), { orientation, showAlternatives });
-const overlaps = (a: { position: { x: number; y: number } }, b: { position: { x: number; y: number } }) =>
-  Math.abs(a.position.x - b.position.x) < NODE_WIDTH && Math.abs(a.position.y - b.position.y) < NODE_HEIGHT;
+const build = (showAlternatives = false, orientation: 'LR' | 'TB' = 'LR') =>
+  buildDisplayGraph(buildWhyPath(rich), { orientation, showAlternatives });
+const overlaps = (
+  a: { position: { x: number; y: number } },
+  b: { position: { x: number; y: number } },
+) =>
+  Math.abs(a.position.x - b.position.x) < NODE_WIDTH &&
+  Math.abs(a.position.y - b.position.y) < NODE_HEIGHT;
 
 describe('buildDisplayGraph', () => {
   it('drops Agent and Learner, aggregates questions per concept and sessions into one node', () => {
@@ -53,8 +68,13 @@ describe('buildDisplayGraph', () => {
     expect(ids).not.toContain('Coach');
     expect(ids).not.toContain('L');
     expect(ids).not.toContain('s1');
-    expect(g.nodes.find((n) => n.id === 'agg:questions:bt')).toMatchObject({ title: '2 missed questions', subtitle: 'on B-trees' });
-    expect(g.nodes.find((n) => n.id === 'agg:questions:wal')?.items).toEqual(['Sentence q1 (missed 29 times)']);
+    expect(g.nodes.find((n) => n.id === 'agg:questions:bt')).toMatchObject({
+      title: '2 missed questions',
+      subtitle: 'on B-trees',
+    });
+    expect(g.nodes.find((n) => n.id === 'agg:questions:wal')?.items).toEqual([
+      'Sentence q1 (missed 29 times)',
+    ]);
     const sessions = g.nodes.find((n) => n.id === 'agg:sessions')!;
     expect(sessions.title).toBe('3 recent sessions');
     expect(sessions.subtitle).toBeUndefined();
@@ -70,8 +90,15 @@ describe('buildDisplayGraph', () => {
 
   it('labels only main-story edges and leaves evidence edges to hover', () => {
     const g = build();
-    expect(g.edges.filter((e) => e.label).map((e) => e.label).sort()).toEqual(['prerequisite of', 'prerequisite of', 'recommends']);
-    expect(g.edges.filter((e) => e.style === 'evidence').every((e) => e.label === undefined)).toBe(true);
+    expect(
+      g.edges
+        .filter((e) => e.label)
+        .map((e) => e.label)
+        .sort(),
+    ).toEqual(['prerequisite of', 'prerequisite of', 'recommends']);
+    expect(g.edges.filter((e) => e.style === 'evidence').every((e) => e.label === undefined)).toBe(
+      true,
+    );
   });
 
   it('lays out in columns left to right without overlaps', () => {
@@ -81,7 +108,8 @@ describe('buildDisplayGraph', () => {
     expect(x('p')).toBeLessThan(x('pool'));
     expect(x('pool')).toBeLessThan(x('bt'));
     expect(x('bt')).toBeLessThan(x('agg:questions:bt'));
-    for (const [i, a] of g.nodes.entries()) for (const b of g.nodes.slice(i + 1)) expect(overlaps(a, b), `${a.id} / ${b.id}`).toBe(false);
+    for (const [i, a] of g.nodes.entries())
+      for (const b of g.nodes.slice(i + 1)) expect(overlaps(a, b), `${a.id} / ${b.id}`).toBe(false);
   });
 
   it('lays out top to bottom for narrow screens', () => {

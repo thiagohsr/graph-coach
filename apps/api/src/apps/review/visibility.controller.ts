@@ -27,7 +27,9 @@ export class VisibilityController {
     const row = await this.graph.setVisibility(id, userId, body.visibility);
     if (!row) throw new NotFoundError('Puzzle');
     if (row.status === 'draft') {
-      throw new ConflictError('The puzzle is not published', { details: { status: 'draft' } as never });
+      throw new ConflictError('The puzzle is not published', {
+        details: { status: 'draft' } as never,
+      });
     }
     return { id: row.id, visibility: row.visibility, origin: row.origin };
   }

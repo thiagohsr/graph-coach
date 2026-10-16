@@ -4,7 +4,11 @@ import type { ShareDto, ShareRequest } from '@coach/types';
 import { callerParams } from '../../../common/access/access';
 import type { AuthUser } from '../../../common/auth/auth-user';
 import { CLOCK, type Clock } from '../../../common/clock';
-import { ConflictError, NotFoundError, ValidationFailedError } from '../../../common/errors/app-error';
+import {
+  ConflictError,
+  NotFoundError,
+  ValidationFailedError,
+} from '../../../common/errors/app-error';
 import { RateLimiter } from '../../../common/rate-limit/rate-limiter';
 import { UserDirectory } from '../../accounts/user-directory';
 import { ReviewGraph } from '../review.graph';
@@ -102,7 +106,9 @@ export class SharesService {
 }
 
 function draftConflict(): ConflictError {
-  return new ConflictError('The puzzle is not published', { details: { status: 'draft' } as never });
+  return new ConflictError('The puzzle is not published', {
+    details: { status: 'draft' } as never,
+  });
 }
 
 function emailIssue(message: string): ValidationFailedError {

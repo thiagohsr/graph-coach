@@ -56,12 +56,8 @@
           "name": "user_identities_user_id_users_id_fk",
           "tableFrom": "user_identities",
           "tableTo": "users",
-          "columnsFrom": [
-            "user_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["user_id"],
+          "columnsTo": ["id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         }
@@ -149,9 +145,7 @@
         "users_email_unique": {
           "name": "users_email_unique",
           "nullsNotDistinct": false,
-          "columns": [
-            "email"
-          ]
+          "columns": ["email"]
         }
       },
       "policies": {},
@@ -291,9 +285,7 @@
         "access_codes_code_hash_unique": {
           "name": "access_codes_code_hash_unique",
           "nullsNotDistinct": false,
-          "columns": [
-            "code_hash"
-          ]
+          "columns": ["code_hash"]
         }
       },
       "policies": {},
@@ -355,12 +347,8 @@
           "name": "code_redemptions_code_id_access_codes_id_fk",
           "tableFrom": "code_redemptions",
           "tableTo": "access_codes",
-          "columnsFrom": [
-            "code_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["code_id"],
+          "columnsTo": ["id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         },
@@ -368,12 +356,8 @@
           "name": "code_redemptions_user_id_users_id_fk",
           "tableFrom": "code_redemptions",
           "tableTo": "users",
-          "columnsFrom": [
-            "user_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["user_id"],
+          "columnsTo": ["id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         }
@@ -381,10 +365,7 @@
       "compositePrimaryKeys": {
         "code_redemptions_code_id_user_id_pk": {
           "name": "code_redemptions_code_id_user_id_pk",
-          "columns": [
-            "code_id",
-            "user_id"
-          ]
+          "columns": ["code_id", "user_id"]
         }
       },
       "uniqueConstraints": {},

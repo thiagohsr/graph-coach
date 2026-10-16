@@ -2,15 +2,32 @@ import { describe, expect, it } from 'vitest';
 import { runCoach } from './graph';
 import type { IntroPuzzleRow, RecentDecisionRow } from './rows';
 import { DEFAULT_COACH_SETTINGS } from './settings';
-import { T, WORKED_IDS, createStubCoachQueries, workedExampleRows, type StubCoachQueries } from './testing/stubs';
+import {
+  T,
+  WORKED_IDS,
+  createStubCoachQueries,
+  workedExampleRows,
+  type StubCoachQueries,
+} from './testing/stubs';
 
 const input = { learnerId: WORKED_IDS.learner, goalText: null, now: T };
 const run = (queries: StubCoachQueries) =>
   runCoach({ queries, settings: DEFAULT_COACH_SETTINGS, newId: () => 'run-1' }, input);
 
-const cold: RecentDecisionRow = { masteryCount: 0, decisionId: null, createdAt: null, newAnswers: false, goalText: null };
+const cold: RecentDecisionRow = {
+  masteryCount: 0,
+  decisionId: null,
+  createdAt: null,
+  newAnswers: false,
+  goalText: null,
+};
 
-const concept = (slug: string, questions = 2) => ({ conceptId: `c-${slug}`, slug, name: slug.toUpperCase(), questions });
+const concept = (slug: string, questions = 2) => ({
+  conceptId: `c-${slug}`,
+  slug,
+  name: slug.toUpperCase(),
+  questions,
+});
 const intro = (over: Partial<IntroPuzzleRow> = {}): IntroPuzzleRow => ({
   puzzleId: 'p-intro',
   name: 'Tables and Keys',
@@ -25,7 +42,10 @@ const intro = (over: Partial<IntroPuzzleRow> = {}): IntroPuzzleRow => ({
 
 describe('cold start', () => {
   it('skips the signal queries and selectTarget, sets cold_start, and records a target item', async () => {
-    const queries = createStubCoachQueries({ recentDecision: async () => cold, introPuzzles: async () => [intro()] });
+    const queries = createStubCoachQueries({
+      recentDecision: async () => cold,
+      introPuzzles: async () => [intro()],
+    });
     const result = await run(queries);
     expect(result.outcome).toBe('recorded');
     expect(queries.callsTo('weakConceptsWithWeakPrereqs')).toHaveLength(0);
@@ -65,7 +85,10 @@ describe('cold start', () => {
   });
 
   it('a cold start with no playable puzzle ends no_content without recording', async () => {
-    const queries = createStubCoachQueries({ recentDecision: async () => cold, introPuzzles: async () => [] });
+    const queries = createStubCoachQueries({
+      recentDecision: async () => cold,
+      introPuzzles: async () => [],
+    });
     const result = await run(queries);
     expect(result).toEqual({ outcome: 'no_content', decisionId: null, coverageTaskId: null });
     expect(queries.callsTo('recordDecision')).toHaveLength(0);
@@ -95,7 +118,10 @@ describe('sparse content', () => {
   });
 
   it('a target with no puzzle anywhere records a decision with no_puzzle, coverage_gap, and no RECOMMENDED', async () => {
-    const queries = createStubCoachQueries({ playablePuzzlesCovering: async () => [], introPuzzles: async () => [] });
+    const queries = createStubCoachQueries({
+      playablePuzzlesCovering: async () => [],
+      introPuzzles: async () => [],
+    });
     const result = await run(queries);
     expect(result.outcome).toBe('recorded');
     const p = queries.recorded[0]!;
@@ -119,20 +145,35 @@ describe('sparse content', () => {
 
   it('tier 2 and tier 3 targets set unseen, decayed, and all_mastered', async () => {
     const row = (kind: 'unseen' | 'decayed') => ({
-      conceptId: 'c-x', slug: 'x', name: 'X', kind,
-      score: kind === 'unseen' ? null : 0.6, attempts: kind === 'unseen' ? 0 : 3,
-      lastSeen: kind === 'unseen' ? null : T - 20 * 86_400_000, daysSince: kind === 'unseen' ? null : 20,
-      risk: kind === 'unseen' ? null : 0.9, openPrereqs: 0,
+      conceptId: 'c-x',
+      slug: 'x',
+      name: 'X',
+      kind,
+      score: kind === 'unseen' ? null : 0.6,
+      attempts: kind === 'unseen' ? 0 : 3,
+      lastSeen: kind === 'unseen' ? null : T - 20 * 86_400_000,
+      daysSince: kind === 'unseen' ? null : 20,
+      risk: kind === 'unseen' ? null : 0.9,
+      openPrereqs: 0,
     });
     const covers = { ...workedExampleRows().puzzles[0]!, coveredTargetIds: ['c-x'] };
-    const base = { weakConceptsWithWeakPrereqs: async () => [], playablePuzzlesCovering: async () => [covers] };
+    const base = {
+      weakConceptsWithWeakPrereqs: async () => [],
+      playablePuzzlesCovering: async () => [covers],
+    };
 
-    const unseen = createStubCoachQueries({ ...base, decayedOrUnseenConcepts: async () => [row('unseen')] });
+    const unseen = createStubCoachQueries({
+      ...base,
+      decayedOrUnseenConcepts: async () => [row('unseen')],
+    });
     await run(unseen);
     expect(unseen.recorded[0]!.flags).toEqual(['unseen']);
     expect(unseen.recorded[0]!.evidence[0]!.reason).toBe('target: never practised');
 
-    const decayed = createStubCoachQueries({ ...base, decayedOrUnseenConcepts: async () => [row('decayed')] });
+    const decayed = createStubCoachQueries({
+      ...base,
+      decayedOrUnseenConcepts: async () => [row('decayed')],
+    });
     await run(decayed);
     expect(decayed.recorded[0]!.flags).toEqual(['decayed']);
 
@@ -143,10 +184,11 @@ describe('sparse content', () => {
     });
     await run(mastered);
     expect(mastered.recorded[0]!.flags).toEqual(['all_mastered']);
-    expect(mastered.callsTo('decayedOrUnseenConcepts').map((c) => (c.params as { before: number }).before)).toEqual([
-      T - 14 * 86_400_000,
-      T,
-    ]);
+    expect(
+      mastered
+        .callsTo('decayedOrUnseenConcepts')
+        .map((c) => (c.params as { before: number }).before),
+    ).toEqual([T - 14 * 86_400_000, T]);
   });
 
   it('all rows played recently sets repeat', async () => {

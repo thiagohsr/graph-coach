@@ -19,7 +19,14 @@ import { createTestApp, type TestApp, type TestUser } from './support/test-app';
 const { CURATOR_LABELS, LONG_TEXT, PROMPT_LABELS, scriptCurator, scriptPrompt } = fixtures;
 
 const BRIEF = { subject: 'Library cataloguing', difficulty: 'easy', sentences: 4 } as const;
-const UPLOAD_NODES = ['chunk', 'embed', 'extractConcepts', 'linkPrerequisites', 'draftQuestions', 'validate'];
+const UPLOAD_NODES = [
+  'chunk',
+  'embed',
+  'extractConcepts',
+  'linkPrerequisites',
+  'draftQuestions',
+  'validate',
+];
 const PROMPT_NODES = ['outline', 'draftQuestions', 'critique', 'refine', 'validate'];
 
 let app: TestApp;
@@ -62,7 +69,10 @@ const newUser = (role: 'learner' | 'reviewer' | 'admin' = 'learner') => app.crea
 const postUpload = (user: TestUser, content = uniqueText()) =>
   app.http.post('/sources').set(user.auth).send({ title: 'Recovery notes', kind: 'text', content });
 const postPrompt = (user: TestUser) =>
-  app.http.post('/sources').set(user.auth).send({ title: 'Recovery prompt', kind: 'prompt', brief: BRIEF });
+  app.http
+    .post('/sources')
+    .set(user.auth)
+    .send({ title: 'Recovery prompt', kind: 'prompt', brief: BRIEF });
 
 const getTask = async (user: TestUser, taskId: string) =>
   (await app.http.get(`/tasks/${taskId}`).set(user.auth)).body;
@@ -107,10 +117,16 @@ async function runShape(taskId: string, sourceId: string) {
     (await app.testGraph.cypher<{ n: number }>(query, { taskId, sourceId }))[0]!.n;
   return {
     steps: await one(`MATCH (:Task {id: $taskId})-[:HAS_STEP]->(s:Step) RETURN count(s) AS n`),
-    chunks: await one(`MATCH (:Source {id: $sourceId})-[:HAS_CHUNK]->(c:Chunk) RETURN count(c) AS n`),
-    questions: await one(`MATCH (:Task {id: $taskId})-[:PRODUCED]->(q:Question) RETURN count(q) AS n`),
+    chunks: await one(
+      `MATCH (:Source {id: $sourceId})-[:HAS_CHUNK]->(c:Chunk) RETURN count(c) AS n`,
+    ),
+    questions: await one(
+      `MATCH (:Task {id: $taskId})-[:PRODUCED]->(q:Question) RETURN count(q) AS n`,
+    ),
     puzzles: await one(`MATCH (:Task {id: $taskId})-[:PRODUCED]->(p:Puzzle) RETURN count(p) AS n`),
-    concepts: await one(`MATCH (:Task {id: $taskId})-[:PRODUCED]->(c:Concept) RETURN count(c) AS n`),
+    concepts: await one(
+      `MATCH (:Task {id: $taskId})-[:PRODUCED]->(c:Concept) RETURN count(c) AS n`,
+    ),
   };
 }
 
@@ -137,9 +153,15 @@ function restartedOrchestrator(): RunOrchestrator {
 /** Makes every structured call with this label hang for ever (until the file ends); other labels run as usual. */
 function hangOn(label: string) {
   const original = app.chat.completeStructured.bind(app.chat);
-  return vi.spyOn(app.chat, 'completeStructured').mockImplementation(((messages: any, schema: any, options: any) => {
+  return vi.spyOn(app.chat, 'completeStructured').mockImplementation(((
+    messages: any,
+    schema: any,
+    options: any,
+  ) => {
     if (options?.label === label) {
-      return new Promise((_resolve, reject) => hung.push(() => reject(new Error('process killed'))));
+      return new Promise((_resolve, reject) =>
+        hung.push(() => reject(new Error('process killed'))),
+      );
     }
     return original(messages, schema, options);
   }) as never);
@@ -168,7 +190,9 @@ describe('S6.1 a failing provider ends the task failed, and retry goes on', () =
 
   it('shows the error, the step, and lastCompletedStep on the task', async () => {
     const task = await getTask(owner, run.taskId);
-    expect(task.error).toBe('extractConcepts: PROVIDER_UNAVAILABLE: The model provider could not answer');
+    expect(task.error).toBe(
+      'extractConcepts: PROVIDER_UNAVAILABLE: The model provider could not answer',
+    );
     expect(task.lastCompletedStep).toBe('embed');
     expect(task.steps.map((s: any) => [s.node, s.status])).toEqual([
       ['chunk', 'complete'],
@@ -189,7 +213,9 @@ describe('S6.1 a failing provider ends the task failed, and retry goes on', () =
       lastCompletedStep: 'embed',
       error: 'extractConcepts: PROVIDER_UNAVAILABLE: The model provider could not answer',
     });
-    expect(stream.frames.some((f) => f.event.node === 'extractConcepts' && f.event.status === 'error')).toBe(true);
+    expect(
+      stream.frames.some((f) => f.event.node === 'extractConcepts' && f.event.status === 'error'),
+    ).toBe(true);
   });
 
   it('retry (no body) answers 202 { taskId }, completes the run, and adds a second entry for the failed node', async () => {
@@ -214,12 +240,16 @@ describe('S6.1 a failing provider ends the task failed, and retry goes on', () =
     const ids = task.steps.map((s: any) => s.stepId);
     expect(new Set(ids).size).toBe(ids.length);
     // The failed attempt keeps what it spent, and the total is the sum of the steps.
-    expect(task.usage.modelCalls).toBe(task.steps.reduce((n: number, s: any) => n + s.usage.modelCalls, 0));
+    expect(task.usage.modelCalls).toBe(
+      task.steps.reduce((n: number, s: any) => n + s.usage.modelCalls, 0),
+    );
     // Consumes nothing.
     const after = (await app.http.get('/me/allowance').set(owner.auth)).body;
     expect(after.upload.used).toBe(before.upload.used);
     expect(after.hourly.used).toBe(before.hourly.used);
-    expect((await countIds('Chunk', `WHERE n.id IS NOT NULL`)).total).toBe((await countIds('Chunk')).distinct);
+    expect((await countIds('Chunk', `WHERE n.id IS NOT NULL`)).total).toBe(
+      (await countIds('Chunk')).distinct,
+    );
   });
 
   it('retry when the task is not failed answers 409 TASK_NOT_FAILED', async () => {
@@ -280,16 +310,27 @@ describe('S6.2 retry rules', () => {
     const res = await postPrompt(owner);
     await orchestrator().whenIdle(res.body.taskId);
     const failed = await getTask(owner, res.body.taskId);
-    expect(failed).toMatchObject({ kind: 'generate', status: 'failed', lastCompletedStep: 'draftQuestions' });
-    expect(failed.error).toBe('critique: PROVIDER_UNAVAILABLE: The model provider could not answer');
+    expect(failed).toMatchObject({
+      kind: 'generate',
+      status: 'failed',
+      lastCompletedStep: 'draftQuestions',
+    });
+    expect(failed.error).toBe(
+      'critique: PROVIDER_UNAVAILABLE: The model provider could not answer',
+    );
 
     const planner = app.chat.callCount(PROMPT_LABELS.outline);
-    expect((await app.http.post(`/tasks/${res.body.taskId}/retry`).set(owner.auth)).status).toBe(202);
+    expect((await app.http.post(`/tasks/${res.body.taskId}/retry`).set(owner.auth)).status).toBe(
+      202,
+    );
     await orchestrator().whenIdle(res.body.taskId);
     expect(app.chat.callCount(PROMPT_LABELS.outline)).toBe(planner);
     const done = await getTask(owner, res.body.taskId);
     expect(done.status).toBe('awaiting_review');
-    expect(done.steps.filter((s: any) => s.node === 'critique').map((s: any) => s.status)).toEqual(['error', 'complete']);
+    expect(done.steps.filter((s: any) => s.node === 'critique').map((s: any) => s.status)).toEqual([
+      'error',
+      'complete',
+    ]);
   });
 });
 
@@ -297,7 +338,10 @@ describe('S6.2 retry rules', () => {
 
 describe('S6.3 a blocked requester', () => {
   /** An open task made the way the request does, without starting its run. */
-  async function openTask(user: TestUser, options: { status: 'queued' | 'in_progress'; lastCompletedStep?: string }) {
+  async function openTask(
+    user: TestUser,
+    options: { status: 'queued' | 'in_progress'; lastCompletedStep?: string },
+  ) {
     const graph = app.app.get(CuratorGraph);
     const content = uniqueText();
     const sourceId = `src-${user.id}-${(counter += 1)}`;
@@ -312,14 +356,22 @@ describe('S6.3 a blocked requester', () => {
       brief: null,
       now: 1_000,
     });
-    await graph.createTask({ id: taskId, kind: 'ingest', requesterId: user.id, sourceId, now: 1_000 });
+    await graph.createTask({
+      id: taskId,
+      kind: 'ingest',
+      requesterId: user.id,
+      sourceId,
+      now: 1_000,
+    });
     if (options.status === 'in_progress') {
       await graph.updateTask(
         taskId,
         ['queued'],
         {
           status: 'in_progress',
-          ...(options.lastCompletedStep ? { lastCompletedStep: options.lastCompletedStep as never } : {}),
+          ...(options.lastCompletedStep
+            ? { lastCompletedStep: options.lastCompletedStep as never }
+            : {}),
         },
         1_001,
       );
@@ -327,7 +379,7 @@ describe('S6.3 a blocked requester', () => {
     return { taskId, sourceId };
   }
 
-  it('after a restart, its queued and in_progress tasks are failed with ACCOUNT_BLOCKED and make no provider call; another user\'s open task resumes; after unblocking, retry completes the run', async () => {
+  it("after a restart, its queued and in_progress tasks are failed with ACCOUNT_BLOCKED and make no provider call; another user's open task resumes; after unblocking, retry completes the run", async () => {
     const blocked = await newUser();
     const other = await newUser();
     const queued = await openTask(blocked, { status: 'queued' });
@@ -345,7 +397,10 @@ describe('S6.3 a blocked requester', () => {
       { ids: [queued.taskId, midway.taskId] },
     );
     const byId = Object.fromEntries(rows.map((r: any) => [r.id, r]));
-    expect(byId[queued.taskId]).toMatchObject({ status: 'failed', error: 'chunk: ACCOUNT_BLOCKED: account blocked' });
+    expect(byId[queued.taskId]).toMatchObject({
+      status: 'failed',
+      error: 'chunk: ACCOUNT_BLOCKED: account blocked',
+    });
     expect(byId[midway.taskId]).toMatchObject({
       status: 'failed',
       error: 'chunk: ACCOUNT_BLOCKED: account blocked',
@@ -361,7 +416,10 @@ describe('S6.3 a blocked requester', () => {
     await orchestrator().whenIdle(theirs.taskId);
     expect((await getTask(other, theirs.taskId)).status).toBe('awaiting_review');
     // The blocked user's tasks were not touched again.
-    const again = await app.testGraph.cypher<any>(`MATCH (t:Task {id: $id}) RETURN t.status AS status`, { id: queued.taskId });
+    const again = await app.testGraph.cypher<any>(
+      `MATCH (t:Task {id: $id}) RETURN t.status AS status`,
+      { id: queued.taskId },
+    );
     expect(again[0].status).toBe('failed');
 
     // Unblocked, the requester can retry through the normal endpoint, and the run completes.
@@ -377,7 +435,11 @@ describe('S6.3 a blocked requester', () => {
   it('a requester blocked while a run is going stops at the next step, failed with ACCOUNT_BLOCKED', async () => {
     const user = await newUser();
     const original = app.chat.completeStructured.bind(app.chat);
-    vi.spyOn(app.chat, 'completeStructured').mockImplementation((async (messages: any, schema: any, options: any) => {
+    vi.spyOn(app.chat, 'completeStructured').mockImplementation((async (
+      messages: any,
+      schema: any,
+      options: any,
+    ) => {
       // Block the account while the planner call is in flight.
       if (options?.label === PROMPT_LABELS.outline) await app.setStatus(user.id, 'blocked');
       return original(messages, schema, options);
@@ -390,7 +452,10 @@ describe('S6.3 a blocked requester', () => {
       { id: res.body.taskId },
     );
     expect(rows.map((r: any) => r.node)).toEqual(['outline']);
-    expect(rows[0]).toMatchObject({ status: 'failed', error: 'draftQuestions: ACCOUNT_BLOCKED: account blocked' });
+    expect(rows[0]).toMatchObject({
+      status: 'failed',
+      error: 'draftQuestions: ACCOUNT_BLOCKED: account blocked',
+    });
   });
 });
 
@@ -426,7 +491,9 @@ describe('S6.4 a run killed in the middle of a step resumes at start-up without 
 
     const task = await getTask(owner, res.body.taskId);
     expect(task).toMatchObject({ status: 'awaiting_review', lastCompletedStep: 'validate' });
-    expect(task.steps.map((s: any) => [s.node, s.status])).toEqual(UPLOAD_NODES.map((n) => [n, 'complete']));
+    expect(task.steps.map((s: any) => [s.node, s.status])).toEqual(
+      UPLOAD_NODES.map((n) => [n, 'complete']),
+    );
     // Resumed at the step it was in: nothing before it ran again.
     expect(app.chat.callCount(CURATOR_LABELS.extract)).toBe(callsBefore);
     expect(await runShape(res.body.taskId, res.body.sourceId)).toEqual(reference);
@@ -450,7 +517,10 @@ describe('S6.4 a run killed in the middle of a step resumes at start-up without 
     const res = await postPrompt(owner);
     expect(res.status).toBe(202);
     await waitForStep(owner, res.body.taskId, 'critique', 'active');
-    expect(await getTask(owner, res.body.taskId)).toMatchObject({ status: 'in_progress', lastCompletedStep: 'draftQuestions' });
+    expect(await getTask(owner, res.body.taskId)).toMatchObject({
+      status: 'in_progress',
+      lastCompletedStep: 'draftQuestions',
+    });
     hang.mockRestore();
 
     const fresh = restartedOrchestrator();
@@ -459,7 +529,9 @@ describe('S6.4 a run killed in the middle of a step resumes at start-up without 
 
     const task = await getTask(owner, res.body.taskId);
     expect(task).toMatchObject({ status: 'awaiting_review', lastCompletedStep: 'validate' });
-    expect(task.steps.map((s: any) => [s.node, s.status])).toEqual(PROMPT_NODES.map((n) => [n, 'complete']));
+    expect(task.steps.map((s: any) => [s.node, s.status])).toEqual(
+      PROMPT_NODES.map((n) => [n, 'complete']),
+    );
     // One planner call for this task: the restart used the outline stored on the source.
     expect(app.chat.callCount(PROMPT_LABELS.outline)).toBe(planner + 1);
     expect(await runShape(res.body.taskId, res.body.sourceId)).toEqual(reference);

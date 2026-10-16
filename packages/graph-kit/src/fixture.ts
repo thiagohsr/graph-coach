@@ -126,15 +126,20 @@ export async function importGraph(graph: GraphKit, fixture: GraphFixture): Promi
         `UNWIND $rows AS row MATCH (n:${label} {${keyName}: row.key})` +
         (keep ? ` WHERE n.${prop} IS NULL` : '') +
         ` SET n.${prop} = vecf32(row.vectors.${prop})`;
-      for (const batch of chunk(rows)) addStats(report, (await graph.execute(set, { rows: batch })).stats);
+      for (const batch of chunk(rows))
+        addStats(report, (await graph.execute(set, { rows: batch })).stats);
     }
   }
 
   // Edges, per type, endpoint labels, key properties, and mode.
-  const edgeGroups = group(
-    fixture.edges,
-    (e) =>
-      [e.type, e.from.label, e.to.label, [...(e.keyProps ?? [])].sort().join(','), e.onMatch ?? 'update'].join('|'),
+  const edgeGroups = group(fixture.edges, (e) =>
+    [
+      e.type,
+      e.from.label,
+      e.to.label,
+      [...(e.keyProps ?? [])].sort().join(','),
+      e.onMatch ?? 'update',
+    ].join('|'),
   );
   for (const edges of edgeGroups.values()) {
     const first = edges[0]!;
@@ -143,8 +148,16 @@ export async function importGraph(graph: GraphKit, fixture: GraphFixture): Promi
     const fromKey = keyPropertyOf(first.from.label);
     const toKey = keyPropertyOf(first.to.label);
 
-    await assertEndpoints(graph, first.from.label, edges.map((e) => e.from.key));
-    await assertEndpoints(graph, first.to.label, edges.map((e) => e.to.key));
+    await assertEndpoints(
+      graph,
+      first.from.label,
+      edges.map((e) => e.from.key),
+    );
+    await assertEndpoints(
+      graph,
+      first.to.label,
+      edges.map((e) => e.to.key),
+    );
 
     const pattern = keyProps.length
       ? `(a)-[r:${first.type} {${keyProps.map((p) => `${p}: row.keys.${p}`).join(', ')}}]->(b)`
@@ -160,7 +173,10 @@ export async function importGraph(graph: GraphKit, fixture: GraphFixture): Promi
         for (const prop of keyProps) {
           const value = all[prop];
           if (value === undefined) {
-            throw new GraphKitError('INVALID_IDENTIFIER', `Edge ${e.type} lacks key property "${prop}"`);
+            throw new GraphKitError(
+              'INVALID_IDENTIFIER',
+              `Edge ${e.type} lacks key property "${prop}"`,
+            );
           }
           keys[prop] = value;
         }

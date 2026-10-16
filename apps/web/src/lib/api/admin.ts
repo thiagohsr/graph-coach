@@ -1,4 +1,9 @@
-import { AdminDetailResponse, AdminListResponse, AdminModelMeta, AdminUpdateResponse } from '@coach/types';
+import {
+  AdminDetailResponse,
+  AdminListResponse,
+  AdminModelMeta,
+  AdminUpdateResponse,
+} from '@coach/types';
 import { keepPreviousData, queryOptions } from '@tanstack/react-query';
 import { z } from 'zod';
 import { keys, type AdminListParams } from '~/lib/query/keys';
@@ -56,7 +61,11 @@ export const recordsOptions = (model: string, params: AdminListParams) =>
   queryOptions({
     queryKey: keys.admin.list(model, params),
     queryFn: ({ signal }) =>
-      listRecords(model, { search: params.search, page: params.page, pageSize: params.pageSize }, signal),
+      listRecords(
+        model,
+        { search: params.search, page: params.page, pageSize: params.pageSize },
+        signal,
+      ),
     placeholderData: keepPreviousData,
   });
 

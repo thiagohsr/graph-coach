@@ -24,7 +24,8 @@ export interface SummaryInput {
 const NOT_REQUESTED: Record<AllowanceReason, string> = {
   no_allowance: 'you have no puzzle-creation allowance left to request more',
   paused: 'puzzle creation is paused right now, so I could not request more',
-  hourly_limit: 'you have reached the hourly limit for creating puzzles, so I could not request more',
+  hourly_limit:
+    'you have reached the hourly limit for creating puzzles, so I could not request more',
 };
 
 export function renderSummary(input: SummaryInput): string {
@@ -35,7 +36,9 @@ export function renderSummary(input: SummaryInput): string {
 
   switch (selection.kind) {
     case 'cold_start':
-      parts.push(`You have no study history yet, so start with ${q(target.name)}, an introductory concept.`);
+      parts.push(
+        `You have no study history yet, so start with ${q(target.name)}, an introductory concept.`,
+      );
       break;
     case 'unseen':
       parts.push(`You have not practised ${q(target.name)} yet, so try it next.`);
@@ -44,7 +47,9 @@ export function renderSummary(input: SummaryInput): string {
       parts.push(`Your goal points to ${q(target.name)}, so work on it next.`);
       break;
     case 'decayed':
-      parts.push(`It has been a while since you practised ${q(target.name)} (${practised(target)}), so review it next.`);
+      parts.push(
+        `It has been a while since you practised ${q(target.name)} (${practised(target)}), so review it next.`,
+      );
       break;
     case 'all_mastered':
       parts.push(
@@ -72,7 +77,8 @@ export function renderSummary(input: SummaryInput): string {
     parts.push(`No puzzle tests ${q(target.name)} directly yet, so this is the closest match.`);
   }
   if (has('repeat')) parts.push('You played this puzzle recently, but it is still the best fit.');
-  if (has('goal_unmatched')) parts.push('No concept matches your goal, so this is the usual recommendation.');
+  if (has('goal_unmatched'))
+    parts.push('No concept matches your goal, so this is the usual recommendation.');
   const { coverage, missingNames } = input;
   if (coverage && missingNames && missingNames.length > 0) {
     const list = missingNames.map(q).join(', ');

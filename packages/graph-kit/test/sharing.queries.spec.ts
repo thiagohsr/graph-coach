@@ -11,8 +11,12 @@ let tg: TestGraph;
 const run: Run = (text, params) => tg.cypher(text, params as QueryParams);
 const q = <T = Record<string, unknown>>(name: string, params: Record<string, unknown>) =>
   tg.graph.query<T>(name, params as QueryParams);
-const share = (puzzleId: string, targetId: string, withSource: boolean, extra: Record<string, unknown> = {}) =>
-  q('share_puzzle', { puzzleId, userId: A, targetId, withSource, now: NOW, ...extra });
+const share = (
+  puzzleId: string,
+  targetId: string,
+  withSource: boolean,
+  extra: Record<string, unknown> = {},
+) => q('share_puzzle', { puzzleId, userId: A, targetId, withSource, now: NOW, ...extra });
 
 async function signature(): Promise<string> {
   const [nodes] = await tg.cypher<{ n: number }>('MATCH (n) RETURN count(n) AS n');
@@ -36,7 +40,15 @@ beforeEach(async () => {
 describe('share_puzzle', () => {
   it('creates one SHARED_WITH edge with withSource and at, and is idempotent', async () => {
     expect(await share('PZ1', B, false)).toEqual([
-      { status: 'published', hasSource: true, targetFound: true, shared: true, targetId: B, withSource: false, at: NOW },
+      {
+        status: 'published',
+        hasSource: true,
+        targetFound: true,
+        shared: true,
+        targetId: B,
+        withSource: false,
+        at: NOW,
+      },
     ]);
     const before = await signature();
     await share('PZ1', B, false, { now: NOW + 5 });
@@ -48,7 +60,15 @@ describe('share_puzzle', () => {
     await share('PZ1', B, false);
     const rows = await share('PZ1', B, true, { now: NOW + 99 });
     expect(rows).toEqual([
-      { status: 'published', hasSource: true, targetFound: true, shared: true, targetId: B, withSource: true, at: NOW },
+      {
+        status: 'published',
+        hasSource: true,
+        targetFound: true,
+        shared: true,
+        targetId: B,
+        withSource: true,
+        at: NOW,
+      },
     ]);
     expect(await tg.countEdges('SHARED_WITH')).toBe(1);
   });
@@ -60,7 +80,15 @@ describe('share_puzzle', () => {
 
   it('returns no row for a non-owner, whatever the role', async () => {
     for (const userId of [B, R, M]) {
-      expect(await q('share_puzzle', { puzzleId: 'PZ1', userId, targetId: R, withSource: false, now: NOW })).toEqual([]);
+      expect(
+        await q('share_puzzle', {
+          puzzleId: 'PZ1',
+          userId,
+          targetId: R,
+          withSource: false,
+          now: NOW,
+        }),
+      ).toEqual([]);
     }
     expect(await tg.countEdges('SHARED_WITH')).toBe(0);
   });
@@ -85,10 +113,16 @@ describe('share_puzzle', () => {
 describe('unshare_puzzle', () => {
   it('removes the edge, and reports 0 when there was none', async () => {
     await share('PZ1', B, true);
-    expect(await q('unshare_puzzle', { puzzleId: 'PZ1', userId: A, targetId: B })).toEqual([{ removed: 1 }]);
+    expect(await q('unshare_puzzle', { puzzleId: 'PZ1', userId: A, targetId: B })).toEqual([
+      { removed: 1 },
+    ]);
     expect(await tg.countEdges('SHARED_WITH')).toBe(0);
-    expect(await q('unshare_puzzle', { puzzleId: 'PZ1', userId: A, targetId: B })).toEqual([{ removed: 0 }]);
-    expect(await q('unshare_puzzle', { puzzleId: 'PZ1', userId: A, targetId: 'nobody' })).toEqual([{ removed: 0 }]);
+    expect(await q('unshare_puzzle', { puzzleId: 'PZ1', userId: A, targetId: B })).toEqual([
+      { removed: 0 },
+    ]);
+    expect(await q('unshare_puzzle', { puzzleId: 'PZ1', userId: A, targetId: 'nobody' })).toEqual([
+      { removed: 0 },
+    ]);
   });
 
   it('returns no row and removes nothing for a non-owner', async () => {
@@ -106,16 +140,38 @@ describe('list_shares', () => {
     await share('PZ1', B, true, { now: NOW });
     const rows = await q('list_shares', { puzzleId: 'PZ1', userId: A });
     expect(rows).toEqual([
-      { puzzleId: 'PZ1', status: 'published', hasSource: true, targetId: B, withSource: true, at: NOW },
-      { puzzleId: 'PZ1', status: 'published', hasSource: true, targetId: R, withSource: false, at: NOW + 10 },
+      {
+        puzzleId: 'PZ1',
+        status: 'published',
+        hasSource: true,
+        targetId: B,
+        withSource: true,
+        at: NOW,
+      },
+      {
+        puzzleId: 'PZ1',
+        status: 'published',
+        hasSource: true,
+        targetId: R,
+        withSource: false,
+        at: NOW + 10,
+      },
     ]);
   });
 
   it('returns one row with a null target when owned and not shared, and none for a non-owner', async () => {
     expect(await q('list_shares', { puzzleId: 'PZ3', userId: A })).toEqual([
-      { puzzleId: 'PZ3', status: 'draft', hasSource: false, targetId: null, withSource: null, at: null },
+      {
+        puzzleId: 'PZ3',
+        status: 'draft',
+        hasSource: false,
+        targetId: null,
+        withSource: null,
+        at: null,
+      },
     ]);
-    for (const userId of [B, R, M]) expect(await q('list_shares', { puzzleId: 'PZ1', userId })).toEqual([]);
+    for (const userId of [B, R, M])
+      expect(await q('list_shares', { puzzleId: 'PZ1', userId })).toEqual([]);
   });
 
   it('leaves no property containing an at-sign anywhere in the graph', async () => {
@@ -123,8 +179,12 @@ describe('list_shares', () => {
     await q('list_shares', { puzzleId: 'PZ1', userId: A });
     await q('unshare_puzzle', { puzzleId: 'PZ1', userId: A, targetId: B });
     await share('PZ1', R, false);
-    const nodes = await tg.cypher<{ p: Record<string, unknown> }>('MATCH (n) RETURN properties(n) AS p');
-    const edges = await tg.cypher<{ p: Record<string, unknown> }>('MATCH ()-[r]->() RETURN properties(r) AS p');
+    const nodes = await tg.cypher<{ p: Record<string, unknown> }>(
+      'MATCH (n) RETURN properties(n) AS p',
+    );
+    const edges = await tg.cypher<{ p: Record<string, unknown> }>(
+      'MATCH ()-[r]->() RETURN properties(r) AS p',
+    );
     for (const { p } of [...nodes, ...edges]) {
       for (const value of Object.values(p)) {
         const text = JSON.stringify(value);
@@ -136,7 +196,8 @@ describe('list_shares', () => {
 });
 
 describe('get_source', () => {
-  const get = (userId: string) => q<Record<string, unknown>>('get_source', { sourceId: 'S1', userId });
+  const get = (userId: string) =>
+    q<Record<string, unknown>>('get_source', { sourceId: 'S1', userId });
 
   it('gives the owner the content with access owner', async () => {
     const [row] = await get(A);
@@ -172,25 +233,33 @@ describe('get_source', () => {
   });
 
   it('works for a source with a brief and no content', async () => {
-    await run(`MATCH (s:Source {id: 'S1'}) SET s.kind = 'prompt', s.brief = '{"subject":"x"}' REMOVE s.content`);
+    await run(
+      `MATCH (s:Source {id: 'S1'}) SET s.kind = 'prompt', s.brief = '{"subject":"x"}' REMOVE s.content`,
+    );
     const [row] = await get(A);
     expect(row).toMatchObject({ kind: 'prompt', brief: '{"subject":"x"}', content: null });
   });
 
   it('is listed by list_sources as shared, without task fields, until revoked or withSource is turned off', async () => {
     await share('PZ1', B, true);
-    const shared = await q<{ id: string; access: string; taskId: string | null; taskStatus: string | null }>(
-      'list_sources',
-      { userId: B },
-    );
+    const shared = await q<{
+      id: string;
+      access: string;
+      taskId: string | null;
+      taskStatus: string | null;
+    }>('list_sources', { userId: B });
     expect(shared.filter((s) => s.id === 'S1')).toEqual([
       expect.objectContaining({ id: 'S1', access: 'shared', taskId: null, taskStatus: null }),
     ]);
     await share('PZ1', B, false);
-    expect((await q<{ id: string }>('list_sources', { userId: B })).map((s) => s.id)).not.toContain('S1');
+    expect((await q<{ id: string }>('list_sources', { userId: B })).map((s) => s.id)).not.toContain(
+      'S1',
+    );
     await share('PZ1', B, true);
     await q('unshare_puzzle', { puzzleId: 'PZ1', userId: A, targetId: B });
-    expect((await q<{ id: string }>('list_sources', { userId: B })).map((s) => s.id)).not.toContain('S1');
+    expect((await q<{ id: string }>('list_sources', { userId: B })).map((s) => s.id)).not.toContain(
+      'S1',
+    );
   });
 });
 

@@ -22,7 +22,8 @@ export interface Word {
   text: string;
 }
 
-export type Selection = { kind: 'none' } | { kind: 'slot'; slotId: string } | { kind: 'word'; wordId: string };
+export type Selection =
+  { kind: 'none' } | { kind: 'slot'; slotId: string } | { kind: 'word'; wordId: string };
 export type FocusTarget = string | 'bank' | 'submit' | 'error';
 export type Via = 'keyboard' | 'pointer';
 
@@ -247,7 +248,8 @@ function move(state: BoardState, action: Action): BoardState {
     case 'SELECT_SLOT': {
       const slot = findSlot(s, action.slotId);
       if (!slot) return state;
-      if (s.selection.kind === 'word') return place(s, s.selection.wordId, slot.id, action.via ?? 'keyboard');
+      if (s.selection.kind === 'word')
+        return place(s, s.selection.wordId, slot.id, action.via ?? 'keyboard');
       if (s.selection.kind === 'slot' && s.selection.slotId === slot.id) {
         return { ...s, selection: { kind: 'none' }, ...announce(s, 'Selection cleared.') };
       }
@@ -264,11 +266,16 @@ function move(state: BoardState, action: Action): BoardState {
     case 'SELECT_WORD': {
       const word = findWord(s, action.wordId);
       if (!word) return state;
-      if (s.selection.kind === 'slot') return place(s, word.id, s.selection.slotId, action.via ?? 'keyboard');
+      if (s.selection.kind === 'slot')
+        return place(s, word.id, s.selection.slotId, action.via ?? 'keyboard');
       if (s.selection.kind === 'word' && s.selection.wordId === word.id) {
         return { ...s, selection: { kind: 'none' }, ...announce(s, 'Selection cleared.') };
       }
-      return { ...s, selection: { kind: 'word', wordId: word.id }, ...announce(s, `${word.text} selected. Choose a blank.`) };
+      return {
+        ...s,
+        selection: { kind: 'word', wordId: word.id },
+        ...announce(s, `${word.text} selected. Choose a blank.`),
+      };
     }
 
     case 'CLEAR_SELECTION':
@@ -297,7 +304,13 @@ export function boardReducer(state: BoardState, action: Action): BoardState {
   switch (action.type) {
     case 'SUBMIT_START':
       if (state.status === 'submitting') return state;
-      return { ...state, status: 'submitting', error: null, selection: { kind: 'none' }, ...announce(state, 'Submitting answers.') };
+      return {
+        ...state,
+        status: 'submitting',
+        error: null,
+        selection: { kind: 'none' },
+        ...announce(state, 'Submitting answers.'),
+      };
     case 'SESSION_CREATED':
       return { ...state, sessionId: action.sessionId };
     case 'SUBMIT_FAIL':

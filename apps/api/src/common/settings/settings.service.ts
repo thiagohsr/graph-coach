@@ -37,7 +37,9 @@ export class DrizzleSettingsTable implements SettingsTable {
   constructor(private readonly db: Db) {}
 
   async readAll(): Promise<SettingRow[]> {
-    return this.db.select({ key: adminSettings.key, value: adminSettings.value }).from(adminSettings);
+    return this.db
+      .select({ key: adminSettings.key, value: adminSettings.value })
+      .from(adminSettings);
   }
 
   async insertMissing(rows: SettingRow[]): Promise<number> {

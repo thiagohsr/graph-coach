@@ -11,7 +11,10 @@ const DraftList = z.array(DraftQuestionDto);
 export function listDrafts(params: { taskId?: string | undefined } = {}, signal?: AbortSignal) {
   const query = new URLSearchParams({ status: 'draft' });
   if (params.taskId) query.set('taskId', params.taskId);
-  return apiFetch(`/review/questions?${query.toString()}`, { schema: DraftList, ...(signal ? { signal } : {}) });
+  return apiFetch(`/review/questions?${query.toString()}`, {
+    schema: DraftList,
+    ...(signal ? { signal } : {}),
+  });
 }
 
 /** `PATCH /review/questions/:id` with only the changed fields among the three editable ones; returns the draft. */
@@ -20,11 +23,18 @@ export function updateDraft(draftId: string, changes: DraftUpdateRequest) {
   if (changes.sentence !== undefined) body.sentence = changes.sentence;
   if (changes.answers !== undefined) body.answers = changes.answers;
   if (changes.distractors !== undefined) body.distractors = changes.distractors;
-  return apiFetch(`/review/questions/${id(draftId)}`, { method: 'PATCH', body, schema: DraftQuestionDto });
+  return apiFetch(`/review/questions/${id(draftId)}`, {
+    method: 'PATCH',
+    body,
+    schema: DraftQuestionDto,
+  });
 }
 
 export function approveDraft(draftId: string) {
-  return apiFetch(`/review/questions/${id(draftId)}/approve`, { method: 'POST', schema: ReviewOutcome });
+  return apiFetch(`/review/questions/${id(draftId)}/approve`, {
+    method: 'POST',
+    schema: ReviewOutcome,
+  });
 }
 
 export function rejectDraft(draftId: string, reason?: string) {

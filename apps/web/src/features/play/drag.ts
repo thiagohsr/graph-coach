@@ -16,7 +16,11 @@ function strip(id: string, prefix: string): string | null {
  *   placed word anywhere else      -> REMOVE
  *   bank word outside any blank    -> null
  */
-export function dragToAction(activeId: string, overId: string | null, state: BoardState): Action | null {
+export function dragToAction(
+  activeId: string,
+  overId: string | null,
+  state: BoardState,
+): Action | null {
   const overSlot = overId ? strip(overId, 'blank:') : null;
   const target = overSlot !== null && state.slots.some((s) => s.id === overSlot) ? overSlot : null;
 

@@ -3,7 +3,13 @@ import type { AdminDeclaration } from './declaration';
 import type { GraphPort, SqlPort } from './adapters/adapter';
 
 export { buildGraphQueries, graphLinkQueryName, graphQueryName } from './adapters/graph.cypher';
-export { buildSqlCount, buildSqlDetail, buildSqlList, buildSqlUpdate, likePattern } from './adapters/sql.builder';
+export {
+  buildSqlCount,
+  buildSqlDetail,
+  buildSqlList,
+  buildSqlUpdate,
+  likePattern,
+} from './adapters/sql.builder';
 export type { GeneratedGraphQuery } from './adapters/graph.cypher';
 export type { BuiltSql } from './adapters/sql.builder';
 
@@ -87,7 +93,14 @@ export const sampleGraphDeclaration: AdminDeclaration = {
       targetLabel: 'Concept',
       titleProperty: 'name',
     },
-    { kind: 'count', name: 'questionCount', label: 'Questions', rel: 'TESTS', direction: 'in', targetLabel: 'Question' },
+    {
+      kind: 'count',
+      name: 'questionCount',
+      label: 'Questions',
+      rel: 'TESTS',
+      direction: 'in',
+      targetLabel: 'Question',
+    },
     { kind: 'route', name: 'open', label: 'Open', href: '/concepts/:id' },
   ],
 };

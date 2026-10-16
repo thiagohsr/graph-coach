@@ -25,7 +25,10 @@ export interface QueryDef<P extends QueryParams, R> {
 }
 
 /** Typed handle for a query that already exists as a .cypher file. Registers nothing. */
-export function typedQuery<P extends QueryParams, R>(name: string, row: z.ZodType<R>): QueryDef<P, R> {
+export function typedQuery<P extends QueryParams, R>(
+  name: string,
+  row: z.ZodType<R>,
+): QueryDef<P, R> {
   return { name, row };
 }
 

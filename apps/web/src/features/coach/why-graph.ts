@@ -60,7 +60,8 @@ export function buildDisplayGraph(
   const byId = new Map(model.nodes.map((n) => [n.id, n]));
   const kindOfId = (id: string) => byId.get(id)?.kind;
   const hasAlternatives = model.nodes.some((n) => n.kind === 'Concept' && n.role === 'alternative');
-  const hiddenConcept = (n: PathNodeVM) => n.kind === 'Concept' && n.role === 'alternative' && !options.showAlternatives;
+  const hiddenConcept = (n: PathNodeVM) =>
+    n.kind === 'Concept' && n.role === 'alternative' && !options.showAlternatives;
 
   const nodes = new Map<string, DisplayNode>();
   const edges = new Map<string, DisplayEdge>();
@@ -68,7 +69,8 @@ export function buildDisplayGraph(
     const id = `${e.source}>${e.target}`;
     if (!edges.has(id)) edges.set(id, { id, ...e });
   };
-  const tierOf = (n: PathNodeVM): DisplayTier => (n.kind === 'Decision' || n.kind === 'Puzzle' || n.kind === 'Concept' ? 'story' : 'context');
+  const tierOf = (n: PathNodeVM): DisplayTier =>
+    n.kind === 'Decision' || n.kind === 'Puzzle' || n.kind === 'Concept' ? 'story' : 'context';
 
   // Plain nodes: Decision, Puzzle, Concept and anything we have no special treatment for.
   const aggregated = new Set(['Question', 'Session', 'Chunk', 'Agent', 'Learner']);
@@ -93,58 +95,112 @@ export function buildDisplayGraph(
   }
 
   const edgesOf = (type: string) => model.edges.filter((e) => e.type === type);
-  const decisionId = model.nodes.find((n) => n.kind === 'Decision')?.id ?? model.rootId ?? undefined;
+  const decisionId =
+    model.nodes.find((n) => n.kind === 'Decision')?.id ?? model.rootId ?? undefined;
   const puzzle = model.nodes.find((n) => n.kind === 'Puzzle');
 
   // Why a concept is on the page (the BECAUSE reason) goes into its details, not onto an edge.
   for (const e of edgesOf('BECAUSE')) {
     const target = nodes.get(e.target);
-    if (target && target.kind === 'Concept' && e.label !== 'because') target.details = [['why', e.label], ...target.details];
+    if (target && target.kind === 'Concept' && e.label !== 'because')
+      target.details = [['why', e.label], ...target.details];
   }
 
   // Story spine: Decision -> Puzzle -> target concept -> concepts that depend on it.
-  const prerequisiteEdges = edgesOf('PREREQUISITE_OF').filter((e) => nodes.has(e.source) && nodes.has(e.target));
+  const prerequisiteEdges = edgesOf('PREREQUISITE_OF').filter(
+    (e) => nodes.has(e.source) && nodes.has(e.target),
+  );
   const dependent = new Set(prerequisiteEdges.map((e) => e.target));
   if (decisionId && puzzle && nodes.has(decisionId) && nodes.has(puzzle.id)) {
-    addEdge({ source: decisionId, target: puzzle.id, label: 'recommends', style: 'recommended', faded: false });
+    addEdge({
+      source: decisionId,
+      target: puzzle.id,
+      label: 'recommends',
+      style: 'recommended',
+      faded: false,
+    });
   }
   for (const e of edgesOf('RECOMMENDED')) {
-    if (nodes.has(e.source) && nodes.has(e.target)) addEdge({ source: e.source, target: e.target, label: 'recommends', style: 'recommended', faded: false });
+    if (nodes.has(e.source) && nodes.has(e.target))
+      addEdge({
+        source: e.source,
+        target: e.target,
+        label: 'recommends',
+        style: 'recommended',
+        faded: false,
+      });
   }
   for (const e of edgesOf('BECAUSE')) {
     const concept = nodes.get(e.target);
     if (!concept || concept.kind !== 'Concept' || !nodes.has(e.source)) continue;
     if (dependent.has(concept.id)) continue; // shown through its prerequisite edge
     const from = concept.role === 'target' && puzzle && nodes.has(puzzle.id) ? puzzle.id : e.source;
-    addEdge({ source: from, target: concept.id, style: concept.faded ? 'evidence' : 'recommended', faded: concept.faded });
+    addEdge({
+      source: from,
+      target: concept.id,
+      style: concept.faded ? 'evidence' : 'recommended',
+      faded: concept.faded,
+    });
   }
   for (const e of prerequisiteEdges) {
-    addEdge({ source: e.source, target: e.target, label: 'prerequisite of', style: 'prerequisite', faded: nodes.get(e.target)?.faded === true });
+    addEdge({
+      source: e.source,
+      target: e.target,
+      label: 'prerequisite of',
+      style: 'prerequisite',
+      faded: nodes.get(e.target)?.faded === true,
+    });
   }
   // Other links between plain nodes (goals, tasks, ...): quiet, labelled on hover only.
-  const handled = new Set(['BECAUSE', 'MADE', 'FOR', 'RECOMMENDED', 'PREREQUISITE_OF', 'TESTS', 'ANSWERED']);
+  const handled = new Set([
+    'BECAUSE',
+    'MADE',
+    'FOR',
+    'RECOMMENDED',
+    'PREREQUISITE_OF',
+    'TESTS',
+    'ANSWERED',
+  ]);
   for (const e of model.edges) {
     if (handled.has(e.type) || !nodes.has(e.source) || !nodes.has(e.target)) continue;
-    addEdge({ source: e.source, target: e.target, hoverLabel: e.label, style: 'evidence', faded: false });
+    addEdge({
+      source: e.source,
+      target: e.target,
+      hoverLabel: e.label,
+      style: 'evidence',
+      faded: false,
+    });
   }
   for (const e of edgesOf('BECAUSE')) {
     const target = nodes.get(e.target);
     if (target && target.kind !== 'Concept' && nodes.has(e.source)) {
-      addEdge({ source: e.source, target: target.id, hoverLabel: e.label, style: 'evidence', faded: false });
+      addEdge({
+        source: e.source,
+        target: target.id,
+        hoverLabel: e.label,
+        style: 'evidence',
+        faded: false,
+      });
     }
   }
 
   // Missed questions: one node per visible concept they test.
   const questions = model.nodes.filter((n) => n.kind === 'Question');
   const questionReason = new Map<string, string>();
-  for (const e of edgesOf('BECAUSE')) if (kindOfId(e.target) === 'Question' && !questionReason.has(e.target)) questionReason.set(e.target, e.label);
+  for (const e of edgesOf('BECAUSE'))
+    if (kindOfId(e.target) === 'Question' && !questionReason.has(e.target))
+      questionReason.set(e.target, e.label);
   const conceptsOfQuestion = new Map<string, string[]>();
   for (const e of edgesOf('TESTS')) {
     if (kindOfId(e.source) === 'Question' && nodes.has(e.target)) {
       conceptsOfQuestion.set(e.source, [...(conceptsOfQuestion.get(e.source) ?? []), e.target]);
     }
   }
-  const testedAnywhere = new Set(edgesOf('TESTS').filter((e) => kindOfId(e.source) === 'Question').map((e) => e.source));
+  const testedAnywhere = new Set(
+    edgesOf('TESTS')
+      .filter((e) => kindOfId(e.source) === 'Question')
+      .map((e) => e.source),
+  );
   const groups = new Map<string, { conceptId: string | null; items: string[] }>();
   for (const q of questions) {
     const line = `${q.title}${questionReason.get(q.id) && questionReason.get(q.id) !== 'because' ? ` (${questionReason.get(q.id)})` : ''}`;
@@ -175,7 +231,14 @@ export function buildDisplayGraph(
     });
     questionGroupOf.set(key, id);
     const from = concept?.id ?? decisionId;
-    if (from && nodes.has(from)) addEdge({ source: from, target: id, hoverLabel: 'tests', style: 'evidence', faded: concept?.faded === true });
+    if (from && nodes.has(from))
+      addEdge({
+        source: from,
+        target: id,
+        hoverLabel: 'tests',
+        style: 'evidence',
+        faded: concept?.faded === true,
+      });
   }
 
   // Sessions: one node, linked from the concepts whose questions were answered in them.
@@ -200,7 +263,14 @@ export function buildDisplayGraph(
     });
     const linked = [...conceptIds].filter((c) => nodes.has(c));
     for (const from of linked.length > 0 ? linked : decisionId ? [decisionId] : []) {
-      if (nodes.has(from)) addEdge({ source: from, target: id, hoverLabel: 'answered in', style: 'evidence', faded: false });
+      if (nodes.has(from))
+        addEdge({
+          source: from,
+          target: id,
+          hoverLabel: 'answered in',
+          style: 'evidence',
+          faded: false,
+        });
     }
   }
 
@@ -219,14 +289,27 @@ export function buildDisplayGraph(
       items: passages.map((p) => p.title),
       position: { x: 0, y: 0 },
     });
-    if (decisionId && nodes.has(decisionId)) addEdge({ source: decisionId, target: id, hoverLabel: 'because', style: 'evidence', faded: false });
+    if (decisionId && nodes.has(decisionId))
+      addEdge({
+        source: decisionId,
+        target: id,
+        hoverLabel: 'because',
+        style: 'evidence',
+        faded: false,
+      });
   }
 
   // Layered layout with real node sizes: columns follow the story, evidence sits to the right of what it explains.
   const horizontal = options.orientation === 'LR';
   const width = nodeWidth(options.orientation);
   const g = new dagre.graphlib.Graph();
-  g.setGraph({ rankdir: horizontal ? 'LR' : 'TB', nodesep: horizontal ? 28 : 16, ranksep: horizontal ? 84 : 44, marginx: 16, marginy: 16 });
+  g.setGraph({
+    rankdir: horizontal ? 'LR' : 'TB',
+    nodesep: horizontal ? 28 : 16,
+    ranksep: horizontal ? 84 : 44,
+    marginx: 16,
+    marginy: 16,
+  });
   g.setDefaultEdgeLabel(() => ({}));
   for (const n of nodes.values()) g.setNode(n.id, { width, height: NODE_HEIGHT });
   for (const e of edges.values()) g.setEdge(e.source, e.target);

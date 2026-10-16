@@ -28,7 +28,11 @@ import {
   type ValidationDetails,
 } from '@coach/types';
 import type { AuthUser } from '../../common/auth/auth-user';
-import { MethodNotAllowedError, NotFoundError, ValidationFailedError } from '../../common/errors/app-error';
+import {
+  MethodNotAllowedError,
+  NotFoundError,
+  ValidationFailedError,
+} from '../../common/errors/app-error';
 import { SettingsService } from '../../common/settings/settings.service';
 import { ADMIN_PORTS, type AdminPorts } from './admin.ports';
 import { AdminProviders } from './admin.providers';
@@ -70,7 +74,9 @@ export class AdminService implements OnModuleInit {
       }
     }
     if (missing.length > 0) {
-      throw new Error(`Admin declarations name providers that are not bound in admin.providers.ts:\n  ${missing.join('\n  ')}`);
+      throw new Error(
+        `Admin declarations name providers that are not bound in admin.providers.ts:\n  ${missing.join('\n  ')}`,
+      );
     }
 
     this.graphAdapter = createGraphAdapter(this.ports.graph, models);
@@ -89,7 +95,11 @@ export class AdminService implements OnModuleInit {
     const parsed = AdminListQuery.safeParse(isPlainObject(rawQuery) ? rawQuery : {});
     if (!parsed.success) {
       for (const issue of parsed.error.issues) {
-        issues.push({ path: issue.path.join('.') || 'query', message: issue.message, code: issue.code });
+        issues.push({
+          path: issue.path.join('.') || 'query',
+          message: issue.message,
+          code: issue.code,
+        });
       }
       throw new ValidationFailedError(issues);
     }
@@ -98,17 +108,33 @@ export class AdminService implements OnModuleInit {
     const pageSize = Math.min(parsed.data.pageSize ?? model.pageSize, ADMIN_MAX_PAGE_SIZE);
     const term = parsed.data.search ?? '';
     if (term.length > ADMIN_MAX_SEARCH_LENGTH) {
-      issues.push({ path: 'search', message: `search must be at most ${ADMIN_MAX_SEARCH_LENGTH} characters`, code: 'too_big' });
+      issues.push({
+        path: 'search',
+        message: `search must be at most ${ADMIN_MAX_SEARCH_LENGTH} characters`,
+        code: 'too_big',
+      });
     } else if (term !== '' && model.searchFields.length === 0) {
-      issues.push({ path: 'search', message: `${model.label} cannot be searched`, code: 'invalid_type' });
+      issues.push({
+        path: 'search',
+        message: `${model.label} cannot be searched`,
+        code: 'invalid_type',
+      });
     }
     if ((page - 1) * pageSize > ADMIN_MAX_OFFSET) {
-      issues.push({ path: 'page', message: `page is too far: the offset may not exceed ${ADMIN_MAX_OFFSET}`, code: 'too_big' });
+      issues.push({
+        path: 'page',
+        message: `page is too far: the offset may not exceed ${ADMIN_MAX_OFFSET}`,
+        code: 'too_big',
+      });
     }
     if (issues.length > 0) throw new ValidationFailedError(issues);
 
     const search = term === '' ? undefined : model.source === 'graph' ? term.toLowerCase() : term;
-    const { rows, total } = await this.adapter(model).list(model, { page, pageSize, ...(search !== undefined ? { search } : {}) });
+    const { rows, total } = await this.adapter(model).list(model, {
+      page,
+      pageSize,
+      ...(search !== undefined ? { search } : {}),
+    });
     return { items: rows.map((row) => toRecordDto(model, row, 'list')), total, page, pageSize };
   }
 
@@ -123,20 +149,32 @@ export class AdminService implements OnModuleInit {
   // ─── Update ────────────────────────────────────────────────────────────────
 
   /** Processing order of contracts/admin-api.md (PATCH). Nothing is written unless every step passes. */
-  async update(modelName: string, id: string, body: unknown, actor: AuthUser): Promise<AdminUpdateResponse> {
+  async update(
+    modelName: string,
+    id: string,
+    body: unknown,
+    actor: AuthUser,
+  ): Promise<AdminUpdateResponse> {
     const model = this.model(modelName);
     if (model.readOnly) throw new MethodNotAllowedError(`${model.label} are read-only`);
 
     const values = isPlainObject(body) ? body.values : undefined;
     if (!isPlainObject(values) || Object.keys(values).length === 0) {
       throw new ValidationFailedError(
-        [{ path: 'values', message: 'values must be an object with at least one field', code: 'invalid_type' }],
+        [
+          {
+            path: 'values',
+            message: 'values must be an object with at least one field',
+            code: 'invalid_type',
+          },
+        ],
         'The update was rejected.',
       );
     }
 
     const checked = validateUpdate(model, values);
-    if (!checked.ok) throw new ValidationFailedError(checked.details.issues, 'The update was rejected.');
+    if (!checked.ok)
+      throw new ValidationFailedError(checked.details.issues, 'The update was rejected.');
     const changes = checked.changes;
 
     const adapter = this.adapter(model);
@@ -159,7 +197,9 @@ export class AdminService implements OnModuleInit {
     }
 
     this.settings.invalidate();
-    this.logger.log(`admin update actor=${actor.id} model=${model.name} id=${id} fields=${Object.keys(changes).join(',')}`);
+    this.logger.log(
+      `admin update actor=${actor.id} model=${model.name} id=${id} fields=${Object.keys(changes).join(',')}`,
+    );
     return { record: await this.load(model, id) };
   }
 
@@ -176,8 +216,13 @@ export class AdminService implements OnModuleInit {
   }
 
   /** The record with every declared field. Computed fields are merged in when `withComputed` is true. */
-  private async load(model: ResolvedAdminModel, id: string, withComputed = true): Promise<AdminRecordDto> {
-    if (typeof id !== 'string' || id.length === 0 || id.length > ADMIN_MAX_ID_LENGTH) throw new NotFoundError('Record');
+  private async load(
+    model: ResolvedAdminModel,
+    id: string,
+    withComputed = true,
+  ): Promise<AdminRecordDto> {
+    if (typeof id !== 'string' || id.length === 0 || id.length > ADMIN_MAX_ID_LENGTH)
+      throw new NotFoundError('Record');
     const row = await this.adapter(model).get(model, id);
     if (!row) throw new NotFoundError('Record');
     const record = toRecordDto(model, row, 'all');
@@ -194,7 +239,9 @@ export class AdminService implements OnModuleInit {
       const provider = this.providers.compute[model.computeProvider!]!;
       provided = await provider({ id: record.id, values: record.values });
     } catch (error) {
-      this.logger.warn(`Compute provider ${model.computeProvider} failed: ${error instanceof Error ? error.name : 'error'}`);
+      this.logger.warn(
+        `Compute provider ${model.computeProvider} failed: ${error instanceof Error ? error.name : 'error'}`,
+      );
     }
     for (const key of keys) {
       record.values[key] = Object.hasOwn(provided, key) ? (provided[key] ?? null) : null;

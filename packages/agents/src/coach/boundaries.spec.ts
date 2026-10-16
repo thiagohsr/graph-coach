@@ -17,7 +17,9 @@ function sourceFiles(dir: string): string[] {
   });
 }
 
-const production = sourceFiles(COACH_DIR).filter((f) => !f.endsWith('.spec.ts') && !f.includes('/testing/'));
+const production = sourceFiles(COACH_DIR).filter(
+  (f) => !f.endsWith('.spec.ts') && !f.includes('/testing/'),
+);
 const everything = sourceFiles(COACH_DIR).filter((f) => !f.endsWith('boundaries.spec.ts'));
 
 describe('coach folder imports', () => {
@@ -27,10 +29,12 @@ describe('coach folder imports', () => {
 
   it('never imports from the curator or from falkordb (production and test files)', () => {
     const offenders = everything.filter((file) => {
-      const specifiers = [...readFileSync(file, 'utf8').matchAll(/(?:from|import|require\()\s*['"]([^'"]+)['"]/g)].map(
-        (m) => m[1] ?? '',
+      const specifiers = [
+        ...readFileSync(file, 'utf8').matchAll(/(?:from|import|require\()\s*['"]([^'"]+)['"]/g),
+      ].map((m) => m[1] ?? '');
+      return specifiers.some(
+        (s) => /(^|\/)curator(\/|$)/.test(s) || s === 'falkordb' || s.startsWith('falkordb/'),
       );
-      return specifiers.some((s) => /(^|\/)curator(\/|$)/.test(s) || s === 'falkordb' || s.startsWith('falkordb/'));
     });
     expect(offenders).toEqual([]);
   });
@@ -38,7 +42,9 @@ describe('coach folder imports', () => {
 
 describe('coach query files', () => {
   const queriesSource = readFileSync(join(COACH_DIR, 'queries.ts'), 'utf8');
-  const names = [...new Set([...queriesSource.matchAll(/query\(\s*'([a-z_]+)'/g)].map((m) => m[1] as string))];
+  const names = [
+    ...new Set([...queriesSource.matchAll(/query\(\s*'([a-z_]+)'/g)].map((m) => m[1] as string)),
+  ];
 
   it('finds the twelve queries of CoachQueries (nine core, three goal stretch)', () => {
     expect(names.sort()).toEqual(
@@ -78,7 +84,13 @@ describe('coach query files', () => {
 });
 
 describe('coach settings', () => {
-  const FIVE = ['traversalDepth', 'decayDays', 'riskThreshold', 'recentPlayDays', 'coachReuseMinutes'];
+  const FIVE = [
+    'traversalDepth',
+    'decayDays',
+    'riskThreshold',
+    'recentPlayDays',
+    'coachReuseMinutes',
+  ];
 
   it('the schema has exactly the five keys', () => {
     expect(Object.keys(CoachSettingsSchema.shape).sort()).toEqual([...FIVE].sort());

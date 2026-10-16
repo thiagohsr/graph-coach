@@ -12,7 +12,13 @@ import {
   type StepName,
   type TaskRow,
 } from '@coach/agents/curator';
-import { chatForRun, type ChatProvider, type EmbeddingsProvider, type RunHandle, type UsageTracer } from '@coach/agents/llm';
+import {
+  chatForRun,
+  type ChatProvider,
+  type EmbeddingsProvider,
+  type RunHandle,
+  type UsageTracer,
+} from '@coach/agents/llm';
 import type { ConflictDetails } from '@coach/types';
 import { AccountsService } from '../accounts/accounts.service';
 import { AllowanceService } from '../allowance/allowance.service';
@@ -113,7 +119,11 @@ export class RunOrchestrator {
     // A cover task that was refused at the allowance never began: it has no source yet. It goes back to `queued` and
     // through the cover pickup, which asks the allowance again (spec 005 US7).
     const stored = task.kind === 'cover' ? await this.graph.loadTask(task.id) : null;
-    const requeue = task.kind === 'cover' && stored !== null && stored.sourceId === null && this.coverHook !== null;
+    const requeue =
+      task.kind === 'cover' &&
+      stored !== null &&
+      stored.sourceId === null &&
+      this.coverHook !== null;
     const moved = await this.recorder.setTaskStatus(task.id, ['failed'], {
       status: requeue ? 'queued' : 'in_progress',
       error: null,
@@ -149,7 +159,12 @@ export class RunOrchestrator {
       if (this.running.has(task.id) || this.resumeQueue.includes(task.id)) continue;
       try {
         if (task.requesterId === null || task.sourceId === null) {
-          await this.fail(task.id, 'chunk', 'INCONSISTENT_STATE', 'The task has no requester or source');
+          await this.fail(
+            task.id,
+            'chunk',
+            'INCONSISTENT_STATE',
+            'The task has no requester or source',
+          );
           continue;
         }
         if (!(await this.accounts.isActive(task.requesterId))) {
@@ -189,10 +204,9 @@ export class RunOrchestrator {
     sourceId: string | null;
   }): Promise<StepName> {
     const last = task.lastCompletedStep as StepName | null;
-    const entry =
-      isPromptKind(task.kind)
-        ? resolvePromptEntry(last, await this.hasOutline(task.sourceId))
-        : resolveEntry(last);
+    const entry = isPromptKind(task.kind)
+      ? resolvePromptEntry(last, await this.hasOutline(task.sourceId))
+      : resolveEntry(last);
     return entry === 'none' || entry === 'finalise' ? 'validate' : entry;
   }
 
@@ -228,10 +242,9 @@ export class RunOrchestrator {
     )
       return;
 
-    const entry =
-      isPromptKind(task.kind)
-        ? resolvePromptEntry(task.lastCompletedStep, await this.hasOutline(task.sourceId))
-        : resolveEntry(task.lastCompletedStep);
+    const entry = isPromptKind(task.kind)
+      ? resolvePromptEntry(task.lastCompletedStep, await this.hasOutline(task.sourceId))
+      : resolveEntry(task.lastCompletedStep);
     if (entry === 'none') return;
     if (!task.requesterId || !task.sourceId) {
       await this.fail(taskId, 'chunk', 'INCONSISTENT_STATE', 'The task has no requester or source');
@@ -244,13 +257,20 @@ export class RunOrchestrator {
       return;
 
     const runHandle: RunHandle | undefined = quietly(() =>
-      this.tracer.startRun({ id: taskId, kind: task.kind as 'ingest' | 'generate' | 'cover', userId: requesterId }),
+      this.tracer.startRun({
+        id: taskId,
+        kind: task.kind as 'ingest' | 'generate' | 'cover',
+        userId: requesterId,
+      }),
     );
     let ok = false;
     try {
       // Resolved once: the whole run, every step, uses this provider and model (spec 002 provider-factory contract).
       const chat = await chatForRun(this.chat);
-      await this.recorder.setTaskStatus(taskId, ['in_progress'], { llmProvider: chat.name, llmModel: chat.model });
+      await this.recorder.setTaskStatus(taskId, ['in_progress'], {
+        llmProvider: chat.name,
+        llmModel: chat.model,
+      });
       let outcome: 'awaiting_review' | 'nothing_usable';
       if (entry === 'finalise') {
         outcome = task.questions > 0 ? 'awaiting_review' : 'nothing_usable';

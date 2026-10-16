@@ -11,7 +11,13 @@ beforeEach(() => {
   const capture = (message: unknown) => {
     lines.push(String(message));
   };
-  Logger.overrideLogger({ log: capture, error: capture, warn: capture, debug: capture, verbose: capture });
+  Logger.overrideLogger({
+    log: capture,
+    error: capture,
+    warn: capture,
+    debug: capture,
+    verbose: capture,
+  });
 });
 
 afterEach(() => {

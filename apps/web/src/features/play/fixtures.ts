@@ -6,7 +6,12 @@ export const playPuzzle: PlayPuzzle = {
   name: 'Databases 101',
   origin: 'seed',
   questions: [
-    { id: 'q-1', order: 1, sentence: 'A ___ speeds up lookups at the cost of slower ___.', blanks: 2 },
+    {
+      id: 'q-1',
+      order: 1,
+      sentence: 'A ___ speeds up lookups at the cost of slower ___.',
+      blanks: 2,
+    },
     { id: 'q-2', order: 2, sentence: 'A ___ stores rows.', blanks: 1 },
   ],
   wordBank: ['writes', 'cache', 'index', 'table'],
@@ -47,7 +52,9 @@ export const submitResult: SubmitResult = {
   submittedAt: '2026-10-11T14:03:22.000Z',
   score: 10,
   maxScore: 20,
-  questions: [{ id: 'q-1', order: 1, sentence: 'A ___ speeds up lookups at the cost of slower ___.' }],
+  questions: [
+    { id: 'q-1', order: 1, sentence: 'A ___ speeds up lookups at the cost of slower ___.' },
+  ],
   review: [
     { questionId: 'q-1', blank: 0, submitted: 'Index', expected: 'index', correct: true },
     {
@@ -56,7 +63,11 @@ export const submitResult: SubmitResult = {
       submitted: null,
       expected: 'writes',
       correct: false,
-      passage: { chunkId: 'ch-7', sourceId: 'src-3', excerpt: 'Every index must be updated on insert, so writes become slower…' },
+      passage: {
+        chunkId: 'ch-7',
+        sourceId: 'src-3',
+        excerpt: 'Every index must be updated on insert, so writes become slower…',
+      },
     },
   ],
   mastery: [{ conceptId: 'c-index', name: 'Indexes', before: 0.5, after: 0.455 }],

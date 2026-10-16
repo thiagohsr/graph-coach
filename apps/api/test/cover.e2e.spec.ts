@@ -32,7 +32,12 @@ beforeAll(async () => {
   for (const topic of TARGETS) {
     await app.testGraph.cypher(
       `MERGE (c:Concept {slug: $slug}) ON CREATE SET c.id = $id, c.name = $name, c.description = $description, c.createdAt = 1`,
-      { slug: topic.slug, id: conceptId(topic.slug), name: topic.name, description: topic.description },
+      {
+        slug: topic.slug,
+        id: conceptId(topic.slug),
+        name: topic.name,
+        description: topic.description,
+      },
     );
   }
 });
@@ -71,7 +76,8 @@ async function pickUp(taskId: string): Promise<void> {
   await orchestrator().whenIdle(taskId);
 }
 
-const getTask = async (user: TestUser, taskId: string) => app.http.get(`/tasks/${taskId}`).set(user.auth);
+const getTask = async (user: TestUser, taskId: string) =>
+  app.http.get(`/tasks/${taskId}`).set(user.auth);
 const drafts = async (user: TestUser, taskId: string) =>
   (await app.http.get(`/review/questions?taskId=${taskId}`).set(user.auth)).body as any[];
 const promptSources = async (user: TestUser) =>
@@ -99,14 +105,21 @@ describe('S7.1 a queued cover task is fulfilled by the prompt graph', () => {
   beforeAll(async () => {
     learner = await app.createUser({ role: 'learner', name: 'Cover Learner' });
     taskId = await requestCover(learner);
-    expect((await getTask(learner, taskId)).body).toMatchObject({ kind: 'cover', status: 'queued' });
+    expect((await getTask(learner, taskId)).body).toMatchObject({
+      kind: 'cover',
+      status: 'queued',
+    });
     await pickUp(taskId);
   });
 
   it('reaches awaiting_review and the stream shows the five prompt steps then the terminal event', async () => {
     const task = await getTask(learner, taskId);
     expect(task.status).toBe(200);
-    expect(task.body).toMatchObject({ kind: 'cover', status: 'awaiting_review', lastCompletedStep: 'validate' });
+    expect(task.body).toMatchObject({
+      kind: 'cover',
+      status: 'awaiting_review',
+      lastCompletedStep: 'validate',
+    });
     expect(task.body.steps.map((s: any) => s.node)).toEqual(PROMPT_NODES);
     expect(task.body.usage.embeddingTokens).toBe(0);
 
@@ -126,7 +139,11 @@ describe('S7.1 a queued cover task is fulfilled by the prompt graph', () => {
     );
     expect(rows).toHaveLength(1);
     const brief = JSON.parse(rows[0]!.brief);
-    expect(brief.subject).toBe(TARGETS.map((t) => t.name).sort().join(', '));
+    expect(brief.subject).toBe(
+      TARGETS.map((t) => t.name)
+        .sort()
+        .join(', '),
+    );
     expect(brief.difficulty).toBe('medium');
     const detail = await app.http.get(`/sources/${sources[0]!.id}`).set(learner.auth);
     expect(detail.status).toBe(200);
@@ -134,7 +151,12 @@ describe('S7.1 a queued cover task is fulfilled by the prompt graph', () => {
   });
 
   it('left prompt-origin drafts that test the target concepts, owned by the learner', async () => {
-    const rows = await app.testGraph.cypher<{ origin: string; owner: string; status: string; tests: string[] }>(
+    const rows = await app.testGraph.cypher<{
+      origin: string;
+      owner: string;
+      status: string;
+      tests: string[];
+    }>(
       `MATCH (l:Learner)-[:OWNS]->(p:Puzzle)<-[:PRODUCED]-(:Task {id: $task})
        MATCH (p)-[:CONTAINS]->(q:Question)
        RETURN p.origin AS origin, l.id AS owner, q.status AS status, [(q)-[:TESTS]->(c:Concept) | c.id] AS tests`,
@@ -154,9 +176,14 @@ describe('S7.1 a queued cover task is fulfilled by the prompt graph', () => {
     const list = await drafts(learner, taskId);
     expect(list.length).toBeGreaterThanOrEqual(3);
     expect(list.every((d) => d.origin === 'prompt')).toBe(true);
-    const approved = await app.http.post(`/review/questions/${list[0].id}/approve`).set(learner.auth);
+    const approved = await app.http
+      .post(`/review/questions/${list[0].id}/approve`)
+      .set(learner.auth);
     expect(approved.status).toBe(200);
-    const rejected = await app.http.post(`/review/questions/${list[1].id}/reject`).set(learner.auth).send({});
+    const rejected = await app.http
+      .post(`/review/questions/${list[1].id}/reject`)
+      .set(learner.auth)
+      .send({});
     expect(rejected.status).toBe(200);
 
     expect(await promptSources(learner)).toHaveLength(1);

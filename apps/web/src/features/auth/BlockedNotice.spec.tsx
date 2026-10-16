@@ -9,7 +9,9 @@ describe('BlockedNotice', () => {
     render(<BlockedNotice onSignOut={onSignOut} />);
     const heading = screen.getByRole('heading', { level: 1, name: 'Your account is blocked' });
     expect(heading).toHaveFocus();
-    expect(screen.getByText('An administrator has blocked this account. You cannot use the site.')).toBeInTheDocument();
+    expect(
+      screen.getByText('An administrator has blocked this account. You cannot use the site.'),
+    ).toBeInTheDocument();
     expect(screen.queryByRole('navigation')).toBeNull();
     expect(screen.queryByRole('link')).toBeNull();
     const buttons = screen.getAllByRole('button');

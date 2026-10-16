@@ -20,7 +20,9 @@ function ReviewPage() {
   return (
     <div className="flex flex-col gap-4">
       <RouteFocus title="Review" />
-      <h1 className="text-2xl leading-[30px] font-bold tracking-tight sm:text-[30px] sm:leading-9">Review drafts</h1>
+      <h1 className="text-2xl leading-[30px] font-bold tracking-tight sm:text-[30px] sm:leading-9">
+        Review drafts
+      </h1>
       <ReviewScreen taskId={taskId} />
     </div>
   );

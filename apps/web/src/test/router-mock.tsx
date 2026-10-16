@@ -23,9 +23,20 @@ export function resolveTo(to: string, params: Record<string, string> = {}): stri
  * so presentational components can be rendered without a router.
  */
 export function routerMock(actual: Record<string, unknown>) {
-  function Link({ to, href, params, search, replace: _r, activeProps: _a, children, ...rest }: LinkProps) {
+  function Link({
+    to,
+    href,
+    params,
+    search,
+    replace: _r,
+    activeProps: _a,
+    children,
+    ...rest
+  }: LinkProps) {
     const query = new URLSearchParams(
-      Object.entries((search && typeof search === 'object' ? search : {}) as Record<string, unknown>)
+      Object.entries(
+        (search && typeof search === 'object' ? search : {}) as Record<string, unknown>,
+      )
         .filter(([, v]) => v !== undefined)
         .map(([k, v]) => [k, String(v)] as [string, string]),
     ).toString();

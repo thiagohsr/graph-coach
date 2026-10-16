@@ -29,7 +29,8 @@ function allStrings(value: unknown, out: string[] = []): string[] {
   if (typeof value === 'string') out.push(value);
   else if (value instanceof Date) return out;
   else if (Array.isArray(value)) value.forEach((v) => allStrings(v, out));
-  else if (value && typeof value === 'object') Object.values(value).forEach((v) => allStrings(v, out));
+  else if (value && typeof value === 'object')
+    Object.values(value).forEach((v) => allStrings(v, out));
   return out;
 }
 
@@ -55,7 +56,12 @@ describe('NoopUsageTracer', () => {
 
 describe('createUsageTracer / tracerConfigFromEnv', () => {
   it('returns the no-op tracer when any setting is missing', () => {
-    const base = { publicKey: 'pk', secretKey: 'sk', host: 'http://localhost:3000', captureContent: false };
+    const base = {
+      publicKey: 'pk',
+      secretKey: 'sk',
+      host: 'http://localhost:3000',
+      captureContent: false,
+    };
     expect(createUsageTracer({ ...base, publicKey: undefined })).toBeInstanceOf(NoopUsageTracer);
     expect(createUsageTracer({ ...base, secretKey: undefined })).toBeInstanceOf(NoopUsageTracer);
     expect(createUsageTracer({ ...base, host: undefined })).toBeInstanceOf(NoopUsageTracer);
@@ -63,7 +69,12 @@ describe('createUsageTracer / tracerConfigFromEnv', () => {
   });
 
   it('returns a LangfuseUsageTracer when all are set (client construction makes no request)', async () => {
-    const t = createUsageTracer({ publicKey: 'pk', secretKey: 'sk', host: 'http://127.0.0.1:1', captureContent: false });
+    const t = createUsageTracer({
+      publicKey: 'pk',
+      secretKey: 'sk',
+      host: 'http://127.0.0.1:1',
+      captureContent: false,
+    });
     expect(t).toBeInstanceOf(LangfuseUsageTracer);
     expect(t.enabled).toBe(true);
   });
@@ -107,7 +118,12 @@ describe('LangfuseUsageTracer', () => {
     t.endRun(run, { ok: true });
 
     expect(calls.trace).toHaveLength(1);
-    expect(calls.trace[0]).toMatchObject({ id: 'task-1', name: 'generate', userId: 'user-uuid', metadata: { kind: 'generate' } });
+    expect(calls.trace[0]).toMatchObject({
+      id: 'task-1',
+      name: 'generate',
+      userId: 'user-uuid',
+      metadata: { kind: 'generate' },
+    });
     expect(calls.span).toHaveLength(1);
     expect(calls.span[0]).toMatchObject({ traceId: 'task-1', name: 'extract' });
     expect(calls.generation).toHaveLength(1);
@@ -142,12 +158,18 @@ describe('LangfuseUsageTracer', () => {
     expect(t.content).toBeUndefined();
     const prompt = 'SECRET-PROMPT about jane.doe@example.com';
     const response = 'SECRET-RESPONSE-TEXT';
-    const chat = new StubChatProvider({ tracer: t }).on('c', response).enqueue('s', { v: 'bad-VALUE' }, { n: 1 });
+    const chat = new StubChatProvider({ tracer: t })
+      .on('c', response)
+      .enqueue('s', { v: 'bad-VALUE' }, { n: 1 });
     const emb = new StubEmbeddingsProvider(8, { tracer: t });
     const run = t.startRun({ id: 'r', kind: 'ingest', userId: 'internal-uuid' });
     const step = t.startStep(run, 'node');
     await chat.complete([{ role: 'user', content: prompt }], { label: 'c', trace: step });
-    await chat.completeStructured([{ role: 'user', content: prompt }], z.object({ n: z.number() }), { label: 's', trace: step });
+    await chat.completeStructured(
+      [{ role: 'user', content: prompt }],
+      z.object({ n: z.number() }),
+      { label: 's', trace: step },
+    );
     await emb.embed([prompt], { label: 'e', trace: step });
     t.endStep(step, { ok: true });
     t.endRun(run, { ok: true });
@@ -168,12 +190,19 @@ describe('LangfuseUsageTracer', () => {
   it('reports one call per attempt, a failed call with ok false', async () => {
     const { client, calls } = fakeClient();
     const t = new LangfuseUsageTracer({ client, captureContent: false, clock });
-    const chat = new StubChatProvider({ tracer: t }).enqueue('s', { n: 'x' }, { n: 1 }).on('e', new Error('boom'));
+    const chat = new StubChatProvider({ tracer: t })
+      .enqueue('s', { n: 'x' }, { n: 1 })
+      .on('e', new Error('boom'));
     const run = t.startRun({ id: 'r', kind: 'coach', userId: 'u' });
     const step = t.startStep(run, 'n');
-    await chat.completeStructured([{ role: 'user', content: 'q' }], z.object({ n: z.number() }), { label: 's', trace: step });
+    await chat.completeStructured([{ role: 'user', content: 'q' }], z.object({ n: z.number() }), {
+      label: 's',
+      trace: step,
+    });
     expect(calls.generation).toHaveLength(2);
-    await chat.complete([{ role: 'user', content: 'q' }], { label: 'e', trace: step }).catch(() => undefined);
+    await chat
+      .complete([{ role: 'user', content: 'q' }], { label: 'e', trace: step })
+      .catch(() => undefined);
     expect(calls.generation).toHaveLength(3);
     expect(calls.generation[2]!.level).toBe('ERROR');
   });
@@ -232,7 +261,10 @@ describe('LangfuseUsageTracer', () => {
   it('flush gives up after its time limit', async () => {
     vi.useFakeTimers();
     try {
-      const client: LangfuseClientLike = { ...fakeClient().client, flushAsync: () => new Promise(() => undefined) };
+      const client: LangfuseClientLike = {
+        ...fakeClient().client,
+        flushAsync: () => new Promise(() => undefined),
+      };
       const warn = vi.fn();
       const t = new LangfuseUsageTracer({ client, captureContent: false, logger: { warn } });
       const p = t.flush();
@@ -247,7 +279,13 @@ describe('LangfuseUsageTracer', () => {
     const { client, calls } = fakeClient();
     const t = new LangfuseUsageTracer({ client, captureContent: false, clock });
     const step = t.startStep(t.startRun({ id: 'r', kind: 'cover', userId: 'u' }), 'n');
-    t.recordCall(step, { model: 'm', provider: 'stub', usage: ZERO_USAGE, durationMs: 0, ok: true });
+    t.recordCall(step, {
+      model: 'm',
+      provider: 'stub',
+      usage: ZERO_USAGE,
+      durationMs: 0,
+      ok: true,
+    });
     expect(calls.generation[0]!.usage).toEqual({ input: 0, output: 0, total: 0 });
   });
 });

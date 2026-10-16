@@ -20,7 +20,10 @@ const SEED_USERS: Record<string, { name: string; role: Role }> = {
 };
 
 /** Creates the users row of a seeded demo user (its Learner node comes from the seed) and returns a development token. */
-export async function signInSeeded(app: TestApp, key: 'learner' | 'learner2' | 'reviewer' | 'admin'): Promise<TestUser> {
+export async function signInSeeded(
+  app: TestApp,
+  key: 'learner' | 'learner2' | 'reviewer' | 'admin',
+): Promise<TestUser> {
   const meta = SEED_USERS[key]!;
   const id = seedIds.user(key as SeedUserKey);
   const email = seedIds.email(key as SeedUserKey);
@@ -35,7 +38,14 @@ export async function signInSeeded(app: TestApp, key: 'learner' | 'learner2' | '
   });
   const signer = new DevTokenVerifier({ secret: TEST_JWT_SECRET, clock: app.clock });
   const { accessToken } = await signer.sign(id);
-  return { id, email, name: meta.name, role: meta.role, token: accessToken, auth: { Authorization: `Bearer ${accessToken}` } };
+  return {
+    id,
+    email,
+    name: meta.name,
+    role: meta.role,
+    token: accessToken,
+    auth: { Authorization: `Bearer ${accessToken}` },
+  };
 }
 
 export const cid = (slug: string): string => `c-${slug}`;
@@ -44,12 +54,17 @@ export async function addAgents(app: TestApp): Promise<void> {
   await app.testGraph.cypher(`MERGE (:Agent {name: 'Coach'}) MERGE (:Agent {name: 'Curator'})`);
 }
 
-export async function addConcepts(app: TestApp, concepts: Array<{ slug: string; prereqs?: string[] }>): Promise<void> {
+export async function addConcepts(
+  app: TestApp,
+  concepts: Array<{ slug: string; prereqs?: string[] }>,
+): Promise<void> {
   await app.testGraph.cypher(
     `UNWIND $rows AS r CREATE (:Concept {id: r.id, slug: r.slug, name: r.name, createdAt: 1})`,
     { rows: concepts.map((c) => ({ id: cid(c.slug), slug: c.slug, name: c.slug.toUpperCase() })) },
   );
-  const edges = concepts.flatMap((c) => (c.prereqs ?? []).map((p) => ({ from: cid(p), to: cid(c.slug) })));
+  const edges = concepts.flatMap((c) =>
+    (c.prereqs ?? []).map((p) => ({ from: cid(p), to: cid(c.slug) })),
+  );
   if (edges.length > 0) {
     await app.testGraph.cypher(
       `UNWIND $edges AS e MATCH (a:Concept {id: e.from}), (b:Concept {id: e.to}) CREATE (a)-[:PREREQUISITE_OF {confidence: 1.0}]->(b)`,
@@ -72,14 +87,25 @@ export async function addMastery(
      SET m.score = r.score, m.attempts = r.attempts, m.lastSeen = r.lastSeen`,
     {
       learnerId,
-      rows: rows.map((r) => ({ conceptId: cid(r.slug), score: r.score, attempts: r.attempts, lastSeen: now - r.daysAgo * DAY })),
+      rows: rows.map((r) => ({
+        conceptId: cid(r.slug),
+        score: r.score,
+        attempts: r.attempts,
+        lastSeen: now - r.daysAgo * DAY,
+      })),
     },
   );
 }
 
 export async function addPuzzle(
   app: TestApp,
-  spec: { id: string; name: string; ownerId: string; visibility: 'private' | 'public'; tests: string[] },
+  spec: {
+    id: string;
+    name: string;
+    ownerId: string;
+    visibility: 'private' | 'public';
+    tests: string[];
+  },
 ): Promise<void> {
   await app.testGraph.cypher(
     `MATCH (o:Learner {id: $ownerId})
@@ -99,7 +125,12 @@ export async function addPuzzle(
   }
 }
 
-export async function share(app: TestApp, puzzleId: string, learnerId: string, withSource: boolean): Promise<void> {
+export async function share(
+  app: TestApp,
+  puzzleId: string,
+  learnerId: string,
+  withSource: boolean,
+): Promise<void> {
   await app.testGraph.cypher(
     `MATCH (p:Puzzle {id: $puzzleId}), (l:Learner {id: $learnerId})
      MERGE (p)-[sh:SHARED_WITH]->(l) SET sh.withSource = $withSource, sh.at = 1`,
@@ -107,9 +138,16 @@ export async function share(app: TestApp, puzzleId: string, learnerId: string, w
   );
 }
 
-export async function revokeShare(app: TestApp, puzzleId: string, learnerId: string): Promise<void> {
-  await app.testGraph.cypher(`MATCH (:Puzzle {id: $puzzleId})-[sh:SHARED_WITH]->(:Learner {id: $learnerId}) DELETE sh`, {
-    puzzleId,
-    learnerId,
-  });
+export async function revokeShare(
+  app: TestApp,
+  puzzleId: string,
+  learnerId: string,
+): Promise<void> {
+  await app.testGraph.cypher(
+    `MATCH (:Puzzle {id: $puzzleId})-[sh:SHARED_WITH]->(:Learner {id: $learnerId}) DELETE sh`,
+    {
+      puzzleId,
+      learnerId,
+    },
+  );
 }

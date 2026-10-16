@@ -17,7 +17,13 @@ describe('parseEnv', () => {
   });
 
   it('treats empty values as unset', () => {
-    const env = parseEnv({ SESSION_SECRET: secret, COGNITO_DOMAIN: '', WEB_ORIGIN: '', TRUST_PROXY: '', WEB_PORT: '' });
+    const env = parseEnv({
+      SESSION_SECRET: secret,
+      COGNITO_DOMAIN: '',
+      WEB_ORIGIN: '',
+      TRUST_PROXY: '',
+      WEB_PORT: '',
+    });
     expect(env.cognitoDomain).toBeUndefined();
     expect(env.webOrigin).toBeUndefined();
     expect(env.port).toBe(3000);
@@ -29,11 +35,15 @@ describe('parseEnv', () => {
   });
 
   it('refuses dev mode in production', () => {
-    expect(() => parseEnv({ SESSION_SECRET: secret, NODE_ENV: 'production', AUTH_MODE: 'dev' })).toThrow(/AUTH_MODE/);
+    expect(() =>
+      parseEnv({ SESSION_SECRET: secret, NODE_ENV: 'production', AUTH_MODE: 'dev' }),
+    ).toThrow(/AUTH_MODE/);
   });
 
   it('requires the Cognito values in cognito mode', () => {
-    expect(() => parseEnv({ SESSION_SECRET: secret, AUTH_MODE: 'cognito' })).toThrow(/COGNITO_DOMAIN/);
+    expect(() => parseEnv({ SESSION_SECRET: secret, AUTH_MODE: 'cognito' })).toThrow(
+      /COGNITO_DOMAIN/,
+    );
     const env = parseEnv({
       SESSION_SECRET: secret,
       AUTH_MODE: 'cognito',
@@ -48,6 +58,8 @@ describe('parseEnv', () => {
   });
 
   it('strips a trailing slash from API_URL', () => {
-    expect(parseEnv({ SESSION_SECRET: secret, API_URL: 'http://api:3001/api/' }).apiUrl).toBe('http://api:3001/api');
+    expect(parseEnv({ SESSION_SECRET: secret, API_URL: 'http://api:3001/api/' }).apiUrl).toBe(
+      'http://api:3001/api',
+    );
   });
 });

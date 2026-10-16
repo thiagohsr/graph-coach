@@ -1,4 +1,8 @@
-import { MAX_CONCEPT_DESCRIPTION_CHARS, PROMPT_EXTRA_SENTENCES, PROMPT_MIN_LINK_CONFIDENCE } from '../../constants';
+import {
+  MAX_CONCEPT_DESCRIPTION_CHARS,
+  PROMPT_EXTRA_SENTENCES,
+  PROMPT_MIN_LINK_CONFIDENCE,
+} from '../../constants';
 import { conceptId } from '../../ids';
 import { slugify } from '../../slug';
 import { callStructured } from '../../structured';
@@ -54,7 +58,11 @@ export const outlineNode: PromptNodeFactory = (deps) => async (state) => {
     const droppedSentences = Math.min(planned.sentences.length, plan) - sentences.length;
 
     const prerequisites = planned.prerequisites
-      .map((p) => ({ from: slugOf(p.prerequisite), to: slugOf(p.dependent), confidence: p.confidence }))
+      .map((p) => ({
+        from: slugOf(p.prerequisite),
+        to: slugOf(p.dependent),
+        confidence: p.confidence,
+      }))
       .filter(
         (p): p is { from: string; to: string; confidence: number } =>
           p.from !== null && p.to !== null && p.from !== p.to,

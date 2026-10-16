@@ -20,7 +20,10 @@ export function MasteryList({ items }: { items: MasteryItem[] }) {
       <EmptyState
         title="Play a puzzle to start building your mastery."
         action={
-          <Link to={'/puzzles' as never} className="font-medium text-primary underline underline-offset-4 hover:text-primary-hover">
+          <Link
+            to={'/puzzles' as never}
+            className="font-medium text-primary underline underline-offset-4 hover:text-primary-hover"
+          >
             Go to puzzles
           </Link>
         }
@@ -34,7 +37,10 @@ export function MasteryList({ items }: { items: MasteryItem[] }) {
         const step = masteryStep(item.score);
         const labelId = `mastery-${item.conceptId}`;
         return (
-          <li key={item.conceptId} className="flex flex-col gap-2 rounded-lg border bg-card p-4 shadow-xs">
+          <li
+            key={item.conceptId}
+            className="flex flex-col gap-2 rounded-lg border bg-card p-4 shadow-xs"
+          >
             <div className="flex flex-wrap items-baseline justify-between gap-2">
               <span className="flex flex-wrap items-center gap-2">
                 <span id={labelId} className="font-semibold">
@@ -43,7 +49,8 @@ export function MasteryList({ items }: { items: MasteryItem[] }) {
                 <ConceptChip step={step} />
               </span>
               <span className="text-sm text-muted-foreground">
-                {item.attempts} {item.attempts === 1 ? 'attempt' : 'attempts'} · last seen {formatDate(item.lastSeen)}
+                {item.attempts} {item.attempts === 1 ? 'attempt' : 'attempts'} · last seen{' '}
+                {formatDate(item.lastSeen)}
               </span>
             </div>
             <div className="flex items-center gap-3">

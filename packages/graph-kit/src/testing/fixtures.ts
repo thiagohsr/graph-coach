@@ -11,7 +11,8 @@ export const fixtureIds = {
   tinyPuzzle: deterministicId('puzzle', 'fixture-tiny'),
   tinyOwner: deterministicId('user', 'fixture-tiny-owner'),
   tinyQuestion: (order: 1 | 2 | 3): string => deterministicId('question', `fixture-tiny:${order}`),
-  source: (puzzleId: string, ownerId: string): string => deterministicId('source', puzzleId, ownerId),
+  source: (puzzleId: string, ownerId: string): string =>
+    deterministicId('source', puzzleId, ownerId),
 };
 
 const concept = (slug: string): FixtureNode => ({
@@ -24,7 +25,14 @@ const conceptRef = (slug: string) => ({ label: 'Concept' as const, key: fixtureI
 /** A learner node: id, displayName, createdAt. No e-mail. */
 function learner(id: string, displayName: string): GraphFixture {
   return {
-    nodes: [{ label: 'Learner', key: id, props: { displayName, createdAt: FIXTURE_TIME }, onMatch: 'keep' }],
+    nodes: [
+      {
+        label: 'Learner',
+        key: id,
+        props: { displayName, createdAt: FIXTURE_TIME },
+        onMatch: 'keep',
+      },
+    ],
     edges: [],
   };
 }
@@ -55,14 +63,36 @@ function conceptChain(): GraphFixture {
  * Seven nodes (owner, two concepts, puzzle, three questions) and seven edges (OWNS, 3 CONTAINS, 3 TESTS).
  */
 function tinyPuzzle(
-  options: { ownerId?: string; visibility?: 'private' | 'public'; status?: 'draft' | 'published' } = {},
+  options: {
+    ownerId?: string;
+    visibility?: 'private' | 'public';
+    status?: 'draft' | 'published';
+  } = {},
 ): GraphFixture {
   const ownerId = options.ownerId ?? fixtureIds.tinyOwner;
   const puzzle = { label: 'Puzzle' as const, key: fixtureIds.tinyPuzzle };
   const questions = [
-    { order: 1 as const, sentence: 'A table stores data in ___.', answers: ['rows'], distractors: ['trees', 'files'], concept: 'tiny-a' },
-    { order: 2 as const, sentence: 'A key identifies a ___.', answers: ['row'], distractors: ['page', 'file'], concept: 'tiny-a' },
-    { order: 3 as const, sentence: 'An index speeds up ___.', answers: ['lookups'], distractors: ['backups', 'logins'], concept: 'tiny-b' },
+    {
+      order: 1 as const,
+      sentence: 'A table stores data in ___.',
+      answers: ['rows'],
+      distractors: ['trees', 'files'],
+      concept: 'tiny-a',
+    },
+    {
+      order: 2 as const,
+      sentence: 'A key identifies a ___.',
+      answers: ['row'],
+      distractors: ['page', 'file'],
+      concept: 'tiny-a',
+    },
+    {
+      order: 3 as const,
+      sentence: 'An index speeds up ___.',
+      answers: ['lookups'],
+      distractors: ['backups', 'logins'],
+      concept: 'tiny-b',
+    },
   ];
   const nodes: FixtureNode[] = [
     ...learner(ownerId, 'Fixture Owner').nodes,
@@ -80,7 +110,9 @@ function tinyPuzzle(
       },
     },
   ];
-  const edges: FixtureEdge[] = [{ type: 'OWNS', from: { label: 'Learner', key: ownerId }, to: puzzle }];
+  const edges: FixtureEdge[] = [
+    { type: 'OWNS', from: { label: 'Learner', key: ownerId }, to: puzzle },
+  ];
   for (const q of questions) {
     const ref = { label: 'Question' as const, key: fixtureIds.tinyQuestion(q.order) };
     nodes.push({

@@ -4,7 +4,10 @@ import { cfAccessHeaders } from './headers';
 export const HEALTH_TIMEOUT_MS = 2_000;
 export const HEALTH_CACHE_TTL_MS = 30_000;
 
-export type FetchLike = (url: string, init: { signal: AbortSignal; headers?: Record<string, string> }) => Promise<{ ok: boolean }>;
+export type FetchLike = (
+  url: string,
+  init: { signal: AbortSignal; headers?: Record<string, string> },
+) => Promise<{ ok: boolean }>;
 
 export interface OllamaHealthOptions {
   baseUrl: string;
@@ -36,7 +39,10 @@ export function createOllamaHealthCheck(options: OllamaHealthOptions): () => Pro
     timer.unref?.();
     let up = false;
     try {
-      const res = await doFetch(url, { signal: controller.signal, ...(headers ? { headers } : {}) });
+      const res = await doFetch(url, {
+        signal: controller.signal,
+        ...(headers ? { headers } : {}),
+      });
       up = res.ok;
     } catch {
       up = false;

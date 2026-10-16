@@ -17,8 +17,10 @@ export const CODE_REFUSED_MESSAGE = 'That code cannot be used.';
 /** What a redemption granted, one phrase per part that is non-zero or present. */
 export function grantedLines(granted: RedeemResult): string[] {
   const lines: string[] = [];
-  if (granted.sourceRuns > 0) lines.push(`+${granted.sourceRuns} ${granted.sourceRuns === 1 ? 'upload' : 'uploads'}`);
-  if (granted.promptRuns > 0) lines.push(`+${granted.promptRuns} prompt ${granted.promptRuns === 1 ? 'puzzle' : 'puzzles'}`);
+  if (granted.sourceRuns > 0)
+    lines.push(`+${granted.sourceRuns} ${granted.sourceRuns === 1 ? 'upload' : 'uploads'}`);
+  if (granted.promptRuns > 0)
+    lines.push(`+${granted.promptRuns} prompt ${granted.promptRuns === 1 ? 'puzzle' : 'puzzles'}`);
   if (granted.limitsLiftedUntil) {
     lines.push(`Hourly limit lifted until ${new Date(granted.limitsLiftedUntil).toLocaleString()}`);
   }
@@ -120,7 +122,9 @@ export function RedeemCodeForm({
           )}
         </div>
       )}
-      {error?.code === 'RATE_LIMITED' && <RateLimitNotice message={error.message} retryAt={error.retryAt} />}
+      {error?.code === 'RATE_LIMITED' && (
+        <RateLimitNotice message={error.message} retryAt={error.retryAt} />
+      )}
       {error && !refused && error.code !== 'RATE_LIMITED' && (
         <Alert variant="destructive">
           <AlertDescription>{describeError(error).message}</AlertDescription>

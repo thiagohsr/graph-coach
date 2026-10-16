@@ -28,5 +28,11 @@ export type GradedBlank = {
 };
 export type GradeResult = { score: number; maxScore: number; blanks: GradedBlank[] };
 export type MasteryState = { score: number; attempts: number };
-export type MasteryChange = { conceptId: string; name: string; before: number; after: number; attempts: number };
+export type MasteryChange = {
+  conceptId: string;
+  name: string;
+  before: number;
+  after: number;
+  attempts: number;
+};
 export type SubmissionIssue = { path: string; message: string };

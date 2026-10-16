@@ -7,7 +7,9 @@ import { keys } from '~/lib/query/keys';
 import { navigateMock } from '~/test/router-mock';
 import { createTestQueryClient } from '~/test/render';
 
-vi.mock('@tanstack/react-router', async (orig) => (await import('~/test/router-mock')).routerMock(await orig()));
+vi.mock('@tanstack/react-router', async (orig) =>
+  (await import('~/test/router-mock')).routerMock(await orig()),
+);
 
 const createSession = vi.fn();
 const submitSession = vi.fn();
@@ -22,7 +24,8 @@ import { useSubmitSession } from './use-submit-session';
 
 function setup() {
   const queryClient = createTestQueryClient();
-  const wrapper = ({ children }: { children: ReactNode }) => createElement(QueryClientProvider, { client: queryClient }, children);
+  const wrapper = ({ children }: { children: ReactNode }) =>
+    createElement(QueryClientProvider, { client: queryClient }, children);
   const hook = renderHook(
     () => {
       const [state, dispatch] = useReducer(boardReducer, playPuzzle, createInitialState);
@@ -30,11 +33,14 @@ function setup() {
     },
     { wrapper },
   );
-  act(() => hook.result.current.dispatch({ type: 'PLACE', wordId: 'w2', slotId: 'q-1:0', via: 'pointer' }));
+  act(() =>
+    hook.result.current.dispatch({ type: 'PLACE', wordId: 'w2', slotId: 'q-1:0', via: 'pointer' }),
+  );
   return { ...hook, queryClient };
 }
 
-const network = () => new ApiClientError({ status: 0, code: 'NETWORK', message: 'Service unavailable.' });
+const network = () =>
+  new ApiClientError({ status: 0, code: 'NETWORK', message: 'Service unavailable.' });
 
 beforeEach(() => {
   createSession.mockReset().mockResolvedValue({ sessionId: 's-1' });
@@ -54,7 +60,11 @@ describe('useSubmitSession', () => {
         { questionId: 'q-2', blank: 0, word: null },
       ],
     });
-    expect(navigateMock).toHaveBeenCalledWith({ to: '/sessions/$sessionId/result', params: { sessionId: 's-1' }, replace: true });
+    expect(navigateMock).toHaveBeenCalledWith({
+      to: '/sessions/$sessionId/result',
+      params: { sessionId: 's-1' },
+      replace: true,
+    });
   });
 
   it('seeds sessions.result, invalidates mastery, and removes coach.latest', async () => {
@@ -92,22 +102,36 @@ describe('useSubmitSession', () => {
   });
 
   it('goes to the result on a 409 SESSION_ALREADY_SUBMITTED', async () => {
-    submitSession.mockRejectedValueOnce(new ApiClientError({ status: 409, code: 'SESSION_ALREADY_SUBMITTED', message: 'done' }));
+    submitSession.mockRejectedValueOnce(
+      new ApiClientError({ status: 409, code: 'SESSION_ALREADY_SUBMITTED', message: 'done' }),
+    );
     const { result } = setup();
     await act(() => result.current.submit());
-    expect(navigateMock).toHaveBeenCalledWith({ to: '/sessions/$sessionId/result', params: { sessionId: 's-1' }, replace: true });
+    expect(navigateMock).toHaveBeenCalledWith({
+      to: '/sessions/$sessionId/result',
+      params: { sessionId: 's-1' },
+      replace: true,
+    });
     expect(result.current.state.status).not.toBe('submit_failed');
   });
 
   it('reports not found on a 404', async () => {
-    submitSession.mockRejectedValueOnce(new ApiClientError({ status: 404, code: 'NOT_FOUND', message: 'gone' }));
+    submitSession.mockRejectedValueOnce(
+      new ApiClientError({ status: 404, code: 'NOT_FOUND', message: 'gone' }),
+    );
     const { result } = setup();
     await act(() => result.current.submit());
     expect(result.current.notFound).toBe(true);
   });
 
   it('shows a 422 as a failure and keeps the placements', async () => {
-    submitSession.mockRejectedValueOnce(new ApiClientError({ status: 422, code: 'VALIDATION_FAILED', message: 'Answers do not match the puzzle' }));
+    submitSession.mockRejectedValueOnce(
+      new ApiClientError({
+        status: 422,
+        code: 'VALIDATION_FAILED',
+        message: 'Answers do not match the puzzle',
+      }),
+    );
     const { result } = setup();
     await act(() => result.current.submit());
     expect(result.current.state.status).toBe('submit_failed');

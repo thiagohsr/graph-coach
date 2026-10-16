@@ -20,7 +20,12 @@ export function createFindPuzzlesNode(deps: Pick<CoachDeps, 'queries' | 'setting
     const missing = async (): Promise<string[]> => {
       const targetIds = state.goal?.targetIds ?? [];
       if (targetIds.length === 0) return [];
-      const rows = await queries.playablePuzzlesCovering({ userId, targetIds, recentSince, limit: ANSWER_ROWS_LIMIT });
+      const rows = await queries.playablePuzzlesCovering({
+        userId,
+        targetIds,
+        recentSince,
+        limit: ANSWER_ROWS_LIMIT,
+      });
       const covered = new Set(rows.flatMap((row) => row.coveredTargetIds));
       return targetIds.filter((id) => !covered.has(id));
     };
@@ -52,7 +57,12 @@ export function createFindPuzzlesNode(deps: Pick<CoachDeps, 'queries' | 'setting
       };
       flags.push('cold_start');
       if (row.playedRecently) flags.push('repeat');
-      return { selection, puzzle: choiceFromIntro(row, true), flags, missingConceptIds: await missing() };
+      return {
+        selection,
+        puzzle: choiceFromIntro(row, true),
+        flags,
+        missingConceptIds: await missing(),
+      };
     }
 
     const selection = state.selection;
@@ -89,5 +99,10 @@ export function createFindPuzzlesNode(deps: Pick<CoachDeps, 'queries' | 'setting
 }
 
 function choiceFromIntro(row: IntroPuzzleRow, coversTarget: boolean): PuzzleChoice {
-  return { puzzleId: row.puzzleId, name: row.name, coversTarget, playedRecently: row.playedRecently };
+  return {
+    puzzleId: row.puzzleId,
+    name: row.name,
+    coversTarget,
+    playedRecently: row.playedRecently,
+  };
 }

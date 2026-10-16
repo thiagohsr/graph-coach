@@ -30,7 +30,9 @@ describe('LoginOptions (provider mode)', () => {
   it('error=unverified shows the verification message with Sign out and no sign-in options', async () => {
     const onSignOut = vi.fn();
     render(<LoginOptions redirect="/puzzles" error="unverified" onSignOut={onSignOut} />);
-    expect(screen.getByRole('alert')).toHaveTextContent('Your e-mail address must be verified before you can use the site.');
+    expect(screen.getByRole('alert')).toHaveTextContent(
+      'Your e-mail address must be verified before you can use the site.',
+    );
     expect(screen.queryByRole('link', { name: 'Continue with Google' })).toBeNull();
     expect(screen.queryByRole('link', { name: 'Continue with e-mail' })).toBeNull();
     await userEvent.click(screen.getByRole('button', { name: 'Sign out' }));

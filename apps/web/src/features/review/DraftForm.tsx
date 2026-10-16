@@ -31,7 +31,9 @@ export interface DraftFormProps {
   onReject: () => void;
 }
 
-const merge = (...lists: (string[] | undefined)[]): string[] => [...new Set(lists.flatMap((l) => l ?? []))];
+const merge = (...lists: (string[] | undefined)[]): string[] => [
+  ...new Set(lists.flatMap((l) => l ?? [])),
+];
 
 function FieldErrors({ id, messages }: { id: string; messages: string[] }) {
   return (
@@ -93,7 +95,13 @@ function ListField({
         </div>
       ))}
       <div>
-        <Button type="button" variant="outline" size="sm" disabled={disabled} onClick={() => onChange([...values, ''])}>
+        <Button
+          type="button"
+          variant="outline"
+          size="sm"
+          disabled={disabled}
+          onClick={() => onChange([...values, ''])}
+        >
           {`Add ${singular.toLowerCase()}`}
         </Button>
       </div>
@@ -102,7 +110,16 @@ function ListField({
 }
 
 /** The open draft: editable sentence, answers, distractors; read-only concepts; live checks from the shared validator. */
-export function DraftForm({ draft, serverIssues = noIssues(), busy = false, savedNotice, onEdit, onSave, onApprove, onReject }: DraftFormProps) {
+export function DraftForm({
+  draft,
+  serverIssues = noIssues(),
+  busy = false,
+  savedNotice,
+  onEdit,
+  onSave,
+  onApprove,
+  onReject,
+}: DraftFormProps) {
   const form = useForm({ defaultValues: formDefaults(draft) });
   const values = useStore(form.store, (s) => s.values) as DraftFormValues;
 
@@ -111,7 +128,8 @@ export function DraftForm({ draft, serverIssues = noIssues(), busy = false, save
   const changes = changedFields(values, draft);
   const dirty = Object.keys(changes).length > 0;
 
-  const messages = (field: DraftField) => merge(clientIssues.fields[field], serverIssues.fields[field]);
+  const messages = (field: DraftField) =>
+    merge(clientIssues.fields[field], serverIssues.fields[field]);
   const blanks = blankCount(values.sentence);
   const answers = values.answers.length;
 
@@ -229,7 +247,12 @@ export function DraftForm({ draft, serverIssues = noIssues(), busy = false, save
         </div>
 
         <div className="flex flex-wrap gap-2">
-          <Button type="button" variant="outline" disabled={busy || blocked || !dirty} onClick={() => onSave(changes)}>
+          <Button
+            type="button"
+            variant="outline"
+            disabled={busy || blocked || !dirty}
+            onClick={() => onSave(changes)}
+          >
             Save
           </Button>
           <Button type="button" disabled={busy || blocked} onClick={() => onApprove(changes)}>

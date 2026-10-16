@@ -15,8 +15,19 @@ const alertVariants = cva('relative w-full rounded-md border px-4 py-3 text-sm',
   defaultVariants: { variant: 'default' },
 });
 
-function Alert({ className, variant, ...props }: React.ComponentProps<'div'> & VariantProps<typeof alertVariants>) {
-  return <div data-slot="alert" role="alert" className={cn(alertVariants({ variant }), className)} {...props} />;
+function Alert({
+  className,
+  variant,
+  ...props
+}: React.ComponentProps<'div'> & VariantProps<typeof alertVariants>) {
+  return (
+    <div
+      data-slot="alert"
+      role="alert"
+      className={cn(alertVariants({ variant }), className)}
+      {...props}
+    />
+  );
 }
 
 function AlertTitle({ className, ...props }: React.ComponentProps<'div'>) {
@@ -24,7 +35,13 @@ function AlertTitle({ className, ...props }: React.ComponentProps<'div'>) {
 }
 
 function AlertDescription({ className, ...props }: React.ComponentProps<'div'>) {
-  return <div data-slot="alert-description" className={cn('text-sm [&_p]:leading-relaxed', className)} {...props} />;
+  return (
+    <div
+      data-slot="alert-description"
+      className={cn('text-sm [&_p]:leading-relaxed', className)}
+      {...props}
+    />
+  );
 }
 
 export { Alert, AlertDescription, AlertTitle };

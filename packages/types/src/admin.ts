@@ -3,7 +3,8 @@ import { ValidationDetails } from './errors';
 
 // Admin kit shapes (the design documents section 5, contracts/admin-api.md).
 
-export type JsonValue = string | number | boolean | null | JsonValue[] | { [key: string]: JsonValue };
+export type JsonValue =
+  string | number | boolean | null | JsonValue[] | { [key: string]: JsonValue };
 export const JsonValue: z.ZodType<JsonValue> = z.lazy(() =>
   z.union([z.string(), z.number(), z.boolean(), z.null(), z.array(JsonValue), z.record(JsonValue)]),
 );
@@ -105,7 +106,12 @@ export const AdminLink = z.discriminatedUnion('kind', [
     items: z.array(z.object({ id: z.string(), title: z.string() })),
     truncated: z.boolean(),
   }),
-  z.object({ kind: z.literal('count'), name: z.string(), label: z.string(), count: z.number().int() }),
+  z.object({
+    kind: z.literal('count'),
+    name: z.string(),
+    label: z.string(),
+    count: z.number().int(),
+  }),
   z.object({ kind: z.literal('route'), name: z.string(), label: z.string(), href: z.string() }),
 ]);
 export type AdminLink = z.infer<typeof AdminLink>;
@@ -141,7 +147,9 @@ export type AdminIssueCode = z.infer<typeof AdminIssueCode>;
 
 /** 422 details: the shared ValidationDetails issue shape with the field code filled in. */
 export const AdminValidationDetails = z.object({
-  issues: z.array(z.object({ path: z.string(), message: z.string(), code: AdminIssueCode.optional() })),
+  issues: z.array(
+    z.object({ path: z.string(), message: z.string(), code: AdminIssueCode.optional() }),
+  ),
   reasons: ValidationDetails.shape.reasons,
 });
 export type AdminValidationDetails = z.infer<typeof AdminValidationDetails>;

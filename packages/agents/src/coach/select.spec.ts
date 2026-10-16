@@ -46,10 +46,16 @@ describe('selectTarget, tier 1', () => {
   });
 
   it('a prerequisite below the threshold does not replace; one exactly at the threshold does', () => {
-    const below = selectTarget(tier1([weak('x', 0.9, { weakestPrereq: prereq('p', 0.4999) })]), settings)!;
+    const below = selectTarget(
+      tier1([weak('x', 0.9, { weakestPrereq: prereq('p', 0.4999) })]),
+      settings,
+    )!;
     expect(below.target.conceptId).toBe('x');
     expect(below.drivers).toEqual([]);
-    const at = selectTarget(tier1([weak('x', 0.9, { weakestPrereq: prereq('p', 0.5) })]), settings)!;
+    const at = selectTarget(
+      tier1([weak('x', 0.9, { weakestPrereq: prereq('p', 0.5) })]),
+      settings,
+    )!;
     expect(at.target.conceptId).toBe('p');
     expect(at.drivers.map((d) => d.conceptId)).toEqual(['x']);
   });
@@ -66,10 +72,7 @@ describe('selectTarget, tier 1', () => {
   });
 
   it('ranks groups by the highest member risk; the second becomes an alternative', () => {
-    const rows = [
-      weak('a', 0.9, { weakestPrereq: prereq('p', 1.5) }),
-      weak('lone', 1.1),
-    ];
+    const rows = [weak('a', 0.9, { weakestPrereq: prereq('p', 1.5) }), weak('lone', 1.1)];
     const selection = selectTarget(tier1(rows), settings)!;
     expect(selection.target.conceptId).toBe('lone');
     expect(selection.alternatives.map((a) => a.conceptId)).toEqual(['p']);
@@ -77,12 +80,21 @@ describe('selectTarget, tier 1', () => {
   });
 
   it('breaks ties by attempts, then name, then slug', () => {
-    const byAttempts = selectTarget(tier1([weak('a', 1, { attempts: 5 }), weak('b', 1, { attempts: 2 })]), settings)!;
+    const byAttempts = selectTarget(
+      tier1([weak('a', 1, { attempts: 5 }), weak('b', 1, { attempts: 2 })]),
+      settings,
+    )!;
     expect(byAttempts.target.conceptId).toBe('b');
-    const byName = selectTarget(tier1([weak('z', 1, { name: 'Beta' }), weak('y', 1, { name: 'Alpha' })]), settings)!;
+    const byName = selectTarget(
+      tier1([weak('z', 1, { name: 'Beta' }), weak('y', 1, { name: 'Alpha' })]),
+      settings,
+    )!;
     expect(byName.target.conceptId).toBe('y');
     const bySlug = selectTarget(
-      tier1([weak('z', 1, { name: 'Same', slug: 'zz' }), weak('y', 1, { name: 'Same', slug: 'aa' })]),
+      tier1([
+        weak('z', 1, { name: 'Same', slug: 'zz' }),
+        weak('y', 1, { name: 'Same', slug: 'aa' }),
+      ]),
       settings,
     )!;
     expect(bySlug.target.conceptId).toBe('y');
@@ -103,9 +115,16 @@ describe('selectTarget, tier 1', () => {
       weak('e', 0.7, { attempts: 1 }),
     ];
     const expected = JSON.stringify(selectTarget(tier1(rows), settings));
-    const shuffles = [[4, 2, 0, 3, 1], [1, 0, 4, 2, 3], [3, 4, 1, 0, 2], [2, 3, 4, 1, 0]];
+    const shuffles = [
+      [4, 2, 0, 3, 1],
+      [1, 0, 4, 2, 3],
+      [3, 4, 1, 0, 2],
+      [2, 3, 4, 1, 0],
+    ];
     for (const order of shuffles) {
-      expect(JSON.stringify(selectTarget(tier1(order.map((i) => rows[i]!)), settings))).toBe(expected);
+      expect(JSON.stringify(selectTarget(tier1(order.map((i) => rows[i]!)), settings))).toBe(
+        expected,
+      );
     }
   });
 
@@ -117,7 +136,11 @@ describe('selectTarget, tier 1', () => {
   });
 });
 
-const candidate = (id: string, kind: 'unseen' | 'decayed', over: Partial<DecayedRow> = {}): DecayedRow => ({
+const candidate = (
+  id: string,
+  kind: 'unseen' | 'decayed',
+  over: Partial<DecayedRow> = {},
+): DecayedRow => ({
   conceptId: id,
   slug: id,
   name: id.toUpperCase(),
@@ -133,16 +156,25 @@ const candidate = (id: string, kind: 'unseen' | 'decayed', over: Partial<Decayed
 
 describe('selectTarget, tiers 2 and 3', () => {
   it('tier 2 takes the first candidate and reports unseen or decayed', () => {
-    const unseen = selectTarget({ tier: 2, weak: [], other: [candidate('u', 'unseen'), candidate('d', 'decayed')] }, settings)!;
+    const unseen = selectTarget(
+      { tier: 2, weak: [], other: [candidate('u', 'unseen'), candidate('d', 'decayed')] },
+      settings,
+    )!;
     expect(unseen.kind).toBe('unseen');
     expect(unseen.target.conceptId).toBe('u');
-    const decayed = selectTarget({ tier: 2, weak: [], other: [candidate('d', 'decayed')] }, settings)!;
+    const decayed = selectTarget(
+      { tier: 2, weak: [], other: [candidate('d', 'decayed')] },
+      settings,
+    )!;
     expect(decayed.kind).toBe('decayed');
     expect(decayed.target.risk).toBe(0.9);
   });
 
   it('tier 3 reports all_mastered', () => {
-    const selection = selectTarget({ tier: 3, weak: [], other: [candidate('d', 'decayed')] }, settings)!;
+    const selection = selectTarget(
+      { tier: 3, weak: [], other: [candidate('d', 'decayed')] },
+      settings,
+    )!;
     expect(selection.kind).toBe('all_mastered');
     expect(selection.drivers).toEqual([]);
   });
@@ -154,7 +186,9 @@ describe('selectTarget, tiers 2 and 3', () => {
       candidate('c', 'decayed'),
     ];
     expect(selectTarget({ tier: 2, weak: [], other: rows }, settings)!.target.conceptId).toBe('a');
-    expect(selectTarget({ tier: 2, weak: [], other: [...rows].reverse() }, settings)!.target.conceptId).toBe('a');
+    expect(
+      selectTarget({ tier: 2, weak: [], other: [...rows].reverse() }, settings)!.target.conceptId,
+    ).toBe('a');
     expect(selectTarget({ tier: 2, weak: [], other: [] }, settings)).toBeNull();
   });
 });

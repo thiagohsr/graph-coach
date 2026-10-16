@@ -11,7 +11,13 @@ describe('request logging', () => {
     const capture = (message: unknown) => {
       lines.push(String(message));
     };
-    Logger.overrideLogger({ log: capture, error: capture, warn: capture, debug: capture, verbose: capture });
+    Logger.overrideLogger({
+      log: capture,
+      error: capture,
+      warn: capture,
+      debug: capture,
+      verbose: capture,
+    });
   });
 
   afterAll(async () => {
@@ -21,7 +27,9 @@ describe('request logging', () => {
 
   it('logs method, path, status, and user id, and nothing from /auth bodies or tokens', async () => {
     const user = await t.createUser({ email: 'private-person@example.test' });
-    const login = await t.http.post('/auth/dev-login').send({ email: user.email, password: 'hunter2-hunter2' });
+    const login = await t.http
+      .post('/auth/dev-login')
+      .send({ email: user.email, password: 'hunter2-hunter2' });
     expect(login.status).toBe(200);
     const me = await t.http.get('/me/allowance').set(user.auth);
     expect(me.status).toBe(200);

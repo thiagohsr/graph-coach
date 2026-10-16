@@ -12,4 +12,13 @@ import { ReviewModule } from './review/review.module';
  * Feature modules of the API. Each subsystem adds one import and one array entry here
  * (contracts/internal-interfaces.md §5.7).
  */
-export const FEATURE_MODULES: Type[] = [AccountsModule, AllowanceModule, PuzzlesModule, GameplayModule, AdminModule, CoachModule, CuratorModule, ReviewModule];
+export const FEATURE_MODULES: Type[] = [
+  AccountsModule,
+  AllowanceModule,
+  PuzzlesModule,
+  GameplayModule,
+  AdminModule,
+  CoachModule,
+  CuratorModule,
+  ReviewModule,
+];

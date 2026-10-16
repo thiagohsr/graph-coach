@@ -25,7 +25,8 @@ const call = (verb: Verb, path: string, user: TestUser, body?: unknown) => {
   return body === undefined ? req : req.send(body as object);
 };
 const get = (path: string, user: TestUser = admin) => call('get', path, user);
-const patch = (path: string, body: unknown, user: TestUser = admin) => call('patch', path, user, body);
+const patch = (path: string, body: unknown, user: TestUser = admin) =>
+  call('patch', path, user, body);
 
 const field = (meta: AdminModelMeta, name: string): AdminFieldMeta => {
   const found = meta.fields.find((f) => f.name === name);
@@ -53,12 +54,20 @@ afterAll(async () => {
   await app?.close();
 });
 
-describeRoleMatrix(() => app, [
-  { method: 'GET', path: '/admin/models', allowed: ['admin'] },
-  { method: 'GET', path: '/admin/concept', allowed: ['admin'] },
-  { method: 'GET', path: '/admin/concept/ghost', allowed: ['admin'] },
-  { method: 'PATCH', path: '/admin/concept/ghost', body: { values: { name: 'X' } }, allowed: ['admin'] },
-]);
+describeRoleMatrix(
+  () => app,
+  [
+    { method: 'GET', path: '/admin/models', allowed: ['admin'] },
+    { method: 'GET', path: '/admin/concept', allowed: ['admin'] },
+    { method: 'GET', path: '/admin/concept/ghost', allowed: ['admin'] },
+    {
+      method: 'PATCH',
+      path: '/admin/concept/ghost',
+      body: { values: { name: 'X' } },
+      allowed: ['admin'],
+    },
+  ],
+);
 
 // ─── US1: models ─────────────────────────────────────────────────────────────
 
@@ -75,30 +84,68 @@ describe('GET /admin/models', () => {
   });
 
   it('lists exactly the eight models, sorted by group then label, without question or chunk', () => {
-    expect(models.map((m) => m.name).sort()).toEqual(
-      ['access-code', 'admin-setting', 'concept', 'decision', 'puzzle', 'source', 'task', 'user'],
-    );
+    expect(models.map((m) => m.name).sort()).toEqual([
+      'access-code',
+      'admin-setting',
+      'concept',
+      'decision',
+      'puzzle',
+      'source',
+      'task',
+      'user',
+    ]);
     const keys = models.map((m) => `${m.group}|${m.label}`);
     expect(keys).toEqual([...keys].sort((a, b) => a.localeCompare(b, 'en')));
-    expect(models.map((m) => m.group)).toEqual(['Accounts', 'Accounts', 'Accounts', 'Agents', 'Agents', 'Knowledge', 'Knowledge', 'Puzzles']);
+    expect(models.map((m) => m.group)).toEqual([
+      'Accounts',
+      'Accounts',
+      'Accounts',
+      'Agents',
+      'Agents',
+      'Knowledge',
+      'Knowledge',
+      'Puzzles',
+    ]);
   });
 
   it('marks source, puzzle, task, and decision read-only, and concept and the account models editable', () => {
-    for (const name of ['source', 'puzzle', 'task', 'decision']) expect(by(name).readOnly, name).toBe(true);
-    for (const name of ['user', 'concept', 'admin-setting', 'access-code']) expect(by(name).readOnly, name).toBe(false);
+    for (const name of ['source', 'puzzle', 'task', 'decision'])
+      expect(by(name).readOnly, name).toBe(true);
+    for (const name of ['user', 'concept', 'admin-setting', 'access-code'])
+      expect(by(name).readOnly, name).toBe(false);
     for (const name of ['source', 'puzzle', 'task', 'decision']) {
-      expect(by(name).fields.every((f) => f.readonly), name).toBe(true);
+      expect(
+        by(name).fields.every((f) => f.readonly),
+        name,
+      ).toBe(true);
     }
   });
 
   it('exposes none of the private names', () => {
     const lower = text.replace(/embeddingTokens|Embedding tokens/g, '').toLowerCase();
-    for (const forbidden of ['password', 'embedding', 'answers', 'distractors', 'fingerprint', 'cognito', 'code_hash', 'codehash']) {
+    for (const forbidden of [
+      'password',
+      'embedding',
+      'answers',
+      'distractors',
+      'fingerprint',
+      'cognito',
+      'code_hash',
+      'codehash',
+    ]) {
       expect(lower, forbidden).not.toContain(forbidden);
     }
     for (const m of models) {
       for (const f of m.fields) {
-        expect(['content', 'brief', 'outline', 'embedding', 'answers', 'distractors', 'password']).not.toContain(f.name);
+        expect([
+          'content',
+          'brief',
+          'outline',
+          'embedding',
+          'answers',
+          'distractors',
+          'password',
+        ]).not.toContain(f.name);
       }
     }
   });
@@ -106,7 +153,9 @@ describe('GET /admin/models', () => {
   it('shows no money: no field name or label mentions cost, price, or a currency', () => {
     for (const m of models) {
       for (const f of m.fields) {
-        expect(`${f.name} ${f.label}`, `${m.name}.${f.name}`).not.toMatch(/cost|price|dollar|\busd\b|\beur\b|[$€£]/i);
+        expect(`${f.name} ${f.label}`, `${m.name}.${f.name}`).not.toMatch(
+          /cost|price|dollar|\busd\b|\beur\b|[$€£]/i,
+        );
       }
     }
   });
@@ -115,17 +164,36 @@ describe('GET /admin/models', () => {
     const user = by('user');
     expect(field(user, 'email').readonly).toBe(true);
     expect(field(user, 'displayName').readonly).toBe(true);
-    expect(field(user, 'role')).toMatchObject({ readonly: false, type: 'enum', choices: ['learner', 'reviewer', 'admin'] });
+    expect(field(user, 'role')).toMatchObject({
+      readonly: false,
+      type: 'enum',
+      choices: ['learner', 'reviewer', 'admin'],
+    });
     expect(field(user, 'status').quickActions).toEqual([
       { value: 'blocked', label: 'Block' },
       { value: 'active', label: 'Unblock' },
     ]);
     for (const name of ['bonusSourceRuns', 'bonusPromptRuns']) {
-      expect(field(user, name), name).toMatchObject({ type: 'integer', readonly: false, min: 0, max: 1000, required: true });
+      expect(field(user, name), name).toMatchObject({
+        type: 'integer',
+        readonly: false,
+        min: 0,
+        max: 1000,
+        required: true,
+      });
     }
     expect(field(user, 'limitsLiftedUntil').readonly).toBe(true);
-    for (const name of ['uploadsThisMonth', 'promptsThisMonth', 'creationsLastHour', 'tokensThisMonth']) {
-      expect(field(user, name), name).toMatchObject({ computed: true, readonly: true, type: 'integer' });
+    for (const name of [
+      'uploadsThisMonth',
+      'promptsThisMonth',
+      'creationsLastHour',
+      'tokensThisMonth',
+    ]) {
+      expect(field(user, name), name).toMatchObject({
+        computed: true,
+        readonly: true,
+        type: 'integer',
+      });
     }
     expect(field(user, 'tokensThisMonth').label).toBe('Tokens this month');
   });
@@ -133,13 +201,18 @@ describe('GET /admin/models', () => {
   it('task and decision show usage as read-only integers', () => {
     for (const name of ['task', 'decision']) {
       for (const f of ['modelCalls', 'inputTokens', 'outputTokens', 'embeddingTokens']) {
-        expect(field(by(name), f), `${name}.${f}`).toMatchObject({ type: 'integer', readonly: true });
+        expect(field(by(name), f), `${name}.${f}`).toMatchObject({
+          type: 'integer',
+          readonly: true,
+        });
       }
     }
   });
 
   it('access-code has only disabled editable; source and puzzle show their kind and origin', () => {
-    const editable = by('access-code').fields.filter((f) => !f.readonly).map((f) => f.name);
+    const editable = by('access-code')
+      .fields.filter((f) => !f.readonly)
+      .map((f) => f.name);
     expect(editable).toEqual(['disabled']);
     expect(field(by('source'), 'kind').choices).toContain('prompt');
     expect(field(by('puzzle'), 'origin').choices).toEqual(['seed', 'upload', 'prompt']);
@@ -167,24 +240,72 @@ describe('browse', () => {
       });
     }
     nodes.push(
-      { label: 'Concept', key: 'concept-bin', props: { slug: 'binary-tree', name: 'Binary tree', createdAt: now } },
-      { label: 'Concept', key: 'concept-red', props: { slug: 'red-black', name: 'Red-black Tree', description: 'Balanced', createdAt: now } },
+      {
+        label: 'Concept',
+        key: 'concept-bin',
+        props: { slug: 'binary-tree', name: 'Binary tree', createdAt: now },
+      },
+      {
+        label: 'Concept',
+        key: 'concept-red',
+        props: {
+          slug: 'red-black',
+          name: 'Red-black Tree',
+          description: 'Balanced',
+          createdAt: now,
+        },
+      },
     );
     target = await app.createUser({ name: 'Quirky Person', email: 'searchable-xyz@example.test' });
     uploaderId = (await app.createUser({ name: 'Uploader' })).id;
     app.clock.advance(0);
     nodes.push(
-      { label: 'Source', key: 'src-upload', props: { title: 'Upload notes', kind: 'text', fingerprint: 'fp-1', content: SECRET_SOURCE_TEXT, createdAt: recent() } },
-      { label: 'Source', key: 'src-prompt', props: { title: 'Prompt brief', kind: 'prompt', brief: SECRET_BRIEF, outline: SECRET_OUTLINE, createdAt: recent(30_000) } },
+      {
+        label: 'Source',
+        key: 'src-upload',
+        props: {
+          title: 'Upload notes',
+          kind: 'text',
+          fingerprint: 'fp-1',
+          content: SECRET_SOURCE_TEXT,
+          createdAt: recent(),
+        },
+      },
+      {
+        label: 'Source',
+        key: 'src-prompt',
+        props: {
+          title: 'Prompt brief',
+          kind: 'prompt',
+          brief: SECRET_BRIEF,
+          outline: SECRET_OUTLINE,
+          createdAt: recent(30_000),
+        },
+      },
       {
         label: 'Puzzle',
         key: 'pz-1',
-        props: { name: 'Fixture puzzle', origin: 'upload', status: 'published', visibility: 'private', distractors: [DISTRACTOR], createdAt: now },
+        props: {
+          name: 'Fixture puzzle',
+          origin: 'upload',
+          status: 'published',
+          visibility: 'private',
+          distractors: [DISTRACTOR],
+          createdAt: now,
+        },
       },
     );
     const edges: FixtureEdge[] = [
-      { type: 'OWNS', from: { label: 'Learner', key: uploaderId }, to: { label: 'Source', key: 'src-upload' } },
-      { type: 'OWNS', from: { label: 'Learner', key: uploaderId }, to: { label: 'Source', key: 'src-prompt' } },
+      {
+        type: 'OWNS',
+        from: { label: 'Learner', key: uploaderId },
+        to: { label: 'Source', key: 'src-upload' },
+      },
+      {
+        type: 'OWNS',
+        from: { label: 'Learner', key: uploaderId },
+        to: { label: 'Source', key: 'src-prompt' },
+      },
     ];
     await app.testGraph.load({ nodes, edges });
   });
@@ -204,7 +325,9 @@ describe('browse', () => {
     });
 
     it('pages: page=2&pageSize=10 holds the right slice', async () => {
-      const all = (AdminListResponse.parse((await get('/admin/concept?pageSize=100')).body)).items.map((i) => i.id);
+      const all = AdminListResponse.parse(
+        (await get('/admin/concept?pageSize=100')).body,
+      ).items.map((i) => i.id);
       expect(all).toHaveLength(32);
       const page2 = AdminListResponse.parse((await get('/admin/concept?page=2&pageSize=10')).body);
       expect(page2.items.map((i) => i.id)).toEqual(all.slice(10, 20));
@@ -226,20 +349,33 @@ describe('browse', () => {
       ['pageSize=0', 'pageSize'],
       ['page=1000&pageSize=100', 'page'],
       [`search=${'x'.repeat(101)}`, 'search'],
-    ])('%s is 422 VALIDATION_FAILED with the parameter name in the issue path', async (query, path) => {
-      const res = await get(`/admin/concept?${query}`);
-      expect(res.status).toBe(422);
-      expect(res.body.error.code).toBe('VALIDATION_FAILED');
-      expect(res.body.error.details.issues.map((i: { path: string }) => i.path)).toContain(path);
-    });
+    ])(
+      '%s is 422 VALIDATION_FAILED with the parameter name in the issue path',
+      async (query, path) => {
+        const res = await get(`/admin/concept?${query}`);
+        expect(res.status).toBe(422);
+        expect(res.body.error.code).toBe('VALIDATION_FAILED');
+        expect(res.body.error.details.issues.map((i: { path: string }) => i.path)).toContain(path);
+      },
+    );
 
     it('search finds a case-insensitive substring in name, slug, and description', async () => {
       const list = AdminListResponse.parse((await get('/admin/concept?search=tree')).body);
-      expect(list.items.map((i) => i.id).sort()).toEqual(['concept-05', 'concept-bin', 'concept-red']);
+      expect(list.items.map((i) => i.id).sort()).toEqual([
+        'concept-05',
+        'concept-bin',
+        'concept-red',
+      ]);
       expect(list.total).toBe(3);
-      expect(AdminListResponse.parse((await get('/admin/concept?search=%20%20BINARY%20')).body).total).toBe(1);
-      expect(AdminListResponse.parse((await get('/admin/concept?search=%20%20')).body).total).toBe(32);
-      expect(AdminListResponse.parse((await get('/admin/concept?search=nothing-matches-this')).body)).toMatchObject({ items: [], total: 0 });
+      expect(
+        AdminListResponse.parse((await get('/admin/concept?search=%20%20BINARY%20')).body).total,
+      ).toBe(1);
+      expect(AdminListResponse.parse((await get('/admin/concept?search=%20%20')).body).total).toBe(
+        32,
+      );
+      expect(
+        AdminListResponse.parse((await get('/admin/concept?search=nothing-matches-this')).body),
+      ).toMatchObject({ items: [], total: 0 });
     });
 
     it('a hostile search term matches nothing and breaks nothing', async () => {
@@ -258,7 +394,13 @@ describe('browse', () => {
       expect(res.status).toBe(200);
       const list = AdminListResponse.parse(res.body);
       const item = list.items.find((i) => i.id === target.id)!;
-      expect(Object.keys(item.values).sort()).toEqual(['createdAt', 'displayName', 'email', 'role', 'status']);
+      expect(Object.keys(item.values).sort()).toEqual([
+        'createdAt',
+        'displayName',
+        'email',
+        'role',
+        'status',
+      ]);
       expect(item.title).toBe(target.email);
       expect(item.values.createdAt).toMatch(ISO);
       expect(JSON.stringify(res.body).toLowerCase()).not.toContain('cognito');
@@ -267,7 +409,9 @@ describe('browse', () => {
     });
 
     it('searches by part of the e-mail address and by part of the display name', async () => {
-      const byEmail = AdminListResponse.parse((await get('/admin/user?search=SEARCHABLE-xyz')).body);
+      const byEmail = AdminListResponse.parse(
+        (await get('/admin/user?search=SEARCHABLE-xyz')).body,
+      );
       expect(byEmail.items.map((i) => i.id)).toEqual([target.id]);
       const byName = AdminListResponse.parse((await get('/admin/user?search=quirky')).body);
       expect(byName.items.map((i) => i.id)).toEqual([target.id]);
@@ -299,7 +443,11 @@ describe('browse', () => {
 
     it('counts one upload, one prompt creation, and both in the last hour', async () => {
       const detail = AdminDetailResponse.parse((await get(`/admin/user/${uploaderId}`)).body);
-      expect(detail.record.values).toMatchObject({ uploadsThisMonth: 1, promptsThisMonth: 1, creationsLastHour: 2 });
+      expect(detail.record.values).toMatchObject({
+        uploadsThisMonth: 1,
+        promptsThisMonth: 1,
+        creationsLastHour: 2,
+      });
     });
   });
 
@@ -307,7 +455,13 @@ describe('browse', () => {
     it('concept returns every declared field', async () => {
       const detail = AdminDetailResponse.parse((await get('/admin/concept/concept-05')).body);
       expect(detail.record).toMatchObject({ id: 'concept-05', title: 'Concept 05' });
-      expect(Object.keys(detail.record.values).sort()).toEqual(['createdAt', 'description', 'id', 'name', 'slug']);
+      expect(Object.keys(detail.record.values).sort()).toEqual([
+        'createdAt',
+        'description',
+        'id',
+        'name',
+        'slug',
+      ]);
       expect(detail.record.values.description).toBe('Contains a TREE inside');
       expect(detail.actions).toEqual([]);
     });
@@ -316,9 +470,15 @@ describe('browse', () => {
       for (const id of ['src-upload', 'src-prompt']) {
         const res = await get(`/admin/source/${id}`);
         expect(res.status).toBe(200);
-        expect(Object.keys(res.body.record.values).sort()).toEqual(['createdAt', 'id', 'kind', 'title']);
+        expect(Object.keys(res.body.record.values).sort()).toEqual([
+          'createdAt',
+          'id',
+          'kind',
+          'title',
+        ]);
         const text = JSON.stringify(res.body);
-        for (const secret of [SECRET_SOURCE_TEXT, SECRET_BRIEF, SECRET_OUTLINE, 'fp-1']) expect(text).not.toContain(secret);
+        for (const secret of [SECRET_SOURCE_TEXT, SECRET_BRIEF, SECRET_OUTLINE, 'fp-1'])
+          expect(text).not.toContain(secret);
       }
       expect((await get('/admin/source/src-prompt')).body.record.values.kind).toBe('prompt');
     });
@@ -326,7 +486,14 @@ describe('browse', () => {
     it('puzzle returns exactly id, name, origin, status, visibility, createdAt', async () => {
       const res = await get('/admin/puzzle/pz-1');
       expect(res.status).toBe(200);
-      expect(Object.keys(res.body.record.values).sort()).toEqual(['createdAt', 'id', 'name', 'origin', 'status', 'visibility']);
+      expect(Object.keys(res.body.record.values).sort()).toEqual([
+        'createdAt',
+        'id',
+        'name',
+        'origin',
+        'status',
+        'visibility',
+      ]);
       expect(JSON.stringify(res.body)).not.toContain(DISTRACTOR);
     });
 
@@ -342,9 +509,28 @@ describe('browse', () => {
       expect(res.status).toBe(200);
       const item = AdminListResponse.parse(res.body).items.find((i) => i.id === meta.id)!;
       expect(Object.keys(item.values).sort()).toEqual(
-        ['createdAt', 'disabled', 'expiresAt', 'liftDays', 'maxRedemptions', 'promptRuns', 'redeemedCount', 'sourceRuns', 'label'].sort(),
+        [
+          'createdAt',
+          'disabled',
+          'expiresAt',
+          'liftDays',
+          'maxRedemptions',
+          'promptRuns',
+          'redeemedCount',
+          'sourceRuns',
+          'label',
+        ].sort(),
       );
-      expect(item.values).toMatchObject({ label: 'Spring promo', sourceRuns: 2, promptRuns: 1, liftDays: 3, maxRedemptions: 10, redeemedCount: 0, disabled: false, expiresAt: null });
+      expect(item.values).toMatchObject({
+        label: 'Spring promo',
+        sourceRuns: 2,
+        promptRuns: 1,
+        liftDays: 3,
+        maxRedemptions: 10,
+        redeemedCount: 0,
+        disabled: false,
+        expiresAt: null,
+      });
       const detail = await get(`/admin/access-code/${meta.id}`);
       expect(Object.keys(detail.body.record.values)).toHaveLength(10);
       const text = JSON.stringify([res.body, detail.body]).toLowerCase();
@@ -358,7 +544,9 @@ describe('browse', () => {
       expect(keys).toEqual([...keys].sort());
       expect(keys).toContain('creationEnabled');
       expect(keys).not.toContain('embeddingDim');
-      const detail = AdminDetailResponse.parse((await get('/admin/admin-setting/creationEnabled')).body);
+      const detail = AdminDetailResponse.parse(
+        (await get('/admin/admin-setting/creationEnabled')).body,
+      );
       expect(detail.record.values).toMatchObject({ key: 'creationEnabled', value: true });
       expect(detail.record.values.updatedAt).toMatch(ISO);
     });
@@ -389,19 +577,50 @@ describe('browse', () => {
 // ─── US3: edit ───────────────────────────────────────────────────────────────
 
 describe('PATCH', () => {
-  const issuesOf = (res: { body: { error: { details: { issues: { path: string; code: string; message: string }[] } } } }) =>
-    res.body.error.details.issues;
+  const issuesOf = (res: {
+    body: { error: { details: { issues: { path: string; code: string; message: string }[] } } };
+  }) => res.body.error.details.issues;
 
   beforeAll(async () => {
     await app.testGraph.load({
       nodes: [
-        { label: 'Concept', key: 'edit-1', props: { slug: 'edit-one', name: 'Edit one', description: 'Original', createdAt: now } },
         {
-          label: 'Source', key: 'ro-source', props: { title: 'Read only', kind: 'text', content: 'x', fingerprint: 'fp-ro', createdAt: now },
+          label: 'Concept',
+          key: 'edit-1',
+          props: { slug: 'edit-one', name: 'Edit one', description: 'Original', createdAt: now },
         },
-        { label: 'Puzzle', key: 'ro-puzzle', props: { name: 'Read only puzzle', origin: 'seed', status: 'published', visibility: 'public', createdAt: now } },
-        { label: 'Task', key: 'ro-task', props: { kind: 'ingest', status: 'done', createdAt: now } },
-        { label: 'Decision', key: 'ro-decision', props: { kind: 'recommendation', summary: 'Read only', flags: [], createdAt: now } },
+        {
+          label: 'Source',
+          key: 'ro-source',
+          props: {
+            title: 'Read only',
+            kind: 'text',
+            content: 'x',
+            fingerprint: 'fp-ro',
+            createdAt: now,
+          },
+        },
+        {
+          label: 'Puzzle',
+          key: 'ro-puzzle',
+          props: {
+            name: 'Read only puzzle',
+            origin: 'seed',
+            status: 'published',
+            visibility: 'public',
+            createdAt: now,
+          },
+        },
+        {
+          label: 'Task',
+          key: 'ro-task',
+          props: { kind: 'ingest', status: 'done', createdAt: now },
+        },
+        {
+          label: 'Decision',
+          key: 'ro-decision',
+          props: { kind: 'recommendation', summary: 'Read only', flags: [], createdAt: now },
+        },
       ],
       edges: [],
     });
@@ -411,8 +630,14 @@ describe('PATCH', () => {
     it('updates the name and a following GET shows it', async () => {
       const res = await patch('/admin/concept/edit-1', { values: { name: 'Edit one, renamed' } });
       expect(res.status).toBe(200);
-      expect(res.body.record.values).toMatchObject({ name: 'Edit one, renamed', slug: 'edit-one', description: 'Original' });
-      expect((await get('/admin/concept/edit-1')).body.record.values.name).toBe('Edit one, renamed');
+      expect(res.body.record.values).toMatchObject({
+        name: 'Edit one, renamed',
+        slug: 'edit-one',
+        description: 'Original',
+      });
+      expect((await get('/admin/concept/edit-1')).body.record.values.name).toBe(
+        'Edit one, renamed',
+      );
     });
 
     it('clears the description with null', async () => {
@@ -425,31 +650,53 @@ describe('PATCH', () => {
       const res = await patch('/admin/concept/edit-1', { values: { slug: 'hacked' } });
       expect(res.status).toBe(422);
       expect(res.body.error.code).toBe('VALIDATION_FAILED');
-      expect(issuesOf(res)).toEqual([{ path: 'values.slug', message: expect.any(String), code: 'read_only' }]);
+      expect(issuesOf(res)).toEqual([
+        { path: 'values.slug', message: expect.any(String), code: 'read_only' },
+      ]);
       expect((await get('/admin/concept/edit-1')).body.record.values.slug).toBe('edit-one');
     });
 
     it('an undeclared key is unknown_field; a mixed body writes nothing', async () => {
       const unknown = await patch('/admin/concept/edit-1', { values: { colour: 'red' } });
       expect(issuesOf(unknown)).toMatchObject([{ path: 'values.colour', code: 'unknown_field' }]);
-      const mixed = await patch('/admin/concept/edit-1', { values: { name: 'Should not be written', id: 'x', colour: 1, name2: 2 } });
+      const mixed = await patch('/admin/concept/edit-1', {
+        values: { name: 'Should not be written', id: 'x', colour: 1, name2: 2 },
+      });
       expect(mixed.status).toBe(422);
-      expect(issuesOf(mixed).map((i) => i.code).sort()).toEqual(['read_only', 'unknown_field', 'unknown_field']);
-      expect((await get('/admin/concept/edit-1')).body.record.values.name).toBe('Edit one, renamed');
+      expect(
+        issuesOf(mixed)
+          .map((i) => i.code)
+          .sort(),
+      ).toEqual(['read_only', 'unknown_field', 'unknown_field']);
+      expect((await get('/admin/concept/edit-1')).body.record.values.name).toBe(
+        'Edit one, renamed',
+      );
     });
 
     it('rejects an empty name (required), a name that is too long, and a wrong type', async () => {
-      expect(issuesOf(await patch('/admin/concept/edit-1', { values: { name: '' } }))[0]!.code).toBe('required');
-      expect(issuesOf(await patch('/admin/concept/edit-1', { values: { name: null } }))[0]!.code).toBe('required');
-      expect(issuesOf(await patch('/admin/concept/edit-1', { values: { name: 'n'.repeat(201) } }))[0]!.code).toBe('too_long');
-      expect(issuesOf(await patch('/admin/concept/edit-1', { values: { name: 5 } }))[0]!.code).toBe('invalid_type');
+      expect(
+        issuesOf(await patch('/admin/concept/edit-1', { values: { name: '' } }))[0]!.code,
+      ).toBe('required');
+      expect(
+        issuesOf(await patch('/admin/concept/edit-1', { values: { name: null } }))[0]!.code,
+      ).toBe('required');
+      expect(
+        issuesOf(await patch('/admin/concept/edit-1', { values: { name: 'n'.repeat(201) } }))[0]!
+          .code,
+      ).toBe('too_long');
+      expect(issuesOf(await patch('/admin/concept/edit-1', { values: { name: 5 } }))[0]!.code).toBe(
+        'invalid_type',
+      );
     });
 
-    it.each([{}, { values: {} }, { values: [] }, { values: 'x' }, { values: null }])('body %j is 422 at path values', async (body) => {
-      const res = await patch('/admin/concept/edit-1', body);
-      expect(res.status).toBe(422);
-      expect(issuesOf(res)[0]!.path).toBe('values');
-    });
+    it.each([{}, { values: {} }, { values: [] }, { values: 'x' }, { values: null }])(
+      'body %j is 422 at path values',
+      async (body) => {
+        const res = await patch('/admin/concept/edit-1', body);
+        expect(res.status).toBe(422);
+        expect(issuesOf(res)[0]!.path).toBe('values');
+      },
+    );
 
     it('a hostile value is stored as data', async () => {
       const value = "'}) DETACH DELETE n //";
@@ -511,57 +758,108 @@ describe('PATCH', () => {
       const detail = AdminDetailResponse.parse((await get(`/admin/user/${target.id}`)).body);
       expect(detail.actions).toEqual([{ field: 'status', value: 'active', label: 'Unblock' }]);
 
-      expect((await patch(`/admin/user/${target.id}`, { values: { status: 'active' } })).status).toBe(200);
+      expect(
+        (await patch(`/admin/user/${target.id}`, { values: { status: 'active' } })).status,
+      ).toBe(200);
       expect((await get('/auth/me', target)).status).toBe(200);
     });
 
     it('an admin cannot block themselves or remove their own admin role', async () => {
       const block = await patch(`/admin/user/${admin.id}`, { values: { status: 'blocked' } });
       expect(block.status).toBe(422);
-      expect(issuesOf(block)[0]).toMatchObject({ path: 'values.status', code: 'rejected', message: 'You cannot block your own account' });
+      expect(issuesOf(block)[0]).toMatchObject({
+        path: 'values.status',
+        code: 'rejected',
+        message: 'You cannot block your own account',
+      });
       const demote = await patch(`/admin/user/${admin.id}`, { values: { role: 'learner' } });
       expect(demote.status).toBe(422);
-      expect(issuesOf(demote)[0]).toMatchObject({ path: 'values.role', code: 'rejected', message: 'You cannot remove your own admin role' });
-      expect((await get(`/admin/user/${admin.id}`)).body.record.values).toMatchObject({ role: 'admin', status: 'active' });
+      expect(issuesOf(demote)[0]).toMatchObject({
+        path: 'values.role',
+        code: 'rejected',
+        message: 'You cannot remove your own admin role',
+      });
+      expect((await get(`/admin/user/${admin.id}`)).body.record.values).toMatchObject({
+        role: 'admin',
+        status: 'active',
+      });
     });
 
     it('a refused status change writes none of the other fields', async () => {
-      const res = await patch(`/admin/user/${admin.id}`, { values: { status: 'blocked', bonusSourceRuns: 9 } });
+      const res = await patch(`/admin/user/${admin.id}`, {
+        values: { status: 'blocked', bonusSourceRuns: 9 },
+      });
       expect(res.status).toBe(422);
       expect((await get(`/admin/user/${admin.id}`)).body.record.values.bonusSourceRuns).toBe(0);
     });
 
     it('sets bonus runs, and bounds them 0 to 1000 as integers', async () => {
-      const res = await patch(`/admin/user/${target.id}`, { values: { bonusSourceRuns: 5, bonusPromptRuns: 2 } });
+      const res = await patch(`/admin/user/${target.id}`, {
+        values: { bonusSourceRuns: 5, bonusPromptRuns: 2 },
+      });
       expect(res.status).toBe(200);
       expect(res.body.record.values).toMatchObject({ bonusSourceRuns: 5, bonusPromptRuns: 2 });
-      expect((await get(`/admin/user/${target.id}`)).body.record.values).toMatchObject({ bonusSourceRuns: 5, bonusPromptRuns: 2 });
-      expect(issuesOf(await patch(`/admin/user/${target.id}`, { values: { bonusSourceRuns: -1 } }))[0]).toMatchObject({ path: 'values.bonusSourceRuns', code: 'out_of_range' });
-      expect(issuesOf(await patch(`/admin/user/${target.id}`, { values: { bonusPromptRuns: 1001 } }))[0]!.code).toBe('out_of_range');
-      expect(issuesOf(await patch(`/admin/user/${target.id}`, { values: { bonusSourceRuns: '5' } }))[0]!.code).toBe('invalid_type');
-      expect(issuesOf(await patch(`/admin/user/${target.id}`, { values: { bonusSourceRuns: 1.5 } }))[0]!.code).toBe('invalid_type');
+      expect((await get(`/admin/user/${target.id}`)).body.record.values).toMatchObject({
+        bonusSourceRuns: 5,
+        bonusPromptRuns: 2,
+      });
+      expect(
+        issuesOf(await patch(`/admin/user/${target.id}`, { values: { bonusSourceRuns: -1 } }))[0],
+      ).toMatchObject({ path: 'values.bonusSourceRuns', code: 'out_of_range' });
+      expect(
+        issuesOf(await patch(`/admin/user/${target.id}`, { values: { bonusPromptRuns: 1001 } }))[0]!
+          .code,
+      ).toBe('out_of_range');
+      expect(
+        issuesOf(await patch(`/admin/user/${target.id}`, { values: { bonusSourceRuns: '5' } }))[0]!
+          .code,
+      ).toBe('invalid_type');
+      expect(
+        issuesOf(await patch(`/admin/user/${target.id}`, { values: { bonusSourceRuns: 1.5 } }))[0]!
+          .code,
+      ).toBe('invalid_type');
       const only = await patch(`/admin/user/${target.id}`, { values: { bonusPromptRuns: 0 } });
       expect(only.body.record.values).toMatchObject({ bonusSourceRuns: 5, bonusPromptRuns: 0 });
     });
 
-    it.each(['uploadsThisMonth', 'tokensThisMonth', 'limitsLiftedUntil', 'email', 'displayName', 'lastSeenAt', 'createdAt', 'id'])(
-      '%s is read_only',
-      async (key) => {
-        const res = await patch(`/admin/user/${target.id}`, { values: { [key]: 'x' } });
-        expect(res.status).toBe(422);
-        expect(issuesOf(res)[0]).toMatchObject({ path: `values.${key}`, code: 'read_only' });
-      },
-    );
+    it.each([
+      'uploadsThisMonth',
+      'tokensThisMonth',
+      'limitsLiftedUntil',
+      'email',
+      'displayName',
+      'lastSeenAt',
+      'createdAt',
+      'id',
+    ])('%s is read_only', async (key) => {
+      const res = await patch(`/admin/user/${target.id}`, { values: { [key]: 'x' } });
+      expect(res.status).toBe(422);
+      expect(issuesOf(res)[0]).toMatchObject({ path: `values.${key}`, code: 'read_only' });
+    });
 
     it('unknown user id is 404', async () => {
-      expect((await patch('/admin/user/00000000-0000-4000-8000-000000000000', { values: { role: 'learner' } })).status).toBe(404);
-      expect((await patch('/admin/user/not-a-uuid', { values: { role: 'learner' } })).status).toBe(404);
+      expect(
+        (
+          await patch('/admin/user/00000000-0000-4000-8000-000000000000', {
+            values: { role: 'learner' },
+          })
+        ).status,
+      ).toBe(404);
+      expect((await patch('/admin/user/not-a-uuid', { values: { role: 'learner' } })).status).toBe(
+        404,
+      );
     });
   });
 
   describe('access-code', () => {
     it('disables a code (one-way), and refuses anything else', async () => {
-      const { meta } = await app.app.get(CodesService).create({ label: 'Disable me', sourceRuns: 1, promptRuns: 0, liftDays: 0, maxRedemptions: 3 });
+      const { meta } = await app.app.get(CodesService).create({
+        label: 'Disable me',
+        sourceRuns: 1,
+        promptRuns: 0,
+        liftDays: 0,
+        maxRedemptions: 3,
+      });
       const path = `/admin/access-code/${meta.id}`;
       const disabled = await patch(path, { values: { disabled: true } });
       expect(disabled.status).toBe(200);
@@ -577,12 +875,26 @@ describe('PATCH', () => {
         const res = await patch(path, { values: { [key]: 1 } });
         expect(issuesOf(res)[0], key).toMatchObject({ path: `values.${key}`, code: 'read_only' });
       }
-      expect(issuesOf(await patch(path, { values: { disabled: 'yes' } }))[0]!.code).toBe('invalid_type');
-      expect((await patch('/admin/access-code/00000000-0000-4000-8000-000000000000', { values: { disabled: true } })).status).toBe(404);
+      expect(issuesOf(await patch(path, { values: { disabled: 'yes' } }))[0]!.code).toBe(
+        'invalid_type',
+      );
+      expect(
+        (
+          await patch('/admin/access-code/00000000-0000-4000-8000-000000000000', {
+            values: { disabled: true },
+          })
+        ).status,
+      ).toBe(404);
     });
 
     it('false on a code that is not disabled changes nothing and is accepted', async () => {
-      const { meta } = await app.app.get(CodesService).create({ label: 'Leave me', sourceRuns: 1, promptRuns: 0, liftDays: 0, maxRedemptions: 3 });
+      const { meta } = await app.app.get(CodesService).create({
+        label: 'Leave me',
+        sourceRuns: 1,
+        promptRuns: 0,
+        liftDays: 0,
+        maxRedemptions: 3,
+      });
       const res = await patch(`/admin/access-code/${meta.id}`, { values: { disabled: false } });
       expect(res.status).toBe(200);
       expect(res.body.record.values.disabled).toBe(false);
@@ -599,7 +911,9 @@ describe('PATCH', () => {
       const res = await patch('/admin/admin-setting/minQuestions', { values: { value: 4 } });
       expect(res.status).toBe(200);
       expect(res.body.record.values.value).toBe(4);
-      expect(Date.parse(res.body.record.values.updatedAt)).toBeGreaterThan(Date.parse(before.updatedAt));
+      expect(Date.parse(res.body.record.values.updatedAt)).toBeGreaterThan(
+        Date.parse(before.updatedAt),
+      );
       expect(await settings().get('minQuestions')).toBe(4);
     });
 
@@ -607,47 +921,87 @@ describe('PATCH', () => {
       const bad = await patch('/admin/admin-setting/minQuestions', { values: { value: 'many' } });
       expect(bad.status).toBe(422);
       expect(issuesOf(bad)[0]).toMatchObject({ path: 'values.value', code: 'rejected' });
-      expect(issuesOf(await patch('/admin/admin-setting/masteryAlpha', { values: { value: 1.5 } }))[0]!.code).toBe('rejected');
+      expect(
+        issuesOf(await patch('/admin/admin-setting/masteryAlpha', { values: { value: 1.5 } }))[0]!
+          .code,
+      ).toBe('rejected');
       expect(await settings().get('minQuestions')).toBe(4);
     });
 
     it('traversalDepth takes 8 and refuses 9 (the Coach queries use a fixed *1..8)', async () => {
-      expect((await patch('/admin/admin-setting/traversalDepth', { values: { value: 8 } })).status).toBe(200);
+      expect(
+        (await patch('/admin/admin-setting/traversalDepth', { values: { value: 8 } })).status,
+      ).toBe(200);
       expect(await settings().get('traversalDepth')).toBe(8);
-      expect(issuesOf(await patch('/admin/admin-setting/traversalDepth', { values: { value: 9 } }))[0]!.code).toBe('rejected');
+      expect(
+        issuesOf(await patch('/admin/admin-setting/traversalDepth', { values: { value: 9 } }))[0]!
+          .code,
+      ).toBe('rejected');
       expect(await settings().get('traversalDepth')).toBe(8);
     });
 
     it('turns creation off and back on, effective straight away', async () => {
       expect(await settings().get('creationEnabled')).toBe(true);
-      expect((await patch('/admin/admin-setting/creationEnabled', { values: { value: false } })).status).toBe(200);
+      expect(
+        (await patch('/admin/admin-setting/creationEnabled', { values: { value: false } })).status,
+      ).toBe(200);
       expect(await settings().get('creationEnabled')).toBe(false);
-      expect(issuesOf(await patch('/admin/admin-setting/creationEnabled', { values: { value: 'no' } }))[0]!.code).toBe('rejected');
-      expect((await patch('/admin/admin-setting/creationEnabled', { values: { value: true } })).status).toBe(200);
+      expect(
+        issuesOf(
+          await patch('/admin/admin-setting/creationEnabled', { values: { value: 'no' } }),
+        )[0]!.code,
+      ).toBe('rejected');
+      expect(
+        (await patch('/admin/admin-setting/creationEnabled', { values: { value: true } })).status,
+      ).toBe(200);
       expect(await settings().get('creationEnabled')).toBe(true);
     });
 
-    it.each(['monthlySourceAllowance', 'monthlyPromptAllowance', 'hourlyCreationLimit'])('%s takes an in-range integer and refuses others', async (key) => {
-      expect((await patch(`/admin/admin-setting/${key}`, { values: { value: 7 } })).status).toBe(200);
-      expect(await settings().get(key as 'hourlyCreationLimit')).toBe(7);
-      expect(issuesOf(await patch(`/admin/admin-setting/${key}`, { values: { value: 1001 } }))[0]!.code).toBe('rejected');
-      expect(issuesOf(await patch(`/admin/admin-setting/${key}`, { values: { value: -1 } }))[0]!.code).toBe('rejected');
-      expect(issuesOf(await patch(`/admin/admin-setting/${key}`, { values: { value: 1.5 } }))[0]!.code).toBe('rejected');
-      expect(await settings().get(key as 'hourlyCreationLimit')).toBe(7);
-    });
+    it.each(['monthlySourceAllowance', 'monthlyPromptAllowance', 'hourlyCreationLimit'])(
+      '%s takes an in-range integer and refuses others',
+      async (key) => {
+        expect((await patch(`/admin/admin-setting/${key}`, { values: { value: 7 } })).status).toBe(
+          200,
+        );
+        expect(await settings().get(key as 'hourlyCreationLimit')).toBe(7);
+        expect(
+          issuesOf(await patch(`/admin/admin-setting/${key}`, { values: { value: 1001 } }))[0]!
+            .code,
+        ).toBe('rejected');
+        expect(
+          issuesOf(await patch(`/admin/admin-setting/${key}`, { values: { value: -1 } }))[0]!.code,
+        ).toBe('rejected');
+        expect(
+          issuesOf(await patch(`/admin/admin-setting/${key}`, { values: { value: 1.5 } }))[0]!.code,
+        ).toBe('rejected');
+        expect(await settings().get(key as 'hourlyCreationLimit')).toBe(7);
+      },
+    );
 
     it('embeddingDim cannot be edited, and the other fields of a setting are read-only', async () => {
-      await app.db.insert(adminSettings).values({ key: 'embeddingDim', value: 64 }).onConflictDoNothing();
+      await app.db
+        .insert(adminSettings)
+        .values({ key: 'embeddingDim', value: 64 })
+        .onConflictDoNothing();
       const res = await patch('/admin/admin-setting/embeddingDim', { values: { value: 128 } });
       expect(res.status).toBe(422);
       expect(issuesOf(res)[0]).toMatchObject({ path: 'values.value', code: 'rejected' });
       expect((await get('/admin/admin-setting/embeddingDim')).body.record.values.value).toBe(64);
-      expect(issuesOf(await patch('/admin/admin-setting/minQuestions', { values: { key: 'other' } }))[0]!.code).toBe('read_only');
-      expect(issuesOf(await patch('/admin/admin-setting/minQuestions', { values: { updatedAt: 'now' } }))[0]!.code).toBe('read_only');
+      expect(
+        issuesOf(await patch('/admin/admin-setting/minQuestions', { values: { key: 'other' } }))[0]!
+          .code,
+      ).toBe('read_only');
+      expect(
+        issuesOf(
+          await patch('/admin/admin-setting/minQuestions', { values: { updatedAt: 'now' } }),
+        )[0]!.code,
+      ).toBe('read_only');
     });
 
     it('a key that is not a setting has no row: 404', async () => {
-      expect((await patch('/admin/admin-setting/notASetting', { values: { value: 1 } })).status).toBe(404);
+      expect(
+        (await patch('/admin/admin-setting/notASetting', { values: { value: 1 } })).status,
+      ).toBe(404);
     });
   });
 });
@@ -667,14 +1021,20 @@ describe('PATCH when the only active admin is the target', () => {
     expect(warm.status).toBe(200);
     await solo.db.update(users).set({ role: 'learner' }).where(eq(users.id, actor.id));
 
-    const block = await solo.http.patch(`/admin/user/${last.id}`).set(actor.auth).send({ values: { status: 'blocked' } });
+    const block = await solo.http
+      .patch(`/admin/user/${last.id}`)
+      .set(actor.auth)
+      .send({ values: { status: 'blocked' } });
     expect(block.status).toBe(422);
     expect(block.body.error.details.issues[0]).toMatchObject({
       path: 'values.status',
       code: 'rejected',
       message: 'At least one active admin must remain',
     });
-    const demote = await solo.http.patch(`/admin/user/${last.id}`).set(actor.auth).send({ values: { role: 'learner' } });
+    const demote = await solo.http
+      .patch(`/admin/user/${last.id}`)
+      .set(actor.auth)
+      .send({ values: { role: 'learner' } });
     expect(demote.status).toBe(422);
     expect(demote.body.error.details.issues[0]).toMatchObject({
       path: 'values.role',
@@ -697,43 +1057,174 @@ describe('links, usage, and what must stay hidden', () => {
     const month = recent(3_600_000);
     await app.testGraph.load({
       nodes: [
-        { label: 'Source', key: 'l-src', props: { title: 'Linked source', kind: 'text', fingerprint: 'fp-l', content: SECRET_SOURCE_TEXT, createdAt: month } },
+        {
+          label: 'Source',
+          key: 'l-src',
+          props: {
+            title: 'Linked source',
+            kind: 'text',
+            fingerprint: 'fp-l',
+            content: SECRET_SOURCE_TEXT,
+            createdAt: month,
+          },
+        },
         {
           label: 'Task',
           key: 'l-task',
-          props: { kind: 'ingest', status: 'awaiting_review', result: 'ok', lastCompletedStep: 'validate', error: 'Something odd', modelCalls: 9, inputTokens: 18_400, outputTokens: 3_100, embeddingTokens: 5_200, createdAt: month, updatedAt: month + 1000 },
+          props: {
+            kind: 'ingest',
+            status: 'awaiting_review',
+            result: 'ok',
+            lastCompletedStep: 'validate',
+            error: 'Something odd',
+            modelCalls: 9,
+            inputTokens: 18_400,
+            outputTokens: 3_100,
+            embeddingTokens: 5_200,
+            createdAt: month,
+            updatedAt: month + 1000,
+          },
         },
-        { label: 'Concept', key: 'l-c1', props: { slug: 'l-one', name: 'Linked one', createdAt: month } },
-        { label: 'Concept', key: 'l-c2', props: { slug: 'l-two', name: 'Linked two', createdAt: month } },
-        { label: 'Concept', key: 'l-pre', props: { slug: 'l-pre', name: 'Prerequisite concept', createdAt: month } },
-        { label: 'Question', key: 'l-q1', props: { sentence: SECRET_QUESTION, status: 'approved' } },
+        {
+          label: 'Concept',
+          key: 'l-c1',
+          props: { slug: 'l-one', name: 'Linked one', createdAt: month },
+        },
+        {
+          label: 'Concept',
+          key: 'l-c2',
+          props: { slug: 'l-two', name: 'Linked two', createdAt: month },
+        },
+        {
+          label: 'Concept',
+          key: 'l-pre',
+          props: { slug: 'l-pre', name: 'Prerequisite concept', createdAt: month },
+        },
+        {
+          label: 'Question',
+          key: 'l-q1',
+          props: { sentence: SECRET_QUESTION, status: 'approved' },
+        },
         { label: 'Question', key: 'l-q2', props: { sentence: SECRET_QUESTION, status: 'draft' } },
         { label: 'Step', key: 'l-step', props: { name: 'validate', log: 'STEP LOG TEXT' } },
-        { label: 'Puzzle', key: 'l-pz', props: { name: 'Linked puzzle', origin: 'upload', status: 'published', visibility: 'private', distractors: [DISTRACTOR], createdAt: month } },
+        {
+          label: 'Puzzle',
+          key: 'l-pz',
+          props: {
+            name: 'Linked puzzle',
+            origin: 'upload',
+            status: 'published',
+            visibility: 'private',
+            distractors: [DISTRACTOR],
+            createdAt: month,
+          },
+        },
         {
           label: 'Decision',
           key: 'l-dec',
-          props: { kind: 'recommendation', summary: 'Practise linked concepts', flags: ['cold_start', 'coverage_gap'], modelCalls: 2, inputTokens: 1_000, outputTokens: 200, embeddingTokens: 30, createdAt: month },
+          props: {
+            kind: 'recommendation',
+            summary: 'Practise linked concepts',
+            flags: ['cold_start', 'coverage_gap'],
+            modelCalls: 2,
+            inputTokens: 1_000,
+            outputTokens: 200,
+            embeddingTokens: 30,
+            createdAt: month,
+          },
         },
       ],
       edges: [
-        { type: 'OWNS', from: { label: 'Learner', key: owner.id }, to: { label: 'Source', key: 'l-src' } },
-        { type: 'OWNS', from: { label: 'Learner', key: owner.id }, to: { label: 'Puzzle', key: 'l-pz' } },
-        { type: 'YIELDED', from: { label: 'Source', key: 'l-src' }, to: { label: 'Puzzle', key: 'l-pz' } },
-        { type: 'REQUESTED', from: { label: 'Learner', key: owner.id }, to: { label: 'Task', key: 'l-task' } },
-        { type: 'CONCERNS', from: { label: 'Task', key: 'l-task' }, to: { label: 'Source', key: 'l-src' } },
-        { type: 'PRODUCED', from: { label: 'Task', key: 'l-task' }, to: { label: 'Concept', key: 'l-c1' } },
-        { type: 'PRODUCED', from: { label: 'Task', key: 'l-task' }, to: { label: 'Concept', key: 'l-c2' } },
-        { type: 'PRODUCED', from: { label: 'Task', key: 'l-task' }, to: { label: 'Question', key: 'l-q1' } },
-        { type: 'PRODUCED', from: { label: 'Task', key: 'l-task' }, to: { label: 'Question', key: 'l-q2' } },
-        { type: 'PRODUCED', from: { label: 'Task', key: 'l-task' }, to: { label: 'Puzzle', key: 'l-pz' } },
-        { type: 'HAS_STEP', from: { label: 'Task', key: 'l-task' }, to: { label: 'Step', key: 'l-step' }, props: { order: 1 } },
-        { type: 'PREREQUISITE_OF', from: { label: 'Concept', key: 'l-pre' }, to: { label: 'Concept', key: 'l-c1' }, props: { confidence: 1 } },
-        { type: 'SHARED_WITH', from: { label: 'Puzzle', key: 'l-pz' }, to: { label: 'Learner', key: shared.id }, props: { withSource: true, at: month } },
-        { type: 'FOR', from: { label: 'Decision', key: 'l-dec' }, to: { label: 'Learner', key: owner.id } },
-        { type: 'RECOMMENDED', from: { label: 'Decision', key: 'l-dec' }, to: { label: 'Puzzle', key: 'l-pz' } },
-        { type: 'BECAUSE', from: { label: 'Decision', key: 'l-dec' }, to: { label: 'Concept', key: 'l-c1' }, props: { weight: 1, role: 'target' } },
-        { type: 'BECAUSE', from: { label: 'Decision', key: 'l-dec' }, to: { label: 'Question', key: 'l-q1' }, props: { weight: 1, role: 'answer' } },
+        {
+          type: 'OWNS',
+          from: { label: 'Learner', key: owner.id },
+          to: { label: 'Source', key: 'l-src' },
+        },
+        {
+          type: 'OWNS',
+          from: { label: 'Learner', key: owner.id },
+          to: { label: 'Puzzle', key: 'l-pz' },
+        },
+        {
+          type: 'YIELDED',
+          from: { label: 'Source', key: 'l-src' },
+          to: { label: 'Puzzle', key: 'l-pz' },
+        },
+        {
+          type: 'REQUESTED',
+          from: { label: 'Learner', key: owner.id },
+          to: { label: 'Task', key: 'l-task' },
+        },
+        {
+          type: 'CONCERNS',
+          from: { label: 'Task', key: 'l-task' },
+          to: { label: 'Source', key: 'l-src' },
+        },
+        {
+          type: 'PRODUCED',
+          from: { label: 'Task', key: 'l-task' },
+          to: { label: 'Concept', key: 'l-c1' },
+        },
+        {
+          type: 'PRODUCED',
+          from: { label: 'Task', key: 'l-task' },
+          to: { label: 'Concept', key: 'l-c2' },
+        },
+        {
+          type: 'PRODUCED',
+          from: { label: 'Task', key: 'l-task' },
+          to: { label: 'Question', key: 'l-q1' },
+        },
+        {
+          type: 'PRODUCED',
+          from: { label: 'Task', key: 'l-task' },
+          to: { label: 'Question', key: 'l-q2' },
+        },
+        {
+          type: 'PRODUCED',
+          from: { label: 'Task', key: 'l-task' },
+          to: { label: 'Puzzle', key: 'l-pz' },
+        },
+        {
+          type: 'HAS_STEP',
+          from: { label: 'Task', key: 'l-task' },
+          to: { label: 'Step', key: 'l-step' },
+          props: { order: 1 },
+        },
+        {
+          type: 'PREREQUISITE_OF',
+          from: { label: 'Concept', key: 'l-pre' },
+          to: { label: 'Concept', key: 'l-c1' },
+          props: { confidence: 1 },
+        },
+        {
+          type: 'SHARED_WITH',
+          from: { label: 'Puzzle', key: 'l-pz' },
+          to: { label: 'Learner', key: shared.id },
+          props: { withSource: true, at: month },
+        },
+        {
+          type: 'FOR',
+          from: { label: 'Decision', key: 'l-dec' },
+          to: { label: 'Learner', key: owner.id },
+        },
+        {
+          type: 'RECOMMENDED',
+          from: { label: 'Decision', key: 'l-dec' },
+          to: { label: 'Puzzle', key: 'l-pz' },
+        },
+        {
+          type: 'BECAUSE',
+          from: { label: 'Decision', key: 'l-dec' },
+          to: { label: 'Concept', key: 'l-c1' },
+          props: { weight: 1, role: 'target' },
+        },
+        {
+          type: 'BECAUSE',
+          from: { label: 'Decision', key: 'l-dec' },
+          to: { label: 'Question', key: 'l-q1' },
+          props: { weight: 1, role: 'answer' },
+        },
       ],
     });
   });
@@ -751,35 +1242,78 @@ describe('links, usage, and what must stay hidden', () => {
     expect(detail.record.values.createdAt).toMatch(ISO);
     expect(detail.record.values.updatedAt).toMatch(ISO);
     const byName = Object.fromEntries(detail.links.map((l) => [l.name, l]));
-    expect(detail.links.map((l) => l.name)).toEqual(['producedConcepts', 'producedQuestions', 'producedPuzzles', 'concerns', 'requestedBy']);
+    expect(detail.links.map((l) => l.name)).toEqual([
+      'producedConcepts',
+      'producedQuestions',
+      'producedPuzzles',
+      'concerns',
+      'requestedBy',
+    ]);
 
-    const concepts = byName.producedConcepts as { kind: 'records'; model: string; items: { id: string; title: string }[]; truncated: boolean };
+    const concepts = byName.producedConcepts as {
+      kind: 'records';
+      model: string;
+      items: { id: string; title: string }[];
+      truncated: boolean;
+    };
     expect(concepts).toMatchObject({ kind: 'records', model: 'concept', truncated: false });
     expect(concepts.items).toEqual([
       { id: 'l-c1', title: 'Linked one' },
       { id: 'l-c2', title: 'Linked two' },
     ]);
-    for (const item of concepts.items) expect((await get(`/admin/concept/${item.id}`)).status).toBe(200);
+    for (const item of concepts.items)
+      expect((await get(`/admin/concept/${item.id}`)).status).toBe(200);
 
-    expect(byName.producedQuestions).toEqual({ kind: 'count', name: 'producedQuestions', label: 'Produced questions', count: 2 });
-    expect(byName.producedPuzzles).toMatchObject({ items: [{ id: 'l-pz', title: 'Linked puzzle' }], model: 'puzzle' });
-    expect(byName.concerns).toMatchObject({ items: [{ id: 'l-src', title: 'Linked source' }], model: 'source' });
-    expect(byName.requestedBy).toMatchObject({ items: [{ id: owner.id, title: 'Olive Owner' }], model: 'user' });
+    expect(byName.producedQuestions).toEqual({
+      kind: 'count',
+      name: 'producedQuestions',
+      label: 'Produced questions',
+      count: 2,
+    });
+    expect(byName.producedPuzzles).toMatchObject({
+      items: [{ id: 'l-pz', title: 'Linked puzzle' }],
+      model: 'puzzle',
+    });
+    expect(byName.concerns).toMatchObject({
+      items: [{ id: 'l-src', title: 'Linked source' }],
+      model: 'source',
+    });
+    expect(byName.requestedBy).toMatchObject({
+      items: [{ id: owner.id, title: 'Olive Owner' }],
+      model: 'user',
+    });
     expect(detail.actions).toEqual([]);
   });
 
   it('concept shows its prerequisites as a link', async () => {
     const detail = AdminDetailResponse.parse((await get('/admin/concept/l-c1')).body);
     expect(detail.links).toEqual([
-      { kind: 'records', name: 'prerequisites', label: 'Prerequisites', model: 'concept', items: [{ id: 'l-pre', title: 'Prerequisite concept' }], truncated: false },
+      {
+        kind: 'records',
+        name: 'prerequisites',
+        label: 'Prerequisites',
+        model: 'concept',
+        items: [{ id: 'l-pre', title: 'Prerequisite concept' }],
+        truncated: false,
+      },
     ]);
   });
 
   it('task and decision show the usage numbers stored on their nodes', async () => {
     const task = (await get('/admin/task/l-task')).body.record.values;
-    expect(task).toMatchObject({ modelCalls: 9, inputTokens: 18_400, outputTokens: 3_100, embeddingTokens: 5_200 });
+    expect(task).toMatchObject({
+      modelCalls: 9,
+      inputTokens: 18_400,
+      outputTokens: 3_100,
+      embeddingTokens: 5_200,
+    });
     const decision = (await get('/admin/decision/l-dec')).body.record.values;
-    expect(decision).toMatchObject({ modelCalls: 2, inputTokens: 1_000, outputTokens: 200, embeddingTokens: 30 });
+    expect(decision).toMatchObject({
+      modelCalls: 2,
+      inputTokens: 1_000,
+      outputTokens: 200,
+      embeddingTokens: 30,
+    });
   });
 
   it("user detail shows tokensThisMonth as the sum of that user's task and decision tokens", async () => {
@@ -791,10 +1325,18 @@ describe('links, usage, and what must stay hidden', () => {
 
   it('decision shows its summary, flags as an array, links, and the "Why this?" route', async () => {
     const detail = AdminDetailResponse.parse((await get('/admin/decision/l-dec')).body);
-    expect(detail.record.values).toMatchObject({ summary: 'Practise linked concepts', flags: ['cold_start', 'coverage_gap'] });
+    expect(detail.record.values).toMatchObject({
+      summary: 'Practise linked concepts',
+      flags: ['cold_start', 'coverage_gap'],
+    });
     expect(detail.record.title).toBe('Practise linked concepts');
     const byName = Object.fromEntries(detail.links.map((l) => [l.name, l]));
-    expect(byName.why).toEqual({ kind: 'route', name: 'why', label: 'Why this?', href: '/decisions/l-dec' });
+    expect(byName.why).toEqual({
+      kind: 'route',
+      name: 'why',
+      label: 'Why this?',
+      href: '/decisions/l-dec',
+    });
     expect(byName.learner).toMatchObject({ items: [{ id: owner.id, title: 'Olive Owner' }] });
     expect(byName.puzzle).toMatchObject({ items: [{ id: 'l-pz', title: 'Linked puzzle' }] });
     expect(byName.evidenceConcepts).toMatchObject({ items: [{ id: 'l-c1', title: 'Linked one' }] });
@@ -803,7 +1345,10 @@ describe('links, usage, and what must stay hidden', () => {
   it('source and puzzle link to their owner and each other, never to questions, chunks, or shares', async () => {
     const source = AdminDetailResponse.parse((await get('/admin/source/l-src')).body);
     expect(source.links.map((l) => l.name)).toEqual(['owner', 'puzzle']);
-    expect(source.links[0]).toMatchObject({ items: [{ id: owner.id, title: 'Olive Owner' }], model: 'user' });
+    expect(source.links[0]).toMatchObject({
+      items: [{ id: owner.id, title: 'Olive Owner' }],
+      model: 'user',
+    });
     expect(source.links[1]).toMatchObject({ items: [{ id: 'l-pz' }], model: 'puzzle' });
     const puzzle = AdminDetailResponse.parse((await get('/admin/puzzle/l-pz')).body);
     expect(puzzle.links.map((l) => l.name)).toEqual(['owner', 'source']);
@@ -824,7 +1369,12 @@ describe('links, usage, and what must stay hidden', () => {
         expect(res.status, `${name}/${item.id}`).toBe(200);
         bodies.push(JSON.stringify(res.body));
         if (name !== 'user') bodiesWithoutUsers.push(JSON.stringify(res.body));
-        for (const link of res.body.links as { kind: string; model?: string; href?: string; name: string }[]) {
+        for (const link of res.body.links as {
+          kind: string;
+          model?: string;
+          href?: string;
+          name: string;
+        }[]) {
           expect(link.model).not.toBe('question');
           expect(link.model).not.toBe('chunk');
           expect(link.name).not.toMatch(/step/i);
@@ -834,7 +1384,16 @@ describe('links, usage, and what must stay hidden', () => {
     }
     expect(bodies.length).toBeGreaterThan(30);
     const all = bodies.join('\n');
-    for (const hidden of [SECRET_SOURCE_TEXT, SECRET_BRIEF, SECRET_OUTLINE, SECRET_QUESTION, 'STEP LOG TEXT', DISTRACTOR, 'HAS_STEP', 'SHARED_WITH']) {
+    for (const hidden of [
+      SECRET_SOURCE_TEXT,
+      SECRET_BRIEF,
+      SECRET_OUTLINE,
+      SECRET_QUESTION,
+      'STEP LOG TEXT',
+      DISTRACTOR,
+      'HAS_STEP',
+      'SHARED_WITH',
+    ]) {
       expect(all, hidden).not.toContain(hidden);
     }
     expect(bodiesWithoutUsers.join('\n')).not.toContain(SHARED_NAME);
@@ -859,7 +1418,9 @@ describe('generated queries', () => {
     expect(queries.some((q) => /^admin_(question|chunk)_/.test(q.name))).toBe(false);
     const registered = queries.map((q) => q.name);
     expect(registered).toContain('admin_task_link_produced_questions');
-    const text = (name: string) => (graph as unknown as { queries: Map<string, { text: string }> }).queries.get(name)?.text ?? '';
+    const text = (name: string) =>
+      (graph as unknown as { queries: Map<string, { text: string }> }).queries.get(name)?.text ??
+      '';
     for (const name of registered) {
       expect(text(name), name).not.toContain(':Chunk');
       if (text(name).includes(':Question')) {

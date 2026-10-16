@@ -75,14 +75,24 @@ export async function runComplete(args: {
   try {
     const raw = await args.call(args.messages);
     args.report?.(
-      { usage: raw.usage, usageReported: raw.usageReported, durationMs: Date.now() - start, ok: true },
+      {
+        usage: raw.usage,
+        usageReported: raw.usageReported,
+        durationMs: Date.now() - start,
+        ok: true,
+      },
       { input: joinContents(args.messages), output: raw.text },
     );
     return { text: raw.text, usage: raw.usage, usageReported: raw.usageReported };
   } catch (e) {
     const err = failed(e, args.provider, args.label);
     if (wasMade(err.usage)) {
-      args.report?.({ usage: err.usage, usageReported: true, durationMs: Date.now() - start, ok: false });
+      args.report?.({
+        usage: err.usage,
+        usageReported: true,
+        durationMs: Date.now() - start,
+        ok: false,
+      });
     }
     throw err;
   }
@@ -98,12 +108,22 @@ export async function runEmbed(args: {
   const start = Date.now();
   try {
     const r = await args.call();
-    args.report?.({ usage: r.usage, usageReported: r.usageReported, durationMs: Date.now() - start, ok: true });
+    args.report?.({
+      usage: r.usage,
+      usageReported: r.usageReported,
+      durationMs: Date.now() - start,
+      ok: true,
+    });
     return r;
   } catch (e) {
     const err = failed(e, args.provider, args.label);
     if (wasMade(err.usage)) {
-      args.report?.({ usage: err.usage, usageReported: true, durationMs: Date.now() - start, ok: false });
+      args.report?.({
+        usage: err.usage,
+        usageReported: true,
+        durationMs: Date.now() - start,
+        ok: false,
+      });
     }
     throw err;
   }
@@ -115,7 +135,9 @@ function stripFences(text: string): string {
 }
 
 function describeIssues(issues: z.ZodIssue[]): string {
-  return issues.map((i) => `${i.path.length ? i.path.join('.') : '(root)'}: ${i.message}`).join('; ');
+  return issues
+    .map((i) => `${i.path.length ? i.path.join('.') : '(root)'}: ${i.message}`)
+    .join('; ');
 }
 
 /**
@@ -146,7 +168,12 @@ export async function runStructured<T>(args: {
     } catch (e) {
       const err = failed(e, args.provider, args.label);
       if (wasMade(err.usage)) {
-        args.report?.({ usage: err.usage, usageReported: true, durationMs: Date.now() - start, ok: false });
+        args.report?.({
+          usage: err.usage,
+          usageReported: true,
+          durationMs: Date.now() - start,
+          ok: false,
+        });
       }
       throw attachUsage(err, addUsage(total, err.usage));
     }
@@ -167,12 +194,21 @@ export async function runStructured<T>(args: {
       }
     } catch (e) {
       issues = [
-        { code: 'custom', path: [], message: `Reply is not valid JSON: ${e instanceof Error ? e.message : String(e)}` },
+        {
+          code: 'custom',
+          path: [],
+          message: `Reply is not valid JSON: ${e instanceof Error ? e.message : String(e)}`,
+        },
       ];
     }
 
     args.report?.(
-      { usage: raw.usage, usageReported: raw.usageReported, durationMs: Date.now() - start, ok: valid },
+      {
+        usage: raw.usage,
+        usageReported: raw.usageReported,
+        durationMs: Date.now() - start,
+        ok: valid,
+      },
       { input: joinContents(messages), output: raw.text },
     );
 

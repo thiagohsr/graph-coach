@@ -4,7 +4,8 @@ import { randomBytes } from 'node:crypto';
 import type { QueryParams } from '@coach/graph-kit';
 import type { TestApp, TestUser } from './test-app';
 
-export const PASSAGE = 'The index speeds up lookups in large tables, and a hash index answers equality tests.';
+export const PASSAGE =
+  'The index speeds up lookups in large tables, and a hash index answers equality tests.';
 
 export interface SeededRun {
   sourceId: string;
@@ -24,7 +25,11 @@ export function draftSentence(i: number): string {
   return `Question ${i}: an ___ makes reading rows from big tables much faster.`;
 }
 
-export async function seedRun(app: TestApp, owner: TestUser, options: SeedOptions = {}): Promise<SeededRun> {
+export async function seedRun(
+  app: TestApp,
+  owner: TestUser,
+  options: SeedOptions = {},
+): Promise<SeededRun> {
   const n = options.drafts ?? 5;
   const kind = options.kind ?? 'upload';
   const tag = randomBytes(5).toString('hex');
@@ -58,7 +63,10 @@ export async function seedRun(app: TestApp, owner: TestUser, options: SeedOption
       passage: PASSAGE,
     },
   );
-  await run(`MERGE (c:Concept {slug: 'indexes'}) ON CREATE SET c.id = 'c-indexes', c.name = 'Indexes', c.createdAt = 1`, {});
+  await run(
+    `MERGE (c:Concept {slug: 'indexes'}) ON CREATE SET c.id = 'c-indexes', c.name = 'Indexes', c.createdAt = 1`,
+    {},
+  );
   if (kind === 'upload') {
     await run(
       `MATCH (s:Source {id: $sourceId}) CREATE (s)-[:HAS_CHUNK]->(:Chunk {id: $chunkId, position: 0, text: $passage})`,
@@ -83,5 +91,7 @@ export async function seedRun(app: TestApp, owner: TestUser, options: SeedOption
 
 /** Sets a puzzle published directly (for sharing and visibility tests that do not exercise review). */
 export async function publishDirectly(app: TestApp, puzzleId: string): Promise<void> {
-  await app.testGraph.cypher(`MATCH (p:Puzzle {id: $puzzleId}) SET p.status = 'published'`, { puzzleId });
+  await app.testGraph.cypher(`MATCH (p:Puzzle {id: $puzzleId}) SET p.status = 'published'`, {
+    puzzleId,
+  });
 }

@@ -33,44 +33,61 @@ export function SourceView({ sourceId }: { sourceId: string }) {
   if (notFound) return <NotFoundPage />;
 
   const data = source.data;
-  const playable = data?.puzzleId !== undefined && (puzzles.data ?? []).some((p) => p.id === data.puzzleId);
+  const playable =
+    data?.puzzleId !== undefined && (puzzles.data ?? []).some((p) => p.id === data.puzzleId);
   const hasBody = data !== undefined && (data.content !== undefined || data.brief !== undefined);
 
   return (
     <div className="flex flex-col gap-4">
       <RouteFocus title={data?.title ?? 'Source'} />
       <p className="text-sm">
-        <Link to="/sources" className="font-medium text-primary underline underline-offset-4 hover:text-primary-hover">
+        <Link
+          to="/sources"
+          className="font-medium text-primary underline underline-offset-4 hover:text-primary-hover"
+        >
           Back to sources
         </Link>
       </p>
       {source.isPending && (
         <>
-          <h1 className="text-2xl leading-[30px] font-bold tracking-tight sm:text-[30px] sm:leading-9">Source</h1>
+          <h1 className="text-2xl leading-[30px] font-bold tracking-tight sm:text-[30px] sm:leading-9">
+            Source
+          </h1>
           <LoadingState label="Loading source" rows={2} />
         </>
       )}
       {source.isError && (
         <>
-          <h1 className="text-2xl leading-[30px] font-bold tracking-tight sm:text-[30px] sm:leading-9">Source</h1>
+          <h1 className="text-2xl leading-[30px] font-bold tracking-tight sm:text-[30px] sm:leading-9">
+            Source
+          </h1>
           <ErrorState error={source.error} onRetry={() => void source.refetch()} />
         </>
       )}
       {data && (
         <article className="flex flex-col gap-3" aria-labelledby="source-title">
-          <h1 id="source-title" className="text-2xl leading-[30px] font-bold tracking-tight sm:text-[30px] sm:leading-9 break-words">
+          <h1
+            id="source-title"
+            className="text-2xl leading-[30px] font-bold tracking-tight sm:text-[30px] sm:leading-9 break-words"
+          >
             {data.title}
           </h1>
           <p className="text-sm text-muted-foreground">
-            {ownerMarker(data)} · {kindLabel(data.kind)} · <time dateTime={data.createdAt}>{formatDate(data.createdAt)}</time>
+            {ownerMarker(data)} · {kindLabel(data.kind)} ·{' '}
+            <time dateTime={data.createdAt}>{formatDate(data.createdAt)}</time>
           </p>
           {!hasBody && (
             <Alert variant="destructive">
-              <AlertDescription>Unexpected response from the server: the source has no text and no brief.</AlertDescription>
+              <AlertDescription>
+                Unexpected response from the server: the source has no text and no brief.
+              </AlertDescription>
             </Alert>
           )}
           {data.content !== undefined && (
-            <pre className="font-sans text-sm break-words whitespace-pre-wrap" aria-label="Source text">
+            <pre
+              className="font-sans text-sm break-words whitespace-pre-wrap"
+              aria-label="Source text"
+            >
               {data.content}
             </pre>
           )}

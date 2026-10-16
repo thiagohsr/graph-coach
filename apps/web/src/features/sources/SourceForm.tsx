@@ -35,7 +35,13 @@ const selectClass =
   'flex h-10 w-fit items-center rounded-md border border-input bg-transparent px-3 py-2 text-sm outline-none focus-visible:outline-solid focus-visible:outline-3 focus-visible:outline-offset-2 focus-visible:outline-ring';
 
 /** The upload form of `/sources/new` (contracts/ui-screens.md). Every non-202 outcome keeps what was typed. */
-export function SourceForm({ redeemSlot, disabled, describedBy, submitBlocked, onLimit }: SourceFormProps) {
+export function SourceForm({
+  redeemSlot,
+  disabled,
+  describedBy,
+  submitBlocked,
+  onLimit,
+}: SourceFormProps) {
   const queryClient = useQueryClient();
   const navigate = useNavigate();
   const [guardReasons, setGuardReasons] = useState<GuardReason[]>([]);
@@ -56,7 +62,11 @@ export function SourceForm({ redeemSlot, disabled, describedBy, submitBlocked, o
       setTitleError(title === '' ? 'Enter a title.' : null);
       if (title === '' || reasons.length > 0) return;
       try {
-        const response = await mutation.mutateAsync({ title, kind: value.kind, content: value.content });
+        const response = await mutation.mutateAsync({
+          title,
+          kind: value.kind,
+          content: value.content,
+        });
         if (isDuplicate(response)) {
           setDuplicate(response);
           return;
@@ -84,7 +94,8 @@ export function SourceForm({ redeemSlot, disabled, describedBy, submitBlocked, o
   });
 
   const fieldIssue = (path: string) => error?.issues.find((i) => i.path === path)?.message;
-  const unmappedIssues = error?.issues.filter((i) => !['title', 'kind', 'content'].includes(i.path)) ?? [];
+  const unmappedIssues =
+    error?.issues.filter((i) => !['title', 'kind', 'content'].includes(i.path)) ?? [];
 
   return (
     <form
@@ -101,11 +112,18 @@ export function SourceForm({ redeemSlot, disabled, describedBy, submitBlocked, o
           <AlertDescription>
             You already added this material.{' '}
             {duplicate.taskId ? (
-              <Link to="/tasks/$taskId" params={{ taskId: duplicate.taskId }} className="font-medium text-primary underline underline-offset-4 hover:text-primary-hover">
+              <Link
+                to="/tasks/$taskId"
+                params={{ taskId: duplicate.taskId }}
+                className="font-medium text-primary underline underline-offset-4 hover:text-primary-hover"
+              >
                 View the run
               </Link>
             ) : (
-              <Link to="/sources" className="font-medium text-primary underline underline-offset-4 hover:text-primary-hover">
+              <Link
+                to="/sources"
+                className="font-medium text-primary underline underline-offset-4 hover:text-primary-hover"
+              >
                 See your sources
               </Link>
             )}
@@ -165,7 +183,9 @@ export function SourceForm({ redeemSlot, disabled, describedBy, submitBlocked, o
               onBlur={() => {
                 field.handleBlur();
                 if (field.state.value.trim() !== '') {
-                  setGuardReasons(guard({ kind: form.getFieldValue('kind'), content: field.state.value }).reasons);
+                  setGuardReasons(
+                    guard({ kind: form.getFieldValue('kind'), content: field.state.value }).reasons,
+                  );
                 }
               }}
             />
@@ -174,13 +194,18 @@ export function SourceForm({ redeemSlot, disabled, describedBy, submitBlocked, o
             </p>
             <div id="source-content-reasons">
               {guardReasons.length > 0 && (
-                <ul className="list-disc pl-5 text-sm text-destructive" aria-label="Problems with the text">
+                <ul
+                  className="list-disc pl-5 text-sm text-destructive"
+                  aria-label="Problems with the text"
+                >
                   {guardReasons.map((reason) => (
                     <li key={reason.code}>{reason.message}</li>
                   ))}
                 </ul>
               )}
-              {fieldIssue('content') && <p className="text-sm text-destructive">{fieldIssue('content')}</p>}
+              {fieldIssue('content') && (
+                <p className="text-sm text-destructive">{fieldIssue('content')}</p>
+              )}
             </div>
           </div>
         )}
@@ -191,28 +216,31 @@ export function SourceForm({ redeemSlot, disabled, describedBy, submitBlocked, o
           <AlertDescription>
             <p>The text was not accepted:</p>
             <ul className="list-disc pl-5">
-              {(error.issues.length > 0 ? error.issues.map((i) => i.message) : error.reasons).map((text) => (
-                <li key={text}>{text}</li>
-              ))}
+              {(error.issues.length > 0 ? error.issues.map((i) => i.message) : error.reasons).map(
+                (text) => (
+                  <li key={text}>{text}</li>
+                ),
+              )}
             </ul>
           </AlertDescription>
         </Alert>
       )}
-      {error?.code === 'VALIDATION_FAILED' && (unmappedIssues.length > 0 || error.issues.length === 0) && (
-        <Alert variant="destructive">
-          <AlertDescription>
-            {unmappedIssues.length > 0 ? (
-              <ul className="list-disc pl-5">
-                {unmappedIssues.map((i) => (
-                  <li key={`${i.path}:${i.message}`}>{i.message}</li>
-                ))}
-              </ul>
-            ) : (
-              error.message
-            )}
-          </AlertDescription>
-        </Alert>
-      )}
+      {error?.code === 'VALIDATION_FAILED' &&
+        (unmappedIssues.length > 0 || error.issues.length === 0) && (
+          <Alert variant="destructive">
+            <AlertDescription>
+              {unmappedIssues.length > 0 ? (
+                <ul className="list-disc pl-5">
+                  {unmappedIssues.map((i) => (
+                    <li key={`${i.path}:${i.message}`}>{i.message}</li>
+                  ))}
+                </ul>
+              ) : (
+                error.message
+              )}
+            </AlertDescription>
+          </Alert>
+        )}
       {error?.code === 'CREATION_LIMIT_REACHED' && (
         <RateLimitNotice
           message={`You have reached the limit for ${KIND_TEXT[error.kind ?? 'upload']}.`}
@@ -224,7 +252,12 @@ export function SourceForm({ redeemSlot, disabled, describedBy, submitBlocked, o
         <RateLimitNotice message={error.message} window={error.window} retryAt={error.retryAt} />
       )}
       {error &&
-        !['SOURCE_REJECTED', 'VALIDATION_FAILED', 'CREATION_LIMIT_REACHED', 'RATE_LIMITED'].includes(error.code) && (
+        ![
+          'SOURCE_REJECTED',
+          'VALIDATION_FAILED',
+          'CREATION_LIMIT_REACHED',
+          'RATE_LIMITED',
+        ].includes(error.code) && (
           <Alert variant="destructive">
             <AlertDescription>{describeError(error).message}</AlertDescription>
           </Alert>

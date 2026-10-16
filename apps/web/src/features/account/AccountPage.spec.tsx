@@ -35,9 +35,17 @@ describe('AccountPage', () => {
     expect(screen.getByText('ana@example.com')).toBeInTheDocument();
     const table = await screen.findByRole('table', { name: 'This month' });
     const prompt = within(table).getByRole('row', { name: /Prompt puzzles/ });
-    expect(within(prompt).getAllByRole('cell').map((c) => c.textContent)).toEqual(['4', '5', '0', new Date(RESETS).toLocaleDateString()]);
+    expect(
+      within(prompt)
+        .getAllByRole('cell')
+        .map((c) => c.textContent),
+    ).toEqual(['4', '5', '0', new Date(RESETS).toLocaleDateString()]);
     const upload = within(table).getByRole('row', { name: /Uploads/ });
-    expect(within(upload).getAllByRole('cell').map((c) => c.textContent)).toEqual(['1', '3', '2', new Date(RESETS).toLocaleDateString()]);
+    expect(
+      within(upload)
+        .getAllByRole('cell')
+        .map((c) => c.textContent),
+    ).toEqual(['1', '3', '2', new Date(RESETS).toLocaleDateString()]);
   });
 
   it('shows the hourly usage', async () => {

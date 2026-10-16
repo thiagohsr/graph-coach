@@ -595,7 +595,8 @@ export function guardBrief(brief: {
     }
   }
 
-  if (notATopic(subject)) add('brief_not_a_topic', 'brief.subject', BRIEF_MESSAGES.brief_not_a_topic);
+  if (notATopic(subject))
+    add('brief_not_a_topic', 'brief.subject', BRIEF_MESSAGES.brief_not_a_topic);
   if (focus !== '' && notATopic(focus)) {
     add('brief_not_a_topic', 'brief.focus', BRIEF_MESSAGES.brief_not_a_topic);
   }

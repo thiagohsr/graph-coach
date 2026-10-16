@@ -2,15 +2,21 @@ import { createHash } from 'node:crypto';
 import { lstatSync, readFileSync, readdirSync } from 'node:fs';
 import { join, resolve } from 'node:path';
 import type { z } from 'zod';
-import { ProviderConfigError, ProviderError,ProviderUnavailableError, attachUsage } from './errors';
 import {
-  makeReporter,
-  runComplete,
-  runEmbed,
-  runStructured,
-  type RawChat,
-} from './structured';
-import type { ChatMessage, ChatOptions, ChatProvider, EmbeddingsProvider, EmbedOptions, StructuredOptions } from './types';
+  ProviderConfigError,
+  ProviderError,
+  ProviderUnavailableError,
+  attachUsage,
+} from './errors';
+import { makeReporter, runComplete, runEmbed, runStructured, type RawChat } from './structured';
+import type {
+  ChatMessage,
+  ChatOptions,
+  ChatProvider,
+  EmbeddingsProvider,
+  EmbedOptions,
+  StructuredOptions,
+} from './types';
 import type { ChatResult, EmbeddingsResult, StructuredResult, Usage } from './usage';
 import { ZERO_USAGE } from './usage';
 import type { UsageTracer } from './usage-tracer';
@@ -37,7 +43,9 @@ interface RecordedEntry {
 
 /** sha-256 (hex) of the message contents joined with "\n" (roles are not hashed). */
 export function promptHash(messages: ChatMessage[]): string {
-  return createHash('sha256').update(messages.map((m) => m.content).join('\n')).digest('hex');
+  return createHash('sha256')
+    .update(messages.map((m) => m.content).join('\n'))
+    .digest('hex');
 }
 
 const LABEL_PATTERN = /^[A-Za-z0-9][A-Za-z0-9._-]*$/;
@@ -49,7 +57,9 @@ function loadRecordings(dir: string): Map<string, RecordedEntry[]> {
   try {
     names = readdirSync(root);
   } catch {
-    throw new ProviderConfigError(`Recordings directory is not readable: ${root}`, { provider: 'stub' });
+    throw new ProviderConfigError(`Recordings directory is not readable: ${root}`, {
+      provider: 'stub',
+    });
   }
   const map = new Map<string, RecordedEntry[]>();
   for (const name of names.sort()) {
@@ -62,18 +72,25 @@ function loadRecordings(dir: string): Map<string, RecordedEntry[]> {
     try {
       parsed = JSON.parse(readFileSync(file, 'utf8'));
     } catch {
-      throw new ProviderConfigError(`Recording file is not valid JSON: ${name}`, { provider: 'stub' });
+      throw new ProviderConfigError(`Recording file is not valid JSON: ${name}`, {
+        provider: 'stub',
+      });
     }
     const entries = (parsed as { responses?: unknown } | null)?.responses;
     if (!Array.isArray(entries)) {
-      throw new ProviderConfigError(`Recording file ${name} needs a "responses" array`, { provider: 'stub' });
+      throw new ProviderConfigError(`Recording file ${name} needs a "responses" array`, {
+        provider: 'stub',
+      });
     }
     const list: RecordedEntry[] = [];
     for (const e of entries as Array<Record<string, unknown>>) {
       if (typeof e?.promptHash !== 'string' || e.response === undefined || e.response === null) {
-        throw new ProviderConfigError(`Recording file ${name} has an entry without promptHash/response`, {
-          provider: 'stub',
-        });
+        throw new ProviderConfigError(
+          `Recording file ${name} has an entry without promptHash/response`,
+          {
+            provider: 'stub',
+          },
+        );
       }
       list.push({ promptHash: e.promptHash, response: e.response as StubValue });
     }
@@ -84,7 +101,10 @@ function loadRecordings(dir: string): Map<string, RecordedEntry[]> {
 
 type Matcher = string | RegExp;
 const matches = (m: Matcher, label: string | undefined): boolean =>
-  label !== undefined && (typeof m === 'string' ? m === label : new RegExp(m.source, m.flags.replace('g', '')).test(label));
+  label !== undefined &&
+  (typeof m === 'string'
+    ? m === label
+    : new RegExp(m.source, m.flags.replace('g', '')).test(label));
 
 export class StubChatProvider implements ChatProvider {
   readonly name = 'stub' as const;
@@ -109,10 +129,7 @@ export class StubChatProvider implements ChatProvider {
    * regular `.json` files directly inside it are read. A call with no matching recording throws
    * ProviderUnavailableError naming the label (never the prompt text).
    */
-  static fromRecordings(
-    dir: string,
-    options: { tracer?: UsageTracer } = {},
-  ): StubChatProvider {
+  static fromRecordings(dir: string, options: { tracer?: UsageTracer } = {}): StubChatProvider {
     const provider = new StubChatProvider(options);
     provider.recordings = loadRecordings(dir);
     return provider;
@@ -168,7 +185,11 @@ export class StubChatProvider implements ChatProvider {
   }
 
   private reporter(options: ChatOptions) {
-    return makeReporter(this.tracer, options.trace, { provider: 'stub', model: this.model, label: options.label });
+    return makeReporter(this.tracer, options.trace, {
+      provider: 'stub',
+      model: this.model,
+      label: options.label,
+    });
   }
 
   private next(call: StubCall): StubResponse | undefined {
@@ -182,7 +203,11 @@ export class StubChatProvider implements ChatProvider {
     return this.recordings.get(call.label)?.find((e) => e.promptHash === hash)?.response;
   }
 
-  private async attempt(messages: ChatMessage[], options: ChatOptions, structured: boolean): Promise<RawChat> {
+  private async attempt(
+    messages: ChatMessage[],
+    options: ChatOptions,
+    structured: boolean,
+  ): Promise<RawChat> {
     const call: StubCall = { label: options.label, messages, options, structured };
     this.calls.push(call);
     const scripted = this.next(call);
@@ -191,8 +216,13 @@ export class StubChatProvider implements ChatProvider {
       throw new ProviderUnavailableError(
         this.recordings
           ? `No recorded response for label "${options.label ?? '(none)'}" (prompt hash ${hash})`
-          : this.noResponseMessage ?? `Stub chat provider has no response for label "${options.label ?? '(none)'}"`,
-        { provider: 'stub', ...(options.label ? { label: options.label } : {}), usage: { ...ZERO_USAGE } },
+          : (this.noResponseMessage ??
+              `Stub chat provider has no response for label "${options.label ?? '(none)'}"`),
+        {
+          provider: 'stub',
+          ...(options.label ? { label: options.label } : {}),
+          usage: { ...ZERO_USAGE },
+        },
       );
     }
     const response = typeof scripted === 'function' ? scripted(call) : scripted;
@@ -258,7 +288,11 @@ export class StubEmbeddingsProvider implements EmbeddingsProvider {
     return runEmbed({
       provider: 'stub',
       label: options.label,
-      report: makeReporter(this.tracer, options.trace, { provider: 'stub', model: this.model, label: options.label }),
+      report: makeReporter(this.tracer, options.trace, {
+        provider: 'stub',
+        model: this.model,
+        label: options.label,
+      }),
       call: async () => ({
         vectors: texts.map((t) => stubVector(t, this.dimension)),
         usage: {

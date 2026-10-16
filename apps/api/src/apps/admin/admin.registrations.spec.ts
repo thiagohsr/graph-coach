@@ -29,10 +29,34 @@ const CANONICAL_PROPERTIES: Record<string, string[]> = {
   Concept: ['id', 'slug', 'name', 'description', 'createdAt'],
   Source: ['id', 'title', 'kind', 'fingerprint', 'content', 'brief', 'outline', 'createdAt'],
   Puzzle: ['id', 'name', 'origin', 'status', 'visibility', 'distractors', 'createdAt'],
-  Decision: ['id', 'kind', 'summary', 'flags', 'modelCalls', 'inputTokens', 'outputTokens', 'embeddingTokens', 'llmProvider', 'llmModel', 'createdAt'],
+  Decision: [
+    'id',
+    'kind',
+    'summary',
+    'flags',
+    'modelCalls',
+    'inputTokens',
+    'outputTokens',
+    'embeddingTokens',
+    'llmProvider',
+    'llmModel',
+    'createdAt',
+  ],
   Task: [
-    'id', 'kind', 'status', 'result', 'lastCompletedStep', 'error', 'modelCalls', 'inputTokens', 'outputTokens',
-    'embeddingTokens', 'llmProvider', 'llmModel', 'createdAt', 'updatedAt',
+    'id',
+    'kind',
+    'status',
+    'result',
+    'lastCompletedStep',
+    'error',
+    'modelCalls',
+    'inputTokens',
+    'outputTokens',
+    'embeddingTokens',
+    'llmProvider',
+    'llmModel',
+    'createdAt',
+    'updatedAt',
   ],
 };
 
@@ -54,12 +78,29 @@ const CANONICAL_RELATIONSHIPS: [string, string, string][] = [
 
 const CANONICAL_COLUMNS: Record<string, string[]> = {
   users: [
-    'id', 'email', 'display_name', 'role', 'status', 'bonus_source_runs', 'bonus_prompt_runs', 'limits_lifted_until',
-    'created_at', 'last_seen_at',
+    'id',
+    'email',
+    'display_name',
+    'role',
+    'status',
+    'bonus_source_runs',
+    'bonus_prompt_runs',
+    'limits_lifted_until',
+    'created_at',
+    'last_seen_at',
   ],
   access_codes: [
-    'id', 'code_hash', 'label', 'source_runs', 'prompt_runs', 'lift_days', 'max_redemptions', 'redeemed_count',
-    'expires_at', 'disabled', 'created_at',
+    'id',
+    'code_hash',
+    'label',
+    'source_runs',
+    'prompt_runs',
+    'lift_days',
+    'max_redemptions',
+    'redeemed_count',
+    'expires_at',
+    'disabled',
+    'created_at',
   ],
   admin_settings: ['key', 'value', 'updated_at'],
 };
@@ -67,9 +108,16 @@ const CANONICAL_COLUMNS: Record<string, string[]> = {
 describe('registrations', () => {
   it('validate and are exactly the eight models of v1', () => {
     expect(() => adminRegistry.validate()).not.toThrow();
-    expect([...models.keys()].sort()).toEqual(
-      ['access-code', 'admin-setting', 'concept', 'decision', 'puzzle', 'source', 'task', 'user'],
-    );
+    expect([...models.keys()].sort()).toEqual([
+      'access-code',
+      'admin-setting',
+      'concept',
+      'decision',
+      'puzzle',
+      'source',
+      'task',
+      'user',
+    ]);
     expect(models.has('question')).toBe(false);
     expect(models.has('chunk')).toBe(false);
   });
@@ -82,8 +130,13 @@ describe('registrations', () => {
         for (const key of m.fieldKeys) expect(allowed, `${m.name}.${key}`).toContain(key);
         for (const link of m.links) {
           if (link.kind === 'route') continue;
-          const [from, to] = link.direction === 'out' ? [m.entity, link.targetLabel] : [link.targetLabel, m.entity];
-          expect(CANONICAL_RELATIONSHIPS, `${m.name}.${link.name}`).toContainEqual([from, link.rel, to]);
+          const [from, to] =
+            link.direction === 'out' ? [m.entity, link.targetLabel] : [link.targetLabel, m.entity];
+          expect(CANONICAL_RELATIONSHIPS, `${m.name}.${link.name}`).toContainEqual([
+            from,
+            link.rel,
+            to,
+          ]);
           if (link.kind === 'records') {
             expect(CANONICAL_PROPERTIES[link.targetLabel], link.name).toContain(link.titleProperty);
             expect(models.has(link.model ?? 'user'), link.name).toBe(true);
@@ -111,7 +164,13 @@ describe('registrations', () => {
       expect(model(name).readOnly, name).toBe(true);
       expect(editable(name), name).toEqual([]);
     }
-    expect(model('user').listDisplay).toEqual(['email', 'displayName', 'role', 'status', 'createdAt']);
+    expect(model('user').listDisplay).toEqual([
+      'email',
+      'displayName',
+      'role',
+      'status',
+      'createdAt',
+    ]);
     expect(model('user').searchFields).toEqual(['email', 'displayName']);
     expect(model('user').titleField).toBe('email');
     expect(model('concept').searchFields).toEqual(['slug', 'name', 'description']);
@@ -124,14 +183,33 @@ describe('registrations', () => {
 
   it('user declares the listed fields, names its providers, and has no username or identity table', () => {
     expect(keys('user')).toEqual([
-      'id', 'email', 'displayName', 'role', 'status', 'createdAt', 'lastSeenAt', 'bonusSourceRuns', 'bonusPromptRuns',
-      'limitsLiftedUntil', 'uploadsThisMonth', 'promptsThisMonth', 'creationsLastHour', 'tokensThisMonth',
+      'id',
+      'email',
+      'displayName',
+      'role',
+      'status',
+      'createdAt',
+      'lastSeenAt',
+      'bonusSourceRuns',
+      'bonusPromptRuns',
+      'limitsLiftedUntil',
+      'uploadsThisMonth',
+      'promptsThisMonth',
+      'creationsLastHour',
+      'tokensThisMonth',
     ]);
     expect(keys('user')).not.toContain('username');
     expect(model('user').computeProvider).toBe('user.creations');
     expect(model('user').updateProvider).toBe('user.account');
-    expect(model('user').fields.bonusSourceRuns).toMatchObject({ min: 0, max: 1000, required: true });
-    expect(model('user').fields.tokensThisMonth).toMatchObject({ label: 'Tokens this month', computed: true });
+    expect(model('user').fields.bonusSourceRuns).toMatchObject({
+      min: 0,
+      max: 1000,
+      required: true,
+    });
+    expect(model('user').fields.tokensThisMonth).toMatchObject({
+      label: 'Tokens this month',
+      computed: true,
+    });
     expect(model('user').fields.status!.quickActions).toEqual([
       { value: 'blocked', label: 'Block' },
       { value: 'active', label: 'Unblock' },
@@ -143,7 +221,15 @@ describe('registrations', () => {
 
   it('access-code declares ten metadata fields and only disabled is editable', () => {
     expect(keys('access-code')).toEqual([
-      'id', 'label', 'sourceRuns', 'promptRuns', 'liftDays', 'redeemedCount', 'maxRedemptions', 'expiresAt', 'disabled',
+      'id',
+      'label',
+      'sourceRuns',
+      'promptRuns',
+      'liftDays',
+      'redeemedCount',
+      'maxRedemptions',
+      'expiresAt',
+      'disabled',
       'createdAt',
     ]);
     expect(model('access-code').updateProvider).toBe('code.disable');
@@ -186,7 +272,14 @@ describe('registrations', () => {
           expect(link.href).not.toMatch(/^\/(sources|tasks|review)/);
           continue;
         }
-        expect(['SHARED_WITH', 'CONTAINS', 'TESTS', 'GROUNDED_IN', 'HAS_CHUNK', 'HAS_STEP']).not.toContain(link.rel);
+        expect([
+          'SHARED_WITH',
+          'CONTAINS',
+          'TESTS',
+          'GROUNDED_IN',
+          'HAS_CHUNK',
+          'HAS_STEP',
+        ]).not.toContain(link.rel);
         if (link.kind === 'records') expect(['Question', 'Chunk']).not.toContain(link.targetLabel);
         else expect(link.targetLabel).not.toBe('Chunk');
       }
@@ -207,14 +300,27 @@ describe('what can never be declared (rule V5)', () => {
     }
   }
 
-  const withField = (decl: AdminDeclaration, key: string, extra: object = {}): AdminDeclaration => ({
+  const withField = (
+    decl: AdminDeclaration,
+    key: string,
+    extra: object = {},
+  ): AdminDeclaration => ({
     ...decl,
     links: [],
     fields: { ...decl.fields, [key]: extra },
   });
 
   it('accepts the unmodified declarations (sanity)', () => {
-    for (const decl of [userAdmin, adminSettingAdmin, accessCodeAdmin, conceptAdmin, sourceAdmin, puzzleAdmin, taskAdmin, decisionAdmin]) {
+    for (const decl of [
+      userAdmin,
+      adminSettingAdmin,
+      accessCodeAdmin,
+      conceptAdmin,
+      sourceAdmin,
+      puzzleAdmin,
+      taskAdmin,
+      decisionAdmin,
+    ]) {
       expect(violates({ ...decl, links: [] }), decl.name).toEqual([]);
     }
   });
@@ -222,20 +328,37 @@ describe('what can never be declared (rule V5)', () => {
   it('refuses cognito_sub on user, content/brief/outline on source, code_hash on access-code, distractors on puzzle', () => {
     expect(violates(withField(userAdmin, 'cognitoSub', { column: 'cognito_sub' }))).toContain('V5');
     expect(violates(withField(userAdmin, 'cognito_sub'))).toContain('V5');
-    for (const key of ['content', 'brief', 'outline']) expect(violates(withField(sourceAdmin, key))).toContain('V5');
+    for (const key of ['content', 'brief', 'outline'])
+      expect(violates(withField(sourceAdmin, key))).toContain('V5');
     expect(violates(withField(accessCodeAdmin, 'hash', { column: 'code_hash' }))).toContain('V5');
-    expect(violates(withField(accessCodeAdmin, 'codeHash', { column: 'code_hash' }))).toContain('V5');
+    expect(violates(withField(accessCodeAdmin, 'codeHash', { column: 'code_hash' }))).toContain(
+      'V5',
+    );
     expect(violates(withField(puzzleAdmin, 'distractors', { type: 'list' }))).toContain('V5');
   });
 
   it('refuses registering Question or Chunk and a records link to either', () => {
-    expect(violates({ ...conceptAdmin, name: 'question', entity: 'Question', links: [] })).toContain('V5');
-    expect(violates({ ...conceptAdmin, name: 'chunk', entity: 'Chunk', links: [] })).toContain('V5');
+    expect(
+      violates({ ...conceptAdmin, name: 'question', entity: 'Question', links: [] }),
+    ).toContain('V5');
+    expect(violates({ ...conceptAdmin, name: 'chunk', entity: 'Chunk', links: [] })).toContain(
+      'V5',
+    );
     for (const targetLabel of ['Question', 'Chunk']) {
       expect(
         violates({
           ...taskAdmin,
-          links: [{ kind: 'records', name: 'qs', label: 'Qs', rel: 'PRODUCED', direction: 'out', targetLabel, titleProperty: 'id' }],
+          links: [
+            {
+              kind: 'records',
+              name: 'qs',
+              label: 'Qs',
+              rel: 'PRODUCED',
+              direction: 'out',
+              targetLabel,
+              titleProperty: 'id',
+            },
+          ],
         }),
       ).toContain('V5');
     }

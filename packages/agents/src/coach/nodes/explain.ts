@@ -15,7 +15,10 @@ import { renderSummary, type SummaryInput } from '../summary';
  * the template and is logged as `coach.phrase_fallback`.
  */
 export function createExplainNode(
-  deps: Pick<CoachDeps, 'queries' | 'settings' | 'logger' | 'chatModel' | 'phraseWithModel' | 'coverageAllowance'>,
+  deps: Pick<
+    CoachDeps,
+    'queries' | 'settings' | 'logger' | 'chatModel' | 'phraseWithModel' | 'coverageAllowance'
+  >,
 ): CoachNode {
   return async (state, step) => {
     const selection = state.selection;
@@ -30,7 +33,12 @@ export function createExplainNode(
       });
     }
     const evidence = buildEvidence(
-      { selection, answers, ...(state.goal ? { passages: state.goal.passages } : {}), flags: state.flags },
+      {
+        selection,
+        answers,
+        ...(state.goal ? { passages: state.goal.passages } : {}),
+        flags: state.flags,
+      },
       deps.settings,
     );
 
@@ -42,7 +50,9 @@ export function createExplainNode(
     if (state.goal && state.missingConceptIds.length > 0) {
       const names = new Map(state.goal.concepts.map((c) => [c.conceptId, c.name]));
       missingNames = state.missingConceptIds.map((id) => names.get(id) ?? id);
-      const verdict = deps.coverageAllowance ? await deps.coverageAllowance() : { allowed: false as const, reason: 'no_allowance' as const };
+      const verdict = deps.coverageAllowance
+        ? await deps.coverageAllowance()
+        : { allowed: false as const, reason: 'no_allowance' as const };
       extraFlags.push('coverage_gap');
       if (verdict.allowed) {
         extraFlags.push('coverage_requested');
@@ -68,13 +78,28 @@ export function createExplainNode(
     let usage = { ...ZERO_USAGE };
     if ((deps.phraseWithModel ?? PHRASE_WITH_MODEL) && deps.chatModel) {
       const mustContain = [selection.target.name, ...(state.puzzle ? [state.puzzle.name] : [])];
-      const phrased = await phraseSummary(template, mustContain, deps.chatModel, step ? { trace: step } : {});
+      const phrased = await phraseSummary(
+        template,
+        mustContain,
+        deps.chatModel,
+        step ? { trace: step } : {},
+      );
       summary = phrased.text;
       usage = { ...phrased.usage };
       // Ids and a reason only: never the summary or the model output.
-      if (phrased.fallback) deps.logger?.warn('coach.phrase_fallback', { runId: state.runId, reason: phrased.fallback });
+      if (phrased.fallback)
+        deps.logger?.warn('coach.phrase_fallback', {
+          runId: state.runId,
+          reason: phrased.fallback,
+        });
     }
 
-    return { evidence, summary, kind, usage, ...(extraFlags.length > 0 ? { flags: extraFlags } : {}) };
+    return {
+      evidence,
+      summary,
+      kind,
+      usage,
+      ...(extraFlags.length > 0 ? { flags: extraFlags } : {}),
+    };
   };
 }

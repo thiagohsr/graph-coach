@@ -10,7 +10,9 @@ import { WhyPath } from './WhyPath';
 describe('WhyPath', () => {
   it('lists the steps in order, equal to the response', async () => {
     render(<WhyPath path={path} />);
-    const items = within(screen.getByRole('list')).getAllByRole('listitem').map((li) => li.textContent);
+    const items = within(screen.getByRole('list'))
+      .getAllByRole('listitem')
+      .map((li) => li.textContent);
     expect(items).toEqual(path.steps);
     expect(await screen.findByText('graph stub')).toBeInTheDocument();
   });
@@ -31,7 +33,9 @@ describe('WhyPath', () => {
   it('collapses identical consecutive lines into one with a count', () => {
     const line = 'Session on Databases 101, 2026-10-16 — 6 wrong answers on these concepts.';
     render(<WhyPath path={{ ...path, steps: ['First.', line, line, line, 'Last.'] }} />);
-    const items = within(screen.getByRole('list')).getAllByRole('listitem').map((li) => li.textContent);
+    const items = within(screen.getByRole('list'))
+      .getAllByRole('listitem')
+      .map((li) => li.textContent);
     expect(items).toEqual(['First.', `${line} (3 times)`, 'Last.']);
   });
 });

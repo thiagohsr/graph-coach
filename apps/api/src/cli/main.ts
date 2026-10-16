@@ -9,7 +9,11 @@ async function main(): Promise<void> {
   const args = process.argv.slice(2);
 
   // `create-code --generate-only` needs neither stores nor environment.
-  if (args[0] === 'create-code' && args.includes('--generate-only') && !args.includes('--from-env')) {
+  if (
+    args[0] === 'create-code' &&
+    args.includes('--generate-only') &&
+    !args.includes('--from-env')
+  ) {
     consoleOutput.line(generateCode());
     return;
   }

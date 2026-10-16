@@ -47,7 +47,9 @@ export function canShare(user: AuthUser, puzzle: PuzzleAccessFacts): boolean {
 /** Owner AND role reviewer or admin AND published. */
 export function canPublish(user: AuthUser, puzzle: PuzzleAccessFacts): boolean {
   return (
-    isOwner(user, puzzle.ownerId) && hasRole(user, 'reviewer', 'admin') && puzzle.status === 'published'
+    isOwner(user, puzzle.ownerId) &&
+    hasRole(user, 'reviewer', 'admin') &&
+    puzzle.status === 'published'
   );
 }
 
@@ -106,7 +108,13 @@ export function assertOwner(
   options: { adminToo?: boolean } = {},
 ): void {
   if (isOwner(user, ownerId)) return;
-  if (options.adminToo === true && user.role === 'admin' && ownerId !== null && ownerId !== undefined) return;
+  if (
+    options.adminToo === true &&
+    user.role === 'admin' &&
+    ownerId !== null &&
+    ownerId !== undefined
+  )
+    return;
   throw new NotFoundError(resource);
 }
 

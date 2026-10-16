@@ -17,7 +17,10 @@ import {
 import type { EvidenceItem } from './state';
 
 /** Structural type so this folder does not import graph-kit. Matches GraphKit.query(name, params). */
-export type QueryFn = <T = Record<string, unknown>>(name: string, params: Record<string, unknown>) => Promise<T[]>;
+export type QueryFn = <T = Record<string, unknown>>(
+  name: string,
+  params: Record<string, unknown>,
+) => Promise<T[]>;
 
 export interface RecordDecisionParams {
   decisionId: string;
@@ -75,7 +78,11 @@ export interface CoachQueries {
     recentSince: number;
     limit: number;
   }): Promise<PuzzleRow[]>;
-  introPuzzles(p: { userId: string; recentSince: number; limit: number }): Promise<IntroPuzzleRow[]>;
+  introPuzzles(p: {
+    userId: string;
+    recentSince: number;
+    limit: number;
+  }): Promise<IntroPuzzleRow[]>;
   conceptAnswerEvidence(p: {
     learnerId: string;
     conceptIds: string[];
@@ -84,7 +91,12 @@ export interface CoachQueries {
   recordDecision(p: RecordDecisionParams): Promise<RecordDecisionResult | null>;
   getDecision(p: { decisionId: string }): Promise<DecisionRow | null>;
   /** `userId` is the viewer. */
-  decisionPath(p: { decisionId: string; learnerId: string; userId: string; depth: number }): Promise<PathRow[]>;
+  decisionPath(p: {
+    decisionId: string;
+    learnerId: string;
+    userId: string;
+    depth: number;
+  }): Promise<PathRow[]>;
   /**
    * Goal stretch. `userId` is the learner; `minSimilarity` is a similarity (the query turns FalkorDB's cosine distance
    * into `1 - distance` before comparing). `goalText` is normalised, `goalSlugText` has hyphens for spaces.
@@ -161,7 +173,11 @@ export function createCoachQueries(query: QueryFn): CoachQueries {
       return parseRows(PuzzleRow, rows);
     },
     async introPuzzles(p) {
-      const rows = await query('intro_puzzles', { userId: p.userId, recentSince: p.recentSince, limit: p.limit });
+      const rows = await query('intro_puzzles', {
+        userId: p.userId,
+        recentSince: p.recentSince,
+        limit: p.limit,
+      });
       return parseRows(IntroPuzzleRow, rows);
     },
     async conceptAnswerEvidence(p) {

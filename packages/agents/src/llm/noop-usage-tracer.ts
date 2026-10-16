@@ -1,4 +1,11 @@
-import type { CallRecord, ContentCapture, RunHandle, RunKind, StepHandle, UsageTracer } from './usage-tracer';
+import type {
+  CallRecord,
+  ContentCapture,
+  RunHandle,
+  RunKind,
+  StepHandle,
+  UsageTracer,
+} from './usage-tracer';
 
 /** Does nothing. Used when Langfuse is not configured. */
 export class NoopUsageTracer implements UsageTracer {

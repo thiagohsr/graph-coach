@@ -10,7 +10,11 @@
 import { UNSEEN_MASTERY } from '@coach/types';
 import type { MasteryState } from './gameplay.dto';
 
-export function updateMastery(prev: number | null | undefined, outcome: 0 | 1, alpha: number): number {
+export function updateMastery(
+  prev: number | null | undefined,
+  outcome: 0 | 1,
+  alpha: number,
+): number {
   if (!(alpha > 0 && alpha <= 1)) throw new RangeError(`alpha must be in (0, 1], got ${alpha}`);
   const p = prev ?? UNSEEN_MASTERY;
   return Math.min(1, Math.max(0, p + alpha * (outcome - p)));

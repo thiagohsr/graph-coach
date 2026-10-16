@@ -11,14 +11,23 @@ import {
   startLoginHandler,
   type OidcDeps,
 } from './oidc';
-import { parseCookieHeader, parseSetCookie, readSession, readTransaction, unseal } from './session-cookie';
+import {
+  parseCookieHeader,
+  parseSetCookie,
+  readSession,
+  readTransaction,
+  unseal,
+} from './session-cookie';
 
 const secret = 'k'.repeat(32);
 const NOW = 1_800_000_000_000;
 
 type FetchFn = (url: string, init?: RequestInit) => Promise<Response>;
 
-function makeDeps(fetchImpl: FetchFn, overrides: Partial<OidcDeps> = {}): OidcDeps & { fetch: ReturnType<typeof vi.fn> } {
+function makeDeps(
+  fetchImpl: FetchFn,
+  overrides: Partial<OidcDeps> = {},
+): OidcDeps & { fetch: ReturnType<typeof vi.fn> } {
   const fetchMock = vi.fn(fetchImpl);
   return {
     cognitoDomain: 'auth.example.com',
@@ -95,8 +104,16 @@ describe('PKCE and the authorize address', () => {
       state: 's',
       codeChallenge: 'x',
     };
-    expect(new URL(buildAuthorizeUrl({ ...base, provider: 'google' })).searchParams.get('identity_provider')).toBe('Google');
-    expect(new URL(buildAuthorizeUrl({ ...base, provider: 'email' })).searchParams.has('identity_provider')).toBe(false);
+    expect(
+      new URL(buildAuthorizeUrl({ ...base, provider: 'google' })).searchParams.get(
+        'identity_provider',
+      ),
+    ).toBe('Google');
+    expect(
+      new URL(buildAuthorizeUrl({ ...base, provider: 'email' })).searchParams.has(
+        'identity_provider',
+      ),
+    ).toBe(false);
   });
 });
 
@@ -116,14 +133,22 @@ describe('startLoginHandler', () => {
     expect(tx).not.toBeNull();
     expect(tx!.state).toBe(location.searchParams.get('state'));
     expect(tx!.redirect).toBe('/coach?x=1');
-    expect(createHash('sha256').update(tx!.codeVerifier).digest('base64url')).toBe(location.searchParams.get('code_challenge'));
-    expect(parseSetCookie(setCookies(res)[0]!)).toMatchObject({ name: 'gc_auth_tx', maxAge: 600, secure: true });
+    expect(createHash('sha256').update(tx!.codeVerifier).digest('base64url')).toBe(
+      location.searchParams.get('code_challenge'),
+    );
+    expect(parseSetCookie(setCookies(res)[0]!)).toMatchObject({
+      name: 'gc_auth_tx',
+      maxAge: 600,
+      secure: true,
+    });
     expect(deps.fetch).not.toHaveBeenCalled();
   });
 
   it('uses no hint for e-mail and replaces an unsafe redirect with /puzzles', async () => {
     const res = await startLoginHandler(
-      new Request('https://coach.example.com/auth/login?provider=email&redirect=https%3A%2F%2Fevil.example'),
+      new Request(
+        'https://coach.example.com/auth/login?provider=email&redirect=https%3A%2F%2Fevil.example',
+      ),
       makeDeps(noFetch),
     );
     expect(new URL(res.headers.get('Location')!).searchParams.has('identity_provider')).toBe(false);
@@ -131,8 +156,24 @@ describe('startLoginHandler', () => {
   });
 
   it('uses a fresh state and verifier every time', async () => {
-    const a = readTransaction(cookieMap(await startLoginHandler(new Request('https://x/auth/login?provider=email'), makeDeps(noFetch))), secret)!;
-    const b = readTransaction(cookieMap(await startLoginHandler(new Request('https://x/auth/login?provider=email'), makeDeps(noFetch))), secret)!;
+    const a = readTransaction(
+      cookieMap(
+        await startLoginHandler(
+          new Request('https://x/auth/login?provider=email'),
+          makeDeps(noFetch),
+        ),
+      ),
+      secret,
+    )!;
+    const b = readTransaction(
+      cookieMap(
+        await startLoginHandler(
+          new Request('https://x/auth/login?provider=email'),
+          makeDeps(noFetch),
+        ),
+      ),
+      secret,
+    )!;
     expect(a.state).not.toBe(b.state);
     expect(a.codeVerifier).not.toBe(b.codeVerifier);
   });
@@ -142,7 +183,11 @@ describe('startLoginHandler', () => {
 
 const tx = { state: 'good-state', codeVerifier: 'verifier-value', redirect: '/coach' };
 
-async function callbackRequest(query: string, withTx = true, overrideTx: Partial<typeof tx> = {}): Promise<Request> {
+async function callbackRequest(
+  query: string,
+  withTx = true,
+  overrideTx: Partial<typeof tx> = {},
+): Promise<Request> {
   const deps = makeDeps(noFetch);
   const headers: Record<string, string> = {};
   if (withTx) {
@@ -156,9 +201,19 @@ async function callbackRequest(query: string, withTx = true, overrideTx: Partial
 }
 
 const tokenResponse = (extra: Record<string, unknown> = {}) =>
-  Response.json({ access_token: 'ACCESS', refresh_token: 'REFRESH', id_token: 'IDTOKEN', expires_in: 3600, token_type: 'Bearer', ...extra });
+  Response.json({
+    access_token: 'ACCESS',
+    refresh_token: 'REFRESH',
+    id_token: 'IDTOKEN',
+    expires_in: 3600,
+    token_type: 'Bearer',
+    ...extra,
+  });
 
-function routedFetch(me: () => Response | Promise<Response>, token: () => Response | Promise<Response> = () => tokenResponse()): FetchFn {
+function routedFetch(
+  me: () => Response | Promise<Response>,
+  token: () => Response | Promise<Response> = () => tokenResponse(),
+): FetchFn {
   return async (url) => {
     if (String(url).startsWith('https://auth.example.com/oauth2/token')) return token();
     if (String(url) === 'http://api:3001/api/auth/me') return me();
@@ -166,13 +221,18 @@ function routedFetch(me: () => Response | Promise<Response>, token: () => Respon
   };
 }
 
-const meOk = () => Response.json({ id: 'u1', name: 'A', email: 'a@x.io', role: 'learner', status: 'active' });
-const apiError = (status: number, code: string) => Response.json({ error: { code, message: code } }, { status });
+const meOk = () =>
+  Response.json({ id: 'u1', name: 'A', email: 'a@x.io', role: 'learner', status: 'active' });
+const apiError = (status: number, code: string) =>
+  Response.json({ error: { code, message: code } }, { status });
 
 describe('callbackHandler', () => {
   it('maps a provider error to /login?error=provider without calling anything', async () => {
     const deps = makeDeps(noFetch);
-    const res = await callbackHandler(await callbackRequest('error=access_denied&state=good-state'), deps);
+    const res = await callbackHandler(
+      await callbackRequest('error=access_denied&state=good-state'),
+      deps,
+    );
     expect(res.status).toBe(302);
     expect(res.headers.get('Location')).toBe('/login?error=provider');
     expect(expiredNames(res)).toContain('gc_auth_tx');
@@ -181,7 +241,10 @@ describe('callbackHandler', () => {
 
   it('rejects a missing transaction cookie without calling the token endpoint', async () => {
     const deps = makeDeps(noFetch);
-    const res = await callbackHandler(await callbackRequest('code=c&state=good-state', false), deps);
+    const res = await callbackHandler(
+      await callbackRequest('code=c&state=good-state', false),
+      deps,
+    );
     expect(res.headers.get('Location')).toBe('/login?error=state');
     expect(deps.fetch).not.toHaveBeenCalled();
   });
@@ -197,7 +260,9 @@ describe('callbackHandler', () => {
   });
 
   it('maps a failed code exchange to /login?error=exchange', async () => {
-    const deps = makeDeps(routedFetch(meOk, () => Response.json({ error: 'invalid_grant' }, { status: 400 })));
+    const deps = makeDeps(
+      routedFetch(meOk, () => Response.json({ error: 'invalid_grant' }, { status: 400 })),
+    );
     const res = await callbackHandler(await callbackRequest('code=c&state=good-state'), deps);
     expect(res.headers.get('Location')).toBe('/login?error=exchange');
     expect(expiredNames(res)).toContain('gc_auth_tx');
@@ -206,15 +271,19 @@ describe('callbackHandler', () => {
 
   it('treats an exchange without an access token, or a network failure, as an exchange error', async () => {
     const noToken = makeDeps(routedFetch(meOk, () => Response.json({ id_token: 'x' })));
-    expect((await callbackHandler(await callbackRequest('code=c&state=good-state'), noToken)).headers.get('Location')).toBe(
-      '/login?error=exchange',
-    );
+    expect(
+      (
+        await callbackHandler(await callbackRequest('code=c&state=good-state'), noToken)
+      ).headers.get('Location'),
+    ).toBe('/login?error=exchange');
     const down = makeDeps(async () => {
       throw new TypeError('network');
     });
-    expect((await callbackHandler(await callbackRequest('code=c&state=good-state'), down)).headers.get('Location')).toBe(
-      '/login?error=exchange',
-    );
+    expect(
+      (await callbackHandler(await callbackRequest('code=c&state=good-state'), down)).headers.get(
+        'Location',
+      ),
+    ).toBe('/login?error=exchange');
   });
 
   it('exchanges the code with the client id and verifier only, form-encoded, no client secret', async () => {
@@ -249,7 +318,11 @@ describe('callbackHandler', () => {
     expect(res.status).toBe(302);
     expect(res.headers.get('Location')).toBe('/coach');
     const jar = cookieMap(res);
-    expect(readSession(jar, secret)).toEqual({ accessToken: 'ACCESS', refreshToken: 'REFRESH', expiresAt: NOW + 3600_000 });
+    expect(readSession(jar, secret)).toEqual({
+      accessToken: 'ACCESS',
+      refreshToken: 'REFRESH',
+      expiresAt: NOW + 3600_000,
+    });
     // The ID token is never stored: not in the sealed payload and not in any cookie text.
     const first = jar['gc_session.0']!;
     const sealed = unseal<Record<string, unknown>>(first.slice(first.indexOf('.') + 1), secret);
@@ -277,7 +350,10 @@ describe('callbackHandler', () => {
     ['500', () => apiError(500, 'INTERNAL')],
     ['503', () => apiError(503, 'SQL_UNAVAILABLE')],
   ])('writes no session and goes to /login?error=account for %s', async (_label, me) => {
-    const res = await callbackHandler(await callbackRequest('code=c&state=good-state'), makeDeps(routedFetch(me)));
+    const res = await callbackHandler(
+      await callbackRequest('code=c&state=good-state'),
+      makeDeps(routedFetch(me)),
+    );
     expect(res.headers.get('Location')).toBe('/login?error=account');
     expect(Object.keys(cookieMap(res))).toEqual([]);
   });
@@ -297,7 +373,9 @@ describe('callbackHandler', () => {
     const deps = makeDeps(routedFetch(meOk));
     const req = await callbackRequest('code=c&state=good-state');
     const withOld = new Request(req.url, {
-      headers: { cookie: `${req.headers.get('cookie')}; gc_session.0=1.x; gc_session.1=y; gc_session.2=z` },
+      headers: {
+        cookie: `${req.headers.get('cookie')}; gc_session.0=1.x; gc_session.1=y; gc_session.2=z`,
+      },
     });
     const res = await callbackHandler(withOld, deps);
     expect(expiredNames(res)).toEqual(expect.arrayContaining(['gc_session.1', 'gc_session.2']));
@@ -321,9 +399,17 @@ describe('exchangeCode and refreshTokens', () => {
   });
 
   it('refreshTokens returns a rotated refresh token and null on refusal', async () => {
-    const rotated = makeDeps(async () => Response.json({ access_token: 'A2', refresh_token: 'R2', expires_in: 60 }));
-    expect(await refreshTokens('R1', rotated)).toEqual({ accessToken: 'A2', refreshToken: 'R2', expiresIn: 60 });
-    const refused = makeDeps(async () => Response.json({ error: 'invalid_grant' }, { status: 400 }));
+    const rotated = makeDeps(async () =>
+      Response.json({ access_token: 'A2', refresh_token: 'R2', expires_in: 60 }),
+    );
+    expect(await refreshTokens('R1', rotated)).toEqual({
+      accessToken: 'A2',
+      refreshToken: 'R2',
+      expiresIn: 60,
+    });
+    const refused = makeDeps(async () =>
+      Response.json({ error: 'invalid_grant' }, { status: 400 }),
+    );
     expect(await refreshTokens('R1', refused)).toBeNull();
     const down = makeDeps(async () => {
       throw new TypeError('network');
@@ -333,14 +419,28 @@ describe('exchangeCode and refreshTokens', () => {
 
   it('exchangeCode returns the tokens including the ID token', async () => {
     const deps = makeDeps(async () => tokenResponse());
-    expect(await exchangeCode('c', 'v', deps)).toEqual({ accessToken: 'ACCESS', refreshToken: 'REFRESH', idToken: 'IDTOKEN', expiresIn: 3600 });
+    expect(await exchangeCode('c', 'v', deps)).toEqual({
+      accessToken: 'ACCESS',
+      refreshToken: 'REFRESH',
+      idToken: 'IDTOKEN',
+      expiresIn: 3600,
+    });
   });
 });
 
 describe('buildLogoutUrl', () => {
   it('carries the client id and the return address', () => {
-    const url = new URL(buildLogoutUrl({ cognitoDomain: 'auth.example.com', clientId: 'client-123', publicOrigin: 'https://coach.example.com' }));
+    const url = new URL(
+      buildLogoutUrl({
+        cognitoDomain: 'auth.example.com',
+        clientId: 'client-123',
+        publicOrigin: 'https://coach.example.com',
+      }),
+    );
     expect(url.origin + url.pathname).toBe('https://auth.example.com/logout');
-    expect(Object.fromEntries(url.searchParams)).toEqual({ client_id: 'client-123', logout_uri: 'https://coach.example.com/login' });
+    expect(Object.fromEntries(url.searchParams)).toEqual({
+      client_id: 'client-123',
+      logout_uri: 'https://coach.example.com/login',
+    });
   });
 });

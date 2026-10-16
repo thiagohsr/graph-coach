@@ -85,7 +85,9 @@ export interface AdminHookContext {
 }
 
 export type AdminHookResult = void | { fields?: Record<string, string>; form?: string[] };
-export type AdminValidateHook = (ctx: AdminHookContext) => AdminHookResult | Promise<AdminHookResult>;
+export type AdminValidateHook = (
+  ctx: AdminHookContext,
+) => AdminHookResult | Promise<AdminHookResult>;
 
 export type AdminComputeProvider = (record: {
   id: string;
@@ -212,7 +214,9 @@ export function storedFields(model: ResolvedAdminModel): ResolvedField[] {
 /** Fields an update may change: never on a read-only model, never read-only, computed, or the id field. */
 export function editableFields(model: ResolvedAdminModel): ResolvedField[] {
   if (model.readOnly) return [];
-  return model.fieldKeys.map((key) => model.fields[key]!).filter((field) => !field.readonly && !field.computed);
+  return model.fieldKeys
+    .map((key) => model.fields[key]!)
+    .filter((field) => !field.readonly && !field.computed);
 }
 
 export function sqlColumnOf(field: ResolvedField): string {

@@ -58,7 +58,18 @@ export const DecisionPathDto = z.object({
   nodes: z.array(
     z.object({
       id: z.string(),
-      label: z.enum(['Decision', 'Agent', 'Learner', 'Puzzle', 'Concept', 'Session', 'Question', 'Chunk', 'Goal', 'Task']),
+      label: z.enum([
+        'Decision',
+        'Agent',
+        'Learner',
+        'Puzzle',
+        'Concept',
+        'Session',
+        'Question',
+        'Chunk',
+        'Goal',
+        'Task',
+      ]),
       title: z.string(),
       props: z.record(z.unknown()),
     }),

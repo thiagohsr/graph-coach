@@ -11,7 +11,10 @@ export function splitSentence(sentence: string, blanks: number): SplitResult {
   const parts = sentence.split(BLANK_MARKER);
   const found = parts.length - 1;
   if (found !== blanks) {
-    return { ok: false, error: `Sentence has ${found} blank${found === 1 ? '' : 's'} but the puzzle says ${blanks}.` };
+    return {
+      ok: false,
+      error: `Sentence has ${found} blank${found === 1 ? '' : 's'} but the puzzle says ${blanks}.`,
+    };
   }
   const segments: Segment[] = [];
   parts.forEach((text, i) => {

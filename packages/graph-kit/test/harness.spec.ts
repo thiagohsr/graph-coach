@@ -70,7 +70,9 @@ describe('fixtures', () => {
     expect(await tg.countEdges('OWNS')).toBe(1);
     expect(await tg.countEdges('CONTAINS')).toBe(3);
     expect(await tg.countEdges('TESTS')).toBe(3);
-    const rows = await tg.cypher<{ n: number }>("MATCH (q:Question {status: 'approved'}) RETURN count(q) AS n");
+    const rows = await tg.cypher<{ n: number }>(
+      "MATCH (q:Question {status: 'approved'}) RETURN count(q) AS n",
+    );
     expect(rows[0]?.n).toBe(3);
     const puzzle = await tg.cypher<{ status: string; visibility: string }>(
       'MATCH (p:Puzzle) RETURN p.status AS status, p.visibility AS visibility',
@@ -80,7 +82,11 @@ describe('fixtures', () => {
 
   it('tinyPuzzle honours its options and is idempotent', async () => {
     const tg = await make();
-    const fixture = fixtures.tinyPuzzle({ ownerId: 'owner-1', visibility: 'private', status: 'draft' });
+    const fixture = fixtures.tinyPuzzle({
+      ownerId: 'owner-1',
+      visibility: 'private',
+      status: 'draft',
+    });
     await tg.load(fixture);
     await tg.load(fixture);
     expect(await tg.count('Question')).toBe(3);
@@ -128,7 +134,11 @@ describe('access fragments (contracts §5.3)', () => {
   it('canPlay returns the private puzzle for the owner and both shared users, not for another learner', async () => {
     const tg = await build();
     const playable = async (userId: string) =>
-      (await tg.cypher<{ id: string }>(`MATCH (p:Puzzle) ${CAN_PLAY} RETURN p.id AS id`, { userId })).map((r) => r.id);
+      (
+        await tg.cypher<{ id: string }>(`MATCH (p:Puzzle) ${CAN_PLAY} RETURN p.id AS id`, {
+          userId,
+        })
+      ).map((r) => r.id);
     expect(await playable('owner')).toEqual([fixtureIds.tinyPuzzle]);
     expect(await playable('no-source')).toEqual([fixtureIds.tinyPuzzle]);
     expect(await playable('with-source')).toEqual([fixtureIds.tinyPuzzle]);
@@ -138,7 +148,11 @@ describe('access fragments (contracts §5.3)', () => {
   it('canReadSource returns the source for the owner and the with-source user only', async () => {
     const tg = await build();
     const readable = async (userId: string) =>
-      (await tg.cypher<{ id: string }>(`MATCH (s:Source) ${CAN_READ_SOURCE} RETURN s.id AS id`, { userId })).map((r) => r.id);
+      (
+        await tg.cypher<{ id: string }>(`MATCH (s:Source) ${CAN_READ_SOURCE} RETURN s.id AS id`, {
+          userId,
+        })
+      ).map((r) => r.id);
     const sourceId = fixtureIds.source(fixtureIds.tinyPuzzle, 'owner');
     expect(await readable('owner')).toEqual([sourceId]);
     expect(await readable('with-source')).toEqual([sourceId]);

@@ -6,7 +6,10 @@ import { USER_ROLES } from '../apps/accounts/user.model';
 import { CLI_OUTPUT, CliError, type CliOutput } from './cli-support';
 
 /** The same lookup for every user command: any account, whether or not it has signed in. */
-export async function requireUserId(directory: UserDirectory, email: string | undefined): Promise<string> {
+export async function requireUserId(
+  directory: UserDirectory,
+  email: string | undefined,
+): Promise<string> {
   const id = email ? await directory.findIdByEmail(email, { signedInOnly: false }) : null;
   if (!id) throw new CliError('No account with that e-mail address');
   return id;

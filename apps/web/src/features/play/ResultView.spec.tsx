@@ -2,7 +2,9 @@ import { render, screen, within } from '@testing-library/react';
 import { describe, expect, it, vi } from 'vitest';
 import type { SubmitResult } from '~/lib/api/gameplay-schemas';
 
-vi.mock('@tanstack/react-router', async (orig) => (await import('~/test/router-mock')).routerMock(await orig()));
+vi.mock('@tanstack/react-router', async (orig) =>
+  (await import('~/test/router-mock')).routerMock(await orig()),
+);
 
 import { submitResult } from './fixtures';
 import { ResultView } from './ResultView';
@@ -42,7 +44,9 @@ describe('ResultView', () => {
 
   it('shows submitted (or "left empty"), expected, and Correct / Incorrect as text for each blank', () => {
     render(<ResultView result={submitResult} />);
-    const lines = screen.getAllByRole('listitem').filter((li) => /Correct|Incorrect/.test(li.textContent ?? '') && !li.querySelector('ul'));
+    const lines = screen
+      .getAllByRole('listitem')
+      .filter((li) => /Correct|Incorrect/.test(li.textContent ?? '') && !li.querySelector('ul'));
     expect(lines).toHaveLength(2);
     expect(lines[0]).toHaveTextContent('Correct');
     expect(lines[0]).toHaveTextContent('Your answer: Index');
@@ -56,7 +60,10 @@ describe('ResultView', () => {
     render(<ResultView result={submitResult} />);
     expect(screen.getByRole('heading', { name: 'From the source' })).toBeInTheDocument();
     expect(screen.getByText(/Every index must be updated on insert/)).toBeInTheDocument();
-    expect(screen.getByRole('link', { name: 'Open source' })).toHaveAttribute('href', '/sources/src-3');
+    expect(screen.getByRole('link', { name: 'Open source' })).toHaveAttribute(
+      'href',
+      '/sources/src-3',
+    );
   });
 
   it('renders no passage heading or source link when the passage is absent', () => {
@@ -68,7 +75,16 @@ describe('ResultView', () => {
   it('does not show a passage for a correct blank even if one were sent', () => {
     const correctWithPassage: SubmitResult = {
       ...submitResult,
-      review: [{ questionId: 'q-1', blank: 0, submitted: 'index', expected: 'index', correct: true, passage: { chunkId: 'c', sourceId: 's', excerpt: 'x' } }],
+      review: [
+        {
+          questionId: 'q-1',
+          blank: 0,
+          submitted: 'index',
+          expected: 'index',
+          correct: true,
+          passage: { chunkId: 'c', sourceId: 's', excerpt: 'x' },
+        },
+      ],
     };
     render(<ResultView result={correctWithPassage} />);
     expect(screen.queryByRole('link', { name: 'Open source' })).not.toBeInTheDocument();
@@ -86,18 +102,29 @@ describe('ResultView', () => {
   it('links to the coach, to play again, and to all puzzles', () => {
     render(<ResultView result={submitResult} />);
     expect(screen.getByRole('link', { name: 'What next?' })).toHaveAttribute('href', '/coach');
-    expect(screen.getByRole('link', { name: 'Play again' })).toHaveAttribute('href', '/puzzles/pz-db-101/play');
+    expect(screen.getByRole('link', { name: 'Play again' })).toHaveAttribute(
+      'href',
+      '/puzzles/pz-db-101/play',
+    );
     expect(screen.getByRole('link', { name: 'All puzzles' })).toHaveAttribute('href', '/puzzles');
   });
 
   it('shows the empty-mastery message and no table', () => {
     render(<ResultView result={{ ...submitResult, mastery: [] }} />);
-    expect(screen.getByText('No concepts are linked to this puzzle, so mastery did not change.')).toBeInTheDocument();
+    expect(
+      screen.getByText('No concepts are linked to this puzzle, so mastery did not change.'),
+    ).toBeInTheDocument();
     expect(screen.queryByRole('table')).not.toBeInTheDocument();
   });
 
   it('labels a prompt puzzle as not checked against a source', () => {
-    render(<ResultView result={{ ...submitResult, puzzle: { ...submitResult.puzzle, origin: 'prompt' } }} />);
-    expect(screen.getByText('Generated from a prompt, not checked against a source')).toBeInTheDocument();
+    render(
+      <ResultView
+        result={{ ...submitResult, puzzle: { ...submitResult.puzzle, origin: 'prompt' } }}
+      />,
+    );
+    expect(
+      screen.getByText('Generated from a prompt, not checked against a source'),
+    ).toBeInTheDocument();
   });
 });

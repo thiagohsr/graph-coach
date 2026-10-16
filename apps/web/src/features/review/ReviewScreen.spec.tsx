@@ -5,7 +5,9 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { sourceSummaries } from '~/features/sources/fixtures';
 import { renderWithQuery } from '~/test/render';
 
-vi.mock('@tanstack/react-router', async (orig) => (await import('~/test/router-mock')).routerMock(await orig()));
+vi.mock('@tanstack/react-router', async (orig) =>
+  (await import('~/test/router-mock')).routerMock(await orig()),
+);
 
 import { draft, drafts, outcome, PASSAGE } from './fixtures';
 import { ReviewScreen } from './ReviewScreen';
@@ -29,7 +31,9 @@ function serve(list = drafts, extra: Record<string, Handler> = {}) {
 }
 
 const calls = (method: string, urlPart: string) =>
-  fetchMock.mock.calls.filter(([url, init]) => (init as RequestInit).method === method && String(url).includes(urlPart));
+  fetchMock.mock.calls.filter(
+    ([url, init]) => (init as RequestInit).method === method && String(url).includes(urlPart),
+  );
 
 beforeEach(() => {
   handlers = {};
@@ -47,14 +51,20 @@ describe('ReviewScreen', () => {
     serve();
     renderWithQuery(<ReviewScreen />);
     const draftRegion = await screen.findByRole('region', { name: 'Draft' });
-    expect(within(draftRegion).getByRole('textbox', { name: 'Sentence' })).toHaveValue(drafts[0]!.sentence);
+    expect(within(draftRegion).getByRole('textbox', { name: 'Sentence' })).toHaveValue(
+      drafts[0]!.sentence,
+    );
     expect(within(draftRegion).getByRole('textbox', { name: 'Answer 1' })).toHaveValue('index');
     expect(within(draftRegion).getByRole('textbox', { name: 'Answer 2' })).toHaveValue('writes');
     expect(within(draftRegion).getByRole('textbox', { name: 'Distractor 1' })).toHaveValue('cache');
     expect(within(draftRegion).getByText('Indexes')).toBeInTheDocument();
     expect(within(draftRegion).getByText('B-trees')).toBeInTheDocument();
-    expect(within(draftRegion).queryByRole('textbox', { name: /Indexes|Concept/ })).not.toBeInTheDocument();
-    expect(within(screen.getByRole('region', { name: 'Source passage' })).getByText(PASSAGE)).toBeInTheDocument();
+    expect(
+      within(draftRegion).queryByRole('textbox', { name: /Indexes|Concept/ }),
+    ).not.toBeInTheDocument();
+    expect(
+      within(screen.getByRole('region', { name: 'Source passage' })).getByText(PASSAGE),
+    ).toBeInTheDocument();
     expect(screen.getByText('2 blanks · 2 answers')).toBeInTheDocument();
     expect(screen.getByText('Draft 1 of 2')).toBeInTheDocument();
     expect(screen.getByText('2 drafts remaining')).toBeInTheDocument();
@@ -63,11 +73,19 @@ describe('ReviewScreen', () => {
   it('says "No source passage" when the passage is null', async () => {
     serve([draft({ passage: null })]);
     renderWithQuery(<ReviewScreen />);
-    expect(await screen.findByText('No source passage is linked to this draft')).toBeInTheDocument();
+    expect(
+      await screen.findByText('No source passage is linked to this draft'),
+    ).toBeInTheDocument();
   });
 
   it('shows the critic panel and the prompt notice, and never a passage, for a prompt draft', async () => {
-    serve([draft({ origin: 'prompt', passage: null, critique: { verdict: 'rewrite', note: 'Too easy to guess.' } })]);
+    serve([
+      draft({
+        origin: 'prompt',
+        passage: null,
+        critique: { verdict: 'rewrite', note: 'Too easy to guess.' },
+      }),
+    ]);
     renderWithQuery(<ReviewScreen />);
     const critic = await screen.findByRole('region', { name: "Critic's check" });
     expect(within(critic).getByText('rewrite')).toBeInTheDocument();
@@ -101,7 +119,9 @@ describe('ReviewScreen', () => {
     await userEvent.type(input, 'view');
     await userEvent.click(screen.getByRole('button', { name: 'Save' }));
     await waitFor(() => expect(calls('PATCH', 'd-1')).toHaveLength(1));
-    expect(JSON.parse(String((calls('PATCH', 'd-1')[0]![1] as RequestInit).body))).toEqual({ distractors: ['cache', 'view'] });
+    expect(JSON.parse(String((calls('PATCH', 'd-1')[0]![1] as RequestInit).body))).toEqual({
+      distractors: ['cache', 'view'],
+    });
     expect(await screen.findByText('Saved.')).toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'Save' })).toBeDisabled();
   });
@@ -109,10 +129,19 @@ describe('ReviewScreen', () => {
   it('shows a server 422 DRAFT_INVALID at the field after save', async () => {
     serve(drafts, {
       'PATCH /api/review/questions/d-1': () =>
-        json(422, apiError('DRAFT_INVALID', 'The draft does not meet the rules', {
-          reasons: ['sentence_length'],
-          issues: [{ path: 'sentence', message: 'The server dislikes this sentence.', code: 'sentence_length' }],
-        })),
+        json(
+          422,
+          apiError('DRAFT_INVALID', 'The draft does not meet the rules', {
+            reasons: ['sentence_length'],
+            issues: [
+              {
+                path: 'sentence',
+                message: 'The server dislikes this sentence.',
+                code: 'sentence_length',
+              },
+            ],
+          }),
+        ),
     });
     renderWithQuery(<ReviewScreen />);
     await screen.findByRole('region', { name: 'Draft' });
@@ -124,9 +153,16 @@ describe('ReviewScreen', () => {
 
   it('approve saves first when dirty, reads remainingDrafts, opens the next draft, and shows "Puzzle published"', async () => {
     serve(drafts, {
-      'PATCH /api/review/questions/d-1': () => json(200, { ...drafts[0], distractors: ['cache', 'view'] }),
+      'PATCH /api/review/questions/d-1': () =>
+        json(200, { ...drafts[0], distractors: ['cache', 'view'] }),
       'POST /api/review/questions/d-1/approve': () =>
-        json(200, outcome({ puzzle: { id: 'pz-1', status: 'published', visibility: 'private', origin: 'upload' }, remainingDrafts: 1 })),
+        json(
+          200,
+          outcome({
+            puzzle: { id: 'pz-1', status: 'published', visibility: 'private', origin: 'upload' },
+            remainingDrafts: 1,
+          }),
+        ),
     });
     const { queryClient } = renderWithQuery(<ReviewScreen />);
     const invalidate = vi.spyOn(queryClient, 'invalidateQueries');
@@ -137,12 +173,21 @@ describe('ReviewScreen', () => {
     await userEvent.click(screen.getByRole('button', { name: 'Approve' }));
 
     expect(await screen.findByText('Puzzle published')).toBeInTheDocument();
-    expect(screen.getByRole('link', { name: 'Play' })).toHaveAttribute('href', '/puzzles/pz-1/play');
+    expect(screen.getByRole('link', { name: 'Play' })).toHaveAttribute(
+      'href',
+      '/puzzles/pz-1/play',
+    );
     // saved before approving
-    const order = fetchMock.mock.calls.map(([url, init]) => `${(init as RequestInit).method} ${url}`);
-    expect(order.indexOf('PATCH /api/review/questions/d-1')).toBeLessThan(order.indexOf('POST /api/review/questions/d-1/approve'));
+    const order = fetchMock.mock.calls.map(
+      ([url, init]) => `${(init as RequestInit).method} ${url}`,
+    );
+    expect(order.indexOf('PATCH /api/review/questions/d-1')).toBeLessThan(
+      order.indexOf('POST /api/review/questions/d-1/approve'),
+    );
     // next draft open, remaining from the outcome
-    expect(await screen.findByRole('textbox', { name: 'Sentence' })).toHaveValue(drafts[1]!.sentence);
+    expect(await screen.findByRole('textbox', { name: 'Sentence' })).toHaveValue(
+      drafts[1]!.sentence,
+    );
     expect(screen.getByText('1 draft remaining')).toBeInTheDocument();
     expect(screen.getByText('Draft 1 of 1')).toBeInTheDocument();
     expect(invalidate).toHaveBeenCalledWith({ queryKey: ['puzzles', 'list'] });
@@ -159,7 +204,9 @@ describe('ReviewScreen', () => {
     await userEvent.type(within(dialog).getByRole('textbox', { name: /Reason/ }), 'unclear');
     await userEvent.click(within(dialog).getByRole('button', { name: 'Reject draft' }));
     await waitFor(() => expect(calls('POST', '/reject')).toHaveLength(1));
-    expect(JSON.parse(String((calls('POST', '/reject')[0]![1] as RequestInit).body))).toEqual({ reason: 'unclear' });
+    expect(JSON.parse(String((calls('POST', '/reject')[0]![1] as RequestInit).body))).toEqual({
+      reason: 'unclear',
+    });
     expect(await screen.findByDisplayValue(drafts[1]!.sentence)).toBeInTheDocument();
     expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
     expect(screen.queryByText('Puzzle published')).not.toBeInTheDocument();
@@ -168,37 +215,59 @@ describe('ReviewScreen', () => {
   it('the final panel shows "published" with Play and a pointer to the puzzle list', async () => {
     serve([drafts[0]!], {
       'POST /api/review/questions/d-1/approve': () =>
-        json(200, outcome({ puzzle: { id: 'pz-1', status: 'published', visibility: 'private', origin: 'upload' }, remainingDrafts: 0 })),
+        json(
+          200,
+          outcome({
+            puzzle: { id: 'pz-1', status: 'published', visibility: 'private', origin: 'upload' },
+            remainingDrafts: 0,
+          }),
+        ),
     });
     renderWithQuery(<ReviewScreen />);
     await screen.findByRole('region', { name: 'Draft' });
     await userEvent.click(screen.getByRole('button', { name: 'Approve' }));
-    expect(await screen.findByRole('heading', { name: 'Puzzle published (private)' })).toBeInTheDocument();
-    expect(screen.getByRole('link', { name: 'Play' })).toHaveAttribute('href', '/puzzles/pz-1/play');
-    expect(screen.getByRole('link', { name: 'Share it from the puzzle list' })).toHaveAttribute('href', '/puzzles');
+    expect(
+      await screen.findByRole('heading', { name: 'Puzzle published (private)' }),
+    ).toBeInTheDocument();
+    expect(screen.getByRole('link', { name: 'Play' })).toHaveAttribute(
+      'href',
+      '/puzzles/pz-1/play',
+    );
+    expect(screen.getByRole('link', { name: 'Share it from the puzzle list' })).toHaveAttribute(
+      'href',
+      '/puzzles',
+    );
     expect(screen.queryByText('No drafts are waiting for review.')).not.toBeInTheDocument();
   });
 
   it('the final panel builds the not-published sentence from notPublishedReason', async () => {
     serve([drafts[0]!], {
       'POST /api/review/questions/d-1/reject': () =>
-        json(200, outcome({
-          remainingDrafts: 0,
-          task: { id: 't-1', status: 'done', result: 'below_minimum' },
-          notPublishedReason: { code: 'below_minimum', approved: 2, minQuestions: 3 },
-        })),
+        json(
+          200,
+          outcome({
+            remainingDrafts: 0,
+            task: { id: 't-1', status: 'done', result: 'below_minimum' },
+            notPublishedReason: { code: 'below_minimum', approved: 2, minQuestions: 3 },
+          }),
+        ),
     });
     renderWithQuery(<ReviewScreen />);
     await screen.findByRole('region', { name: 'Draft' });
     await userEvent.click(screen.getByRole('button', { name: 'Reject' }));
-    await userEvent.click(within(await screen.findByRole('dialog')).getByRole('button', { name: 'Reject draft' }));
-    expect(await screen.findByRole('heading', { name: 'Puzzle not published:' })).toBeInTheDocument();
+    await userEvent.click(
+      within(await screen.findByRole('dialog')).getByRole('button', { name: 'Reject draft' }),
+    );
+    expect(
+      await screen.findByRole('heading', { name: 'Puzzle not published:' }),
+    ).toBeInTheDocument();
     expect(screen.getByText('2 of the 3 questions needed were approved.')).toBeInTheDocument();
   });
 
   it('409 ALREADY_DECIDED shows a notice and refreshes the list', async () => {
     serve(drafts, {
-      'POST /api/review/questions/d-1/approve': () => json(409, apiError('ALREADY_DECIDED', 'decided')),
+      'POST /api/review/questions/d-1/approve': () =>
+        json(409, apiError('ALREADY_DECIDED', 'decided')),
     });
     renderWithQuery(<ReviewScreen />);
     await screen.findByRole('region', { name: 'Draft' });
@@ -221,14 +290,19 @@ describe('ReviewScreen', () => {
     serve([]);
     renderWithQuery(<ReviewScreen />);
     expect(await screen.findByText('No drafts are waiting for review.')).toBeInTheDocument();
-    expect(screen.getByRole('link', { name: 'Go to your sources' })).toHaveAttribute('href', '/sources');
+    expect(screen.getByRole('link', { name: 'Go to your sources' })).toHaveAttribute(
+      'href',
+      '/sources',
+    );
   });
 
   it('groups the navigator by source title when no taskId is given', async () => {
     serve([drafts[0]!, draft({ id: 'd-9', taskId: 't-3' })], {});
     renderWithQuery(<ReviewScreen />);
     const nav = await screen.findByRole('navigation', { name: 'Drafts' });
-    expect(await within(nav).findByRole('heading', { name: 'Interview notes' })).toBeInTheDocument();
+    expect(
+      await within(nav).findByRole('heading', { name: 'Interview notes' }),
+    ).toBeInTheDocument();
     expect(within(nav).getByRole('heading', { name: 'B-tree drills' })).toBeInTheDocument();
   });
 

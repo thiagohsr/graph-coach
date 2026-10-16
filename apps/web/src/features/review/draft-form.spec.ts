@@ -1,6 +1,14 @@
 import { describe, expect, it } from 'vitest';
 import { ApiClientError } from '~/lib/api/errors';
-import { changedFields, formDefaults, hasIssues, isDirty, mapServerError, validateValues, blankCount } from './draft-form';
+import {
+  changedFields,
+  formDefaults,
+  hasIssues,
+  isDirty,
+  mapServerError,
+  validateValues,
+  blankCount,
+} from './draft-form';
 import { draft } from './fixtures';
 
 describe('draft-form', () => {
@@ -32,7 +40,10 @@ describe('draft-form', () => {
     expect(issues.fields.answers?.[0]).toMatch(/2 blanks but 1 answer/);
     expect(issues.fields.sentence).toBeUndefined();
 
-    const noBlank = validateValues({ ...formDefaults(d), sentence: 'A database index speeds up lookups a lot.' }, d);
+    const noBlank = validateValues(
+      { ...formDefaults(d), sentence: 'A database index speeds up lookups a lot.' },
+      d,
+    );
     expect(noBlank.fields.sentence?.join(' ')).toMatch(/three underscores/);
 
     const fewDistractors = validateValues({ ...formDefaults(d), distractors: ['cache'] }, d);
@@ -42,7 +53,9 @@ describe('draft-form', () => {
   it('reports an answer that is not in the passage, but not for a draft with no passage', () => {
     const d = draft();
     const values = { ...formDefaults(d), answers: ['index', 'planner'] };
-    expect(validateValues(values, d).fields.answers?.join(' ')).toMatch(/Answer 2 does not appear in the passage/);
+    expect(validateValues(values, d).fields.answers?.join(' ')).toMatch(
+      /Answer 2 does not appear in the passage/,
+    );
     const prompt = draft({ passage: null, origin: 'prompt' });
     expect(hasIssues(validateValues(values, prompt))).toBe(false);
   });
@@ -58,11 +71,20 @@ describe('draft-form', () => {
     const values = formDefaults(d);
     expect(changedFields(values, d)).toEqual({});
     expect(isDirty(values, d)).toBe(false);
-    expect(changedFields({ ...values, sentence: 'A database ___ speeds up lookups at the cost of slower ___!' }, d)).toEqual({
+    expect(
+      changedFields(
+        { ...values, sentence: 'A database ___ speeds up lookups at the cost of slower ___!' },
+        d,
+      ),
+    ).toEqual({
       sentence: 'A database ___ speeds up lookups at the cost of slower ___!',
     });
-    expect(changedFields({ ...values, distractors: ['cache', 'view'] }, d)).toEqual({ distractors: ['cache', 'view'] });
-    expect(changedFields({ ...values, answers: ['index', 'writes', 'x'] }, d)).toEqual({ answers: ['index', 'writes', 'x'] });
+    expect(changedFields({ ...values, distractors: ['cache', 'view'] }, d)).toEqual({
+      distractors: ['cache', 'view'],
+    });
+    expect(changedFields({ ...values, answers: ['index', 'writes', 'x'] }, d)).toEqual({
+      answers: ['index', 'writes', 'x'],
+    });
   });
 
   it('maps a 422 DRAFT_INVALID with details.issues to fields', () => {
@@ -82,8 +104,15 @@ describe('draft-form', () => {
   });
 
   it('maps a 422 without mappable paths to a form-level message', () => {
-    const none = new ApiClientError({ status: 422, code: 'DRAFT_INVALID', message: 'The draft does not meet the rules' });
-    expect(mapServerError(none)).toEqual({ fields: {}, form: ['The draft does not meet the rules'] });
+    const none = new ApiClientError({
+      status: 422,
+      code: 'DRAFT_INVALID',
+      message: 'The draft does not meet the rules',
+    });
+    expect(mapServerError(none)).toEqual({
+      fields: {},
+      form: ['The draft does not meet the rules'],
+    });
     const odd = new ApiClientError({
       status: 422,
       code: 'DRAFT_INVALID',

@@ -100,16 +100,17 @@ export function buildPlannerPrompt(
       'You may say that one of your own concepts must be learned before another, with a confidence from 0 to 1. Leave ' +
         'the list empty when you are not sure. Use only names from your concept list.',
     ].join('\n'),
-    user: [
-      ...briefLines(input.brief, nonce),
-      `Plan exactly ${input.plan} sentences.`,
-    ].join('\n'),
+    user: [...briefLines(input.brief, nonce), `Plan exactly ${input.plan} sentences.`].join('\n'),
   };
 }
 
 /** Writer: works from the plan only. It sees no brief text and no criteria. */
 export function buildWriterPrompt(
-  input: { difficulty: PromptBrief['difficulty']; concepts: OutlineConcept[]; sentences: PlannedSentence[] },
+  input: {
+    difficulty: PromptBrief['difficulty'];
+    concepts: OutlineConcept[];
+    sentences: PlannedSentence[];
+  },
   options: PromptOptions = {},
 ): Prompt {
   const nonce = options.nonce ?? newNonce();

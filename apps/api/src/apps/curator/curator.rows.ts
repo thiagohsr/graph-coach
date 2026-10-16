@@ -101,7 +101,11 @@ export type OpenTaskRow = z.infer<typeof OpenTaskRow>;
 export const CoverTaskRow = OpenTaskRow.extend({ conceptIds: z.array(z.string()) });
 export type CoverTaskRow = z.infer<typeof CoverTaskRow>;
 
-export const CoverConceptRow = z.object({ id: z.string(), name: z.string(), description: z.string() });
+export const CoverConceptRow = z.object({
+  id: z.string(),
+  name: z.string(),
+  description: z.string(),
+});
 export type CoverConceptRow = z.infer<typeof CoverConceptRow>;
 
 export const TaskCreatedRow = z.object({ taskId: z.string(), status: z.string() });

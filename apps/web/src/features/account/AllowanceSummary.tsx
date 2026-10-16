@@ -8,7 +8,13 @@ const ROWS: { kind: CreationKind; label: string }[] = [
 ];
 
 /** The "This month" table, the hour line, and the paused notice. Always two rows (no empty state). */
-export function AllowanceSummary({ allowance, now = new Date() }: { allowance: AllowanceDto; now?: Date }) {
+export function AllowanceSummary({
+  allowance,
+  now = new Date(),
+}: {
+  allowance: AllowanceDto;
+  now?: Date;
+}) {
   const hour = hourlyState(allowance, now);
   return (
     <div className="flex flex-col gap-3">
@@ -61,10 +67,12 @@ export function AllowanceSummary({ allowance, now = new Date() }: { allowance: A
         </table>
       </div>
       <p className="text-sm">{hour.text}</p>
-      {!allowance.creationEnabled && <p className="flex items-center gap-2 rounded-md border border-warning bg-warning-soft px-4 py-3 text-sm font-semibold text-foreground">
+      {!allowance.creationEnabled && (
+        <p className="flex items-center gap-2 rounded-md border border-warning bg-warning-soft px-4 py-3 text-sm font-semibold text-foreground">
           <PauseIcon aria-hidden="true" className="size-5 shrink-0 text-warning" />
           Puzzle creation is paused.
-        </p>}
+        </p>
+      )}
     </div>
   );
 }

@@ -14,8 +14,10 @@ export const seedIds = {
   email: (key: SeedUserKey): string => `${key}@example.test`,
   concept: (slug: string): string => deterministicId('concept', slug),
   puzzle: (key: string): string => deterministicId('puzzle', key),
-  question: (puzzleKey: string, order: number): string => deterministicId('question', `${puzzleKey}:${order}`),
-  session: (scenarioKey: ScenarioKey): string => deterministicId('session', `scenario:${scenarioKey}`),
+  question: (puzzleKey: string, order: number): string =>
+    deterministicId('question', `${puzzleKey}:${order}`),
+  session: (scenarioKey: ScenarioKey): string =>
+    deterministicId('session', `scenario:${scenarioKey}`),
 };
 
 export interface SeedFixtureOptions {
@@ -33,7 +35,10 @@ export function seedToFixture(data: SeedData, options: SeedFixtureOptions): Grap
   const ago = (days: number): number => Math.round(now - days * DAY_MS);
 
   const adminKey = data.users.find((u) => u.role === 'admin')?.key ?? 'admin';
-  const learnerRef = (key: string) => ({ label: 'Learner' as const, key: deterministicId('user', key) });
+  const learnerRef = (key: string) => ({
+    label: 'Learner' as const,
+    key: deterministicId('user', key),
+  });
   const conceptRef = (slug: string) => ({ label: 'Concept' as const, key: seedIds.concept(slug) });
 
   // Users: only the graph part of an account.
@@ -45,14 +50,20 @@ export function seedToFixture(data: SeedData, options: SeedFixtureOptions): Grap
       onMatch: 'keep',
     });
   }
-  for (const name of ['Curator', 'Coach']) nodes.push({ label: 'Agent', key: name, onMatch: 'keep' });
+  for (const name of ['Curator', 'Coach'])
+    nodes.push({ label: 'Agent', key: name, onMatch: 'keep' });
 
   // Concepts and prerequisites.
   for (const concept of data.concepts) {
     nodes.push({
       label: 'Concept',
       key: seedIds.concept(concept.slug),
-      props: { slug: concept.slug, name: concept.name, description: concept.description, createdAt: now },
+      props: {
+        slug: concept.slug,
+        name: concept.name,
+        description: concept.description,
+        createdAt: now,
+      },
     });
   }
   for (const concept of data.concepts) {
@@ -82,7 +93,10 @@ export function seedToFixture(data: SeedData, options: SeedFixtureOptions): Grap
     });
     edges.push({ type: 'OWNS', from: learnerRef(adminKey), to: puzzleRef });
     for (const question of puzzle.questions) {
-      const questionRef = { label: 'Question' as const, key: seedIds.question(puzzle.key, question.order) };
+      const questionRef = {
+        label: 'Question' as const,
+        key: seedIds.question(puzzle.key, question.order),
+      };
       nodes.push({
         ...questionRef,
         props: {
@@ -94,7 +108,12 @@ export function seedToFixture(data: SeedData, options: SeedFixtureOptions): Grap
           reviewedAt: now,
         },
       });
-      edges.push({ type: 'CONTAINS', from: puzzleRef, to: questionRef, props: { order: question.order } });
+      edges.push({
+        type: 'CONTAINS',
+        from: puzzleRef,
+        to: questionRef,
+        props: { order: question.order },
+      });
       for (const slug of question.tests) {
         edges.push({ type: 'TESTS', from: questionRef, to: conceptRef(slug) });
       }
@@ -110,9 +129,14 @@ export function seedToFixture(data: SeedData, options: SeedFixtureOptions): Grap
   if (withScenario) {
     const learner = learnerRef(data.scenario.learner);
     for (const session of data.scenario.sessions) {
-      const sessionRef = { label: 'Session' as const, key: seedIds.session(session.key as ScenarioKey) };
+      const sessionRef = {
+        label: 'Session' as const,
+        key: seedIds.session(session.key as ScenarioKey),
+      };
       const puzzle = data.puzzles.find((p) => p.key === session.puzzle);
-      const blanks = puzzle ? puzzle.questions.reduce((sum, q) => sum + q.answers.length, 0) : session.answers.length;
+      const blanks = puzzle
+        ? puzzle.questions.reduce((sum, q) => sum + q.answers.length, 0)
+        : session.answers.length;
       const correct = session.answers.filter((a) => a.correct).length;
       const submittedAt = ago(session.submittedDaysAgo);
       nodes.push({
@@ -157,7 +181,11 @@ export function seedToFixture(data: SeedData, options: SeedFixtureOptions): Grap
         type: 'HAS_MASTERY',
         from: learner,
         to: conceptRef(mastery.concept),
-        props: { score: mastery.score, attempts: mastery.attempts, lastSeen: ago(mastery.lastSeenDaysAgo) },
+        props: {
+          score: mastery.score,
+          attempts: mastery.attempts,
+          lastSeen: ago(mastery.lastSeenDaysAgo),
+        },
         onMatch: 'keep',
       });
     }

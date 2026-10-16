@@ -7,7 +7,13 @@ import { ZERO_USAGE, sumUsage, type Usage } from '../llm/usage';
 import type { UsageTracer } from '../llm/usage-tracer';
 import { runCurator } from './graph';
 import { runPromptCreation } from './prompt/graph';
-import { resolveEntry, resolvePromptEntry, type CuratorNode, type PromptNode, type StepName } from './steps';
+import {
+  resolveEntry,
+  resolvePromptEntry,
+  type CuratorNode,
+  type PromptNode,
+  type StepName,
+} from './steps';
 import {
   CURATOR_LABELS,
   LONG_TEXT,
@@ -27,12 +33,31 @@ import { FakeCuratorGraph, makeDeps } from './testing/fake-graph-port';
 const OWNER = 'owner-1';
 const SOURCE = 'source-1';
 const TASK = 'task-1';
-const BRIEF = { subject: 'Library cataloguing', focus: 'call numbers and accession', difficulty: 'easy', sentences: 4 } as const;
+const BRIEF = {
+  subject: 'Library cataloguing',
+  focus: 'call numbers and accession',
+  difficulty: 'easy',
+  sentences: 4,
+} as const;
 
-const UPLOAD_NODES: StepName[] = ['chunk', 'embed', 'extractConcepts', 'linkPrerequisites', 'draftQuestions', 'validate'];
+const UPLOAD_NODES: StepName[] = [
+  'chunk',
+  'embed',
+  'extractConcepts',
+  'linkPrerequisites',
+  'draftQuestions',
+  'validate',
+];
 const PROMPT_NODES: StepName[] = ['outline', 'draftQuestions', 'critique', 'refine', 'validate'];
 
-function build(kind: 'upload' | 'prompt', options: { tracer?: UsageTracer; verdicts?: Record<number, PromptVerdict>; isActive?: (id: string) => Promise<boolean> } = {}) {
+function build(
+  kind: 'upload' | 'prompt',
+  options: {
+    tracer?: UsageTracer;
+    verdicts?: Record<number, PromptVerdict>;
+    isActive?: (id: string) => Promise<boolean>;
+  } = {},
+) {
   const recorder = new RecordingUsageTracer();
   const tracer = options.tracer ?? recorder;
   const graph = new FakeCuratorGraph();
@@ -47,22 +72,47 @@ function build(kind: 'upload' | 'prompt', options: { tracer?: UsageTracer; verdi
     graph.addTask({ id: TASK, sourceId: SOURCE, requesterId: OWNER, kind: 'generate' });
     scriptPrompt(chat, options.verdicts ? { firstVerdicts: options.verdicts } : {});
   }
-  const deps = makeDeps({ graph, chat, embeddings, tracer: tracer as RecordingUsageTracer, ...(options.isActive ? { isActive: options.isActive } : {}) });
+  const deps = makeDeps({
+    graph,
+    chat,
+    embeddings,
+    tracer: tracer as RecordingUsageTracer,
+    ...(options.isActive ? { isActive: options.isActive } : {}),
+  });
   const runUpload = (entry: CuratorNode = 'chunk', over: Partial<typeof deps> = {}) =>
-    runCurator({ ...deps, ...over }, { taskId: TASK, kind: 'ingest', sourceId: SOURCE, ownerId: OWNER, entry });
+    runCurator(
+      { ...deps, ...over },
+      { taskId: TASK, kind: 'ingest', sourceId: SOURCE, ownerId: OWNER, entry },
+    );
   const runPrompt = (entry: PromptNode = 'outline') =>
-    runPromptCreation(deps, { taskId: TASK, sourceId: SOURCE, ownerId: OWNER, entry, minQuestions: 3 });
+    runPromptCreation(deps, {
+      taskId: TASK,
+      sourceId: SOURCE,
+      ownerId: OWNER,
+      entry,
+      minQuestions: 3,
+    });
   const run = (entry?: CuratorNode | PromptNode) =>
-    kind === 'upload' ? runUpload(entry as CuratorNode | undefined) : runPrompt(entry as PromptNode | undefined);
+    kind === 'upload'
+      ? runUpload(entry as CuratorNode | undefined)
+      : runPrompt(entry as PromptNode | undefined);
   return { graph, chat, embeddings, recorder, deps, run };
 }
 
 /** What the stub returned for one chat call, recomputed from the request alone (the fixtures are pure functions of it). */
-function chatUsage(call: StubCall, verdicts: Record<number, PromptVerdict> = {}): { node: StepName; usage: Usage } {
+function chatUsage(
+  call: StubCall,
+  verdicts: Record<number, PromptVerdict> = {},
+): { node: StepName; usage: Usage } {
   const input = stubTokens(call.messages.map((m) => m.content).join('\n'));
   const answer = (value: unknown, node: StepName) => ({
     node,
-    usage: { modelCalls: 1, inputTokens: input, outputTokens: stubTokens(JSON.stringify(value)), embeddingTokens: 0 },
+    usage: {
+      modelCalls: 1,
+      inputTokens: input,
+      outputTokens: stubTokens(JSON.stringify(value)),
+      embeddingTokens: 0,
+    },
   });
   switch (call.label) {
     case CURATOR_LABELS.extract:
@@ -87,9 +137,13 @@ function chatUsage(call: StubCall, verdicts: Record<number, PromptVerdict> = {})
 }
 
 /** Expected usage per node, from the requests the stubs received. */
-function expectedByNode(s: ReturnType<typeof build>, verdicts: Record<number, PromptVerdict> = {}): Record<string, Usage> {
+function expectedByNode(
+  s: ReturnType<typeof build>,
+  verdicts: Record<number, PromptVerdict> = {},
+): Record<string, Usage> {
   const out: Record<string, Usage> = {};
-  const add = (node: string, usage: Usage) => (out[node] = sumUsage([out[node] ?? ZERO_USAGE, usage]));
+  const add = (node: string, usage: Usage) =>
+    (out[node] = sumUsage([out[node] ?? ZERO_USAGE, usage]));
   for (const call of s.chat.calls) {
     const { node, usage } = chatUsage(call, verdicts);
     add(node, usage);
@@ -102,7 +156,12 @@ function expectedByNode(s: ReturnType<typeof build>, verdicts: Record<number, Pr
 }
 
 const stepUsages = (graph: FakeCuratorGraph) =>
-  Object.fromEntries(graph.stepsOf(TASK).filter((x) => x.status === 'complete').map((x) => [x.node, x.usage]));
+  Object.fromEntries(
+    graph
+      .stepsOf(TASK)
+      .filter((x) => x.status === 'complete')
+      .map((x) => [x.node, x.usage]),
+  );
 
 describe('step usage equals what the calls returned', () => {
   it('upload run: each step, the zero steps, embed with embedding tokens only, and the task total', async () => {
@@ -174,7 +233,10 @@ describe.each([
         const entry = resolveEntry(task.lastCompletedStep);
         if (entry !== 'finalise' && entry !== 'none') await s.run(entry);
       } else {
-        const entry = resolvePromptEntry(task.lastCompletedStep, s.graph.sources.get(SOURCE)!.outline !== null);
+        const entry = resolvePromptEntry(
+          task.lastCompletedStep,
+          s.graph.sources.get(SOURCE)!.outline !== null,
+        );
         if (entry !== 'finalise' && entry !== 'none') await s.run(entry);
       }
 
@@ -193,7 +255,10 @@ describe('failure and retry', () => {
   it('the failed attempt keeps its usage, the new attempt adds its own, and the total is the sum of both', async () => {
     const s = build('upload');
     s.chat.enqueue(CURATOR_LABELS.extract, new Error('provider down'));
-    await expect(s.run()).rejects.toMatchObject({ code: 'PROVIDER_UNAVAILABLE', node: 'extractConcepts' });
+    await expect(s.run()).rejects.toMatchObject({
+      code: 'PROVIDER_UNAVAILABLE',
+      node: 'extractConcepts',
+    });
 
     const failed = s.graph.stepsOf(TASK).find((x) => x.status === 'error')!;
     expect(failed.node).toBe('extractConcepts');
@@ -257,7 +322,8 @@ describe('what the tracer receives', () => {
       expect(seen).not.toContain(concept.name);
       expect(seen).not.toContain(concept.description);
     }
-    for (let i = 0; i + 30 <= LONG_TEXT.length; i += 7) expect(seen).not.toContain(LONG_TEXT.slice(i, i + 30));
+    for (let i = 0; i + 30 <= LONG_TEXT.length; i += 7)
+      expect(seen).not.toContain(LONG_TEXT.slice(i, i + 30));
     for (const call of s.chat.calls) {
       for (const message of call.messages) expect(seen).not.toContain(message.content.slice(0, 40));
     }
@@ -299,20 +365,25 @@ function brokenTracer(mode: 'throw' | 'hang'): UsageTracer {
 }
 
 describe('a tracer that fails', () => {
-  it.each(['throw', 'hang'] as const)('a tracer that %ss changes neither the stored usage nor the duration', async (mode) => {
-    const reference = build('upload');
-    const started = Date.now();
-    await reference.run();
-    const referenceMs = Date.now() - started;
+  it.each(['throw', 'hang'] as const)(
+    'a tracer that %ss changes neither the stored usage nor the duration',
+    async (mode) => {
+      const reference = build('upload');
+      const started = Date.now();
+      await reference.run();
+      const referenceMs = Date.now() - started;
 
-    const s = build('upload', { tracer: brokenTracer(mode) });
-    const begin = Date.now();
-    const result = await s.run();
-    const elapsed = Date.now() - begin;
+      const s = build('upload', { tracer: brokenTracer(mode) });
+      const begin = Date.now();
+      const result = await s.run();
+      const elapsed = Date.now() - begin;
 
-    expect(result.outcome).toBe('awaiting_review');
-    expect(stepUsages(s.graph)).toEqual(stepUsages(reference.graph));
-    expect((await s.graph.loadTask(TASK))!.usage).toEqual((await reference.graph.loadTask(TASK))!.usage);
-    expect(elapsed).toBeLessThan(referenceMs + 1000);
-  });
+      expect(result.outcome).toBe('awaiting_review');
+      expect(stepUsages(s.graph)).toEqual(stepUsages(reference.graph));
+      expect((await s.graph.loadTask(TASK))!.usage).toEqual(
+        (await reference.graph.loadTask(TASK))!.usage,
+      );
+      expect(elapsed).toBeLessThan(referenceMs + 1000);
+    },
+  );
 });

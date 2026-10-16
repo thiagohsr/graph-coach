@@ -85,7 +85,9 @@ describe('CognitoTokenVerifier.verifyAccessToken', () => {
   });
 
   it('refuses a wrong client_id', async () => {
-    await refused(verifier.verifyAccessToken(await token({ claims: { client_id: 'someone-else' } })));
+    await refused(
+      verifier.verifyAccessToken(await token({ claims: { client_id: 'someone-else' } })),
+    );
   });
 
   it("refuses token_use 'id'", async () => {
@@ -132,7 +134,10 @@ describe('CognitoTokenVerifier.verifyIdToken', () => {
   });
 
   it('falls back to the local part of the address when there is no name', async () => {
-    const profile = await verifier.verifyIdToken(await idToken({ claims: { name: undefined } }), SUB);
+    const profile = await verifier.verifyIdToken(
+      await idToken({ claims: { name: undefined } }),
+      SUB,
+    );
     expect(profile.name).toBe('ada');
   });
 
@@ -145,7 +150,10 @@ describe('CognitoTokenVerifier.verifyIdToken', () => {
   });
 
   it('reports an unverified address as emailVerified false', async () => {
-    const profile = await verifier.verifyIdToken(await idToken({ claims: { email_verified: false } }), SUB);
+    const profile = await verifier.verifyIdToken(
+      await idToken({ claims: { email_verified: false } }),
+      SUB,
+    );
     expect(profile.emailVerified).toBe(false);
   });
 

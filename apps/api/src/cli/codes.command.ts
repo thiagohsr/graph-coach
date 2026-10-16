@@ -32,7 +32,8 @@ export interface CreateCodeOptions {
 
 @Command({
   name: 'create-code',
-  description: 'Create an access code and store only its hash (the code is printed once, or read from --from-env)',
+  description:
+    'Create an access code and store only its hash (the code is printed once, or read from --from-env)',
 })
 export class CreateCodeCommand extends CommandRunner {
   constructor(
@@ -42,7 +43,10 @@ export class CreateCodeCommand extends CommandRunner {
     super();
   }
 
-  @Option({ flags: '--label <text>', description: 'Name for the operator (required unless --generate-only)' })
+  @Option({
+    flags: '--label <text>',
+    description: 'Name for the operator (required unless --generate-only)',
+  })
   parseLabel(value: string): string {
     return value;
   }
@@ -74,7 +78,10 @@ export class CreateCodeCommand extends CommandRunner {
     return date;
   }
 
-  @Option({ flags: '--from-env <variable>', description: 'Read the code from this environment variable' })
+  @Option({
+    flags: '--from-env <variable>',
+    description: 'Read the code from this environment variable',
+  })
   parseFromEnv(value: string): string {
     return value;
   }
@@ -86,7 +93,8 @@ export class CreateCodeCommand extends CommandRunner {
 
   async run(_args: string[], options: CreateCodeOptions = {}): Promise<void> {
     if (options.generateOnly) {
-      if (options.fromEnv !== undefined) throw new CliError('--from-env and --generate-only cannot be combined');
+      if (options.fromEnv !== undefined)
+        throw new CliError('--from-env and --generate-only cannot be combined');
       this.out.line(generateCode());
       return;
     }
@@ -103,7 +111,8 @@ export class CreateCodeCommand extends CommandRunner {
 
     if (options.fromEnv !== undefined) {
       const name = options.fromEnv;
-      if (!VARIABLE_NAME.test(name)) throw new CliError('--from-env: the variable name must match [A-Z][A-Z0-9_]*');
+      if (!VARIABLE_NAME.test(name))
+        throw new CliError('--from-env: the variable name must match [A-Z][A-Z0-9_]*');
       const value = (process.env[name] ?? '').trim();
       if (!GENERATED_FORMAT.test(value)) throw new CliError(`ENV ${name}: not a valid access code`);
       const meta = await this.codes.createFromValue(input, value);
@@ -114,7 +123,9 @@ export class CreateCodeCommand extends CommandRunner {
     const { code, meta } = await this.codes.create(input);
     this.out.line(code);
     this.out.line(describeCode(meta));
-    this.out.line('The code is shown once and cannot be recovered; create a new one if it is lost.');
+    this.out.line(
+      'The code is shown once and cannot be recovered; create a new one if it is lost.',
+    );
   }
 }
 

@@ -51,7 +51,7 @@ describe('loadQueryDir', () => {
     write(
       'demo_strings.cypher',
       header('demo_strings') +
-        "// a note about $hidden\nMATCH (n) // trailing $alsoHidden\nWHERE n.a = 'cost is $5 and $x' AND n.b = \"say $y\" AND n.c = $real\nRETURN n",
+        '// a note about $hidden\nMATCH (n) // trailing $alsoHidden\nWHERE n.a = \'cost is $5 and $x\' AND n.b = "say $y" AND n.c = $real\nRETURN n',
     );
     expect(loadQueryDir(dir).get('demo_strings')!.params).toEqual(['real']);
   });

@@ -46,7 +46,13 @@ const PATH_TO_FIELD: Record<string, keyof FieldErrors> = {
 };
 
 /** Checks against the shared brief rules and schema of `@coach/types`; the client defines no bounds of its own. */
-function check(value: { title: string; subject: string; focus: string; difficulty: PromptBrief['difficulty']; sentences: string }) {
+function check(value: {
+  title: string;
+  subject: string;
+  focus: string;
+  difficulty: PromptBrief['difficulty'];
+  sentences: string;
+}) {
   const errors: FieldErrors = {};
   const add = (field: keyof FieldErrors, message: string) => {
     errors[field] = [...(errors[field] ?? []), message];
@@ -70,7 +76,8 @@ function check(value: { title: string; subject: string; focus: string; difficult
   const parsed = PromptCreateRequest.safeParse(request);
   // Schema issues the guard did not already report (for example a missing subject).
   if (!parsed.success && Object.keys(errors).length === 0) {
-    for (const issue of parsed.error.issues) add(PATH_TO_FIELD[issue.path.join('.')] ?? 'form', issue.message);
+    for (const issue of parsed.error.issues)
+      add(PATH_TO_FIELD[issue.path.join('.')] ?? 'form', issue.message);
   }
   return { errors, request: parsed.success ? parsed.data : null };
 }
@@ -85,7 +92,13 @@ export function PromptForm({ disabled, describedBy, submitBlocked, onLimit }: Pr
   const mutation = useMutation({ mutationFn: createSource });
 
   const form = useForm({
-    defaultValues: { title: '', subject: '', focus: '', difficulty: 'medium' as PromptBrief['difficulty'], sentences: '5' },
+    defaultValues: {
+      title: '',
+      subject: '',
+      focus: '',
+      difficulty: 'medium' as PromptBrief['difficulty'],
+      sentences: '5',
+    },
     onSubmit: async ({ value }) => {
       setError(null);
       setDuplicate(null);
@@ -142,11 +155,18 @@ export function PromptForm({ disabled, describedBy, submitBlocked, onLimit }: Pr
           <AlertDescription>
             You already added this material.{' '}
             {duplicate.taskId ? (
-              <Link to="/tasks/$taskId" params={{ taskId: duplicate.taskId }} className="font-medium text-primary underline underline-offset-4 hover:text-primary-hover">
+              <Link
+                to="/tasks/$taskId"
+                params={{ taskId: duplicate.taskId }}
+                className="font-medium text-primary underline underline-offset-4 hover:text-primary-hover"
+              >
                 View the run
               </Link>
             ) : (
-              <Link to="/sources" className="font-medium text-primary underline underline-offset-4 hover:text-primary-hover">
+              <Link
+                to="/sources"
+                className="font-medium text-primary underline underline-offset-4 hover:text-primary-hover"
+              >
                 See your sources
               </Link>
             )}
@@ -278,19 +298,32 @@ export function PromptForm({ disabled, describedBy, submitBlocked, onLimit }: Pr
           <AlertDescription>
             <p>The request was not accepted:</p>
             <ul className="list-disc pl-5">
-              {(error.reasons.length > 0 ? error.reasons : error.issues.map((i) => i.message)).map((text) => (
-                <li key={text}>{text}</li>
-              ))}
+              {(error.reasons.length > 0 ? error.reasons : error.issues.map((i) => i.message)).map(
+                (text) => (
+                  <li key={text}>{text}</li>
+                ),
+              )}
             </ul>
           </AlertDescription>
         </Alert>
       )}
       {error?.code === 'CREATION_LIMIT_REACHED' && (
-        <RateLimitNotice message="You have reached the limit for prompt puzzles." window={error.window} retryAt={error.retryAt} />
+        <RateLimitNotice
+          message="You have reached the limit for prompt puzzles."
+          window={error.window}
+          retryAt={error.retryAt}
+        />
       )}
-      {error?.code === 'RATE_LIMITED' && <RateLimitNotice message={error.message} window={error.window} retryAt={error.retryAt} />}
+      {error?.code === 'RATE_LIMITED' && (
+        <RateLimitNotice message={error.message} window={error.window} retryAt={error.retryAt} />
+      )}
       {error &&
-        !['SOURCE_REJECTED', 'VALIDATION_FAILED', 'CREATION_LIMIT_REACHED', 'RATE_LIMITED'].includes(error.code) && (
+        ![
+          'SOURCE_REJECTED',
+          'VALIDATION_FAILED',
+          'CREATION_LIMIT_REACHED',
+          'RATE_LIMITED',
+        ].includes(error.code) && (
           <Alert variant="destructive">
             <AlertDescription>{describeError(error).message}</AlertDescription>
           </Alert>
@@ -298,7 +331,11 @@ export function PromptForm({ disabled, describedBy, submitBlocked, onLimit }: Pr
 
       {!submitBlocked && (
         <div>
-          <Button type="submit" disabled={mutation.isPending || disabled === true} {...(describedBy ? { 'aria-describedby': describedBy } : {})}>
+          <Button
+            type="submit"
+            disabled={mutation.isPending || disabled === true}
+            {...(describedBy ? { 'aria-describedby': describedBy } : {})}
+          >
             {mutation.isPending ? 'Sending…' : 'Create puzzle'}
           </Button>
         </div>

@@ -12,10 +12,14 @@ export const Public = () => SetMetadata(IS_PUBLIC_KEY, true);
 export const Roles = (...roles: Role[]) => SetMetadata(ROLES_KEY, roles);
 
 /** The authenticated caller. Using it on a @Public() route is a programming error and throws. */
-export const CurrentUser = createParamDecorator((_data: unknown, context: ExecutionContext): AuthUser => {
-  const request = context.switchToHttp().getRequest<{ user?: AuthUser }>();
-  if (!request.user) {
-    throw new Error('CurrentUser() used on a route without an authenticated user (is it @Public()?)');
-  }
-  return request.user;
-});
+export const CurrentUser = createParamDecorator(
+  (_data: unknown, context: ExecutionContext): AuthUser => {
+    const request = context.switchToHttp().getRequest<{ user?: AuthUser }>();
+    if (!request.user) {
+      throw new Error(
+        'CurrentUser() used on a route without an authenticated user (is it @Public()?)',
+      );
+    }
+    return request.user;
+  },
+);

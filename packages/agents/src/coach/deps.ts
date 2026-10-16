@@ -23,7 +23,10 @@ export interface CoachDeps {
   /** Stretch (goals). */
   embeddings?: EmbeddingsProvider;
   /** Stretch. Read-only: the Coach never consumes allowance. */
-  coverageAllowance?: () => Promise<{ allowed: boolean; reason?: 'no_allowance' | 'paused' | 'hourly_limit' }>;
+  coverageAllowance?: () => Promise<{
+    allowed: boolean;
+    reason?: 'no_allowance' | 'paused' | 'hourly_limit';
+  }>;
 }
 
 export interface CoachInput {
@@ -40,4 +43,7 @@ export interface CoachResult {
 }
 
 /** A node: state in, partial state out. `step` is the tracer step of this execution; it is only passed on to a provider. */
-export type CoachNode = (state: CoachStateType, step?: StepHandle) => Promise<Partial<CoachStateType>>;
+export type CoachNode = (
+  state: CoachStateType,
+  step?: StepHandle,
+) => Promise<Partial<CoachStateType>>;

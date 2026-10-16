@@ -13,9 +13,15 @@ const alias = [
   },
   { find: /^@coach\/graph-kit$/, replacement: fromRoot('packages/graph-kit/src/index.ts') },
   { find: /^@coach\/agents\/llm$/, replacement: fromRoot('packages/agents/src/llm/index.ts') },
-  { find: /^@coach\/agents\/curator$/, replacement: fromRoot('packages/agents/src/curator/index.ts') },
+  {
+    find: /^@coach\/agents\/curator$/,
+    replacement: fromRoot('packages/agents/src/curator/index.ts'),
+  },
   { find: /^@coach\/agents\/coach$/, replacement: fromRoot('packages/agents/src/coach/index.ts') },
-  { find: /^@coach\/admin-kit\/testing$/, replacement: fromRoot('packages/admin-kit/src/testing.ts') },
+  {
+    find: /^@coach\/admin-kit\/testing$/,
+    replacement: fromRoot('packages/admin-kit/src/testing.ts'),
+  },
   { find: /^@coach\/admin-kit$/, replacement: fromRoot('packages/admin-kit/src/index.ts') },
   {
     find: /^@coach\/agents\/testing$/,

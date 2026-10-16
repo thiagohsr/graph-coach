@@ -19,7 +19,11 @@ export const Route = createRootRouteWithContext<RouterContext>()({
     return { session };
   },
   head: () => ({
-    meta: [{ charSet: 'utf-8' }, { name: 'viewport', content: 'width=device-width, initial-scale=1' }, { title: 'Graph Coach' }],
+    meta: [
+      { charSet: 'utf-8' },
+      { name: 'viewport', content: 'width=device-width, initial-scale=1' },
+      { title: 'Graph Coach' },
+    ],
     links: [{ rel: 'stylesheet', href: appCss }],
   }),
   shellComponent: RootDocument,
