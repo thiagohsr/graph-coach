@@ -67,7 +67,7 @@ function initials(name: string): string {
   return (first + last).toUpperCase();
 }
 
-function BrandMark() {
+export function BrandMark() {
   return (
     <svg width="26" height="26" viewBox="0 0 26 26" aria-hidden="true" className="shrink-0">
       <path d="M6 19 L13 6 L20 17" className="stroke-primary" strokeWidth="2" fill="none" />
