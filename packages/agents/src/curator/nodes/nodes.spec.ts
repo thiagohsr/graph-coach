@@ -7,6 +7,7 @@ import {
   FULL_TEXT,
   SHORT_TEXT,
   conceptLinesOf,
+  draftsFor,
   scriptCurator,
 } from '../testing/fixtures';
 import { FakeCuratorGraph, makeDeps } from '../testing/fake-graph-port';
@@ -304,6 +305,42 @@ describe('draftQuestions', () => {
       [...s.graph.mentions].some((m) => m.startsWith(`${id}|`)),
     ).length;
     expect(s.chat.callCount(CURATOR_LABELS.draft)).toBe(chunksWithConcepts);
+  });
+
+  it('skips a chunk whose answer keeps the wrong shape and keeps the other drafts', async () => {
+    const s = setup({
+      content: FULL_TEXT,
+      params: { chunkSizeChars: 1200, chunkOverlapChars: 100 },
+    });
+    // The first chunk asked about always answers with the wrong shape; every other chunk answers well.
+    // Registered before scriptCurator: the stub uses the first handler that matches a label.
+    let firstPassage: string | null = null;
+    s.chat.on(CURATOR_LABELS.draft, (call) => {
+      // The first user message is the passage; a retry adds a correction after it, so match on that one.
+      const user = call.messages.find((m) => m.role === 'user')?.content ?? '';
+      firstPassage ??= user;
+      return user === firstPassage ? { questions: 'not a list' } : draftsFor(call, 'valid');
+    });
+    scriptCurator(s.chat);
+    const state = await through(s, 'linkPrerequisites');
+    const patch = await draftQuestionsNode(s.deps)(state);
+    expect(patch.candidates!.length).toBeGreaterThan(0);
+    const step = s.graph.stepsOf(TASK).find((x) => x.node === 'draftQuestions')!;
+    expect(step.status).toBe('complete');
+    expect(step.log).toMatch(/1 skipped: the model's answer did not match the expected shape/);
+  });
+
+  it('still fails when every chunk answers with the wrong shape', async () => {
+    const s = setup({
+      content: FULL_TEXT,
+      params: { chunkSizeChars: 1200, chunkOverlapChars: 100 },
+    });
+    s.chat.on(CURATOR_LABELS.draft, () => ({ questions: 'not a list' }));
+    scriptCurator(s.chat);
+    const state = await through(s, 'linkPrerequisites');
+    await expect(draftQuestionsNode(s.deps)(state)).rejects.toMatchObject({
+      code: 'INVALID_MODEL_OUTPUT',
+    });
   });
 
   it('skips the model when the task already produced questions', async () => {
