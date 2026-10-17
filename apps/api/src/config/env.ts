@@ -7,7 +7,6 @@ import { z } from 'zod';
 // The three provider config types live next to the provider code in `@coach/agents/llm` (contracts §4.3).
 import type { EmbeddingsConfig, LlmConfig, TracerConfig } from '@coach/agents/llm';
 import {
-  DEFAULT_OLLAMA_BASE_URL,
   DEFAULT_OLLAMA_MODEL,
   DEFAULT_OPENROUTER_EMBEDDING_MODEL,
   DEFAULT_OPENROUTER_MODEL,
@@ -304,7 +303,7 @@ export function parseEnv(source: NodeJS.ProcessEnv = process.env): Env {
           : raw[`${prefix}_MODEL`];
     const baseUrl =
       kind === 'ollama-with-fallback'
-        ? (raw.OLLAMA_BASE_URL ?? raw.LLM_BASE_URL ?? DEFAULT_OLLAMA_BASE_URL)
+        ? (raw.OLLAMA_BASE_URL ?? raw.LLM_BASE_URL)
         : kind === 'openrouter'
           ? (raw[`${prefix}_BASE_URL`] ?? openRouterBase)
           : raw[`${prefix}_BASE_URL`];
@@ -316,6 +315,8 @@ export function parseEnv(source: NodeJS.ProcessEnv = process.env): Env {
       const needs = `required when ${prefix}_PROVIDER=${kind}`;
       if (model === undefined) fail(`${prefix}_MODEL`, needs);
       if (kind === 'ollama' && baseUrl === undefined) fail(`${prefix}_BASE_URL`, needs);
+      // No built-in host: the address of the Ollama server is deployment configuration, never in the code.
+      if (kind === 'ollama-with-fallback' && baseUrl === undefined) fail('OLLAMA_BASE_URL', needs);
       if (kind === 'openai' && apiKey === undefined) fail(`${prefix}_API_KEY`, needs);
       if (kind === 'openrouter' && apiKey === undefined) fail('OPENROUTER_API_KEY', needs);
     }

@@ -210,6 +210,7 @@ describe('config from the environment', () => {
   it('reads OLLAMA_*, CF_ACCESS_*, and OPENROUTER_* for ollama-with-fallback, with defaults', () => {
     const config = llmConfigFromEnv({
       LLM_PROVIDER: 'ollama-with-fallback',
+      OLLAMA_BASE_URL: 'https://ollama.example.com',
       CF_ACCESS_CLIENT_ID: 'i',
       CF_ACCESS_CLIENT_SECRET: 's',
       OPENROUTER_API_KEY: 'k',
@@ -226,6 +227,7 @@ describe('config from the environment', () => {
   it('leaves out the token unless both halves are set, and the fallback unless the key is set', () => {
     const config = llmConfigFromEnv({
       LLM_PROVIDER: 'ollama-with-fallback',
+      OLLAMA_BASE_URL: 'http://localhost:11434',
       CF_ACCESS_CLIENT_ID: 'i',
     });
     expect(config.cfAccess).toBeUndefined();

@@ -114,7 +114,6 @@ function fromEnv<S extends z.ZodTypeAny>(
   return parsed.data;
 }
 
-export const DEFAULT_OLLAMA_BASE_URL = 'https://ollama.example.com';
 export const DEFAULT_OLLAMA_MODEL = 'qwen3:8b';
 export const DEFAULT_OPENROUTER_MODEL = 'openai/gpt-4o-mini';
 export const DEFAULT_OPENROUTER_EMBEDDING_MODEL = 'qwen/qwen3-embedding-8b';
@@ -144,7 +143,7 @@ export function llmConfigFromEnv(env: NodeJS.ProcessEnv = process.env): LlmConfi
         ? (blank(env.OLLAMA_MODEL) ?? blank(env.LLM_MODEL) ?? DEFAULT_OLLAMA_MODEL)
         : (blank(env.LLM_MODEL) ?? (provider === 'stub' ? 'stub-chat' : '')),
       baseUrl: withFallback
-        ? (blank(env.OLLAMA_BASE_URL) ?? blank(env.LLM_BASE_URL) ?? DEFAULT_OLLAMA_BASE_URL)
+        ? (blank(env.OLLAMA_BASE_URL) ?? blank(env.LLM_BASE_URL))
         : blank(env.LLM_BASE_URL),
       apiKey: blank(env.LLM_API_KEY),
       ...(cfAccess ? { cfAccess } : {}),

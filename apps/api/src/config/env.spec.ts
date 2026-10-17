@@ -455,12 +455,13 @@ describe('Ollama with OpenRouter fallback', () => {
   const withFallback: NodeJS.ProcessEnv = {
     ...base,
     LLM_PROVIDER: 'ollama-with-fallback',
+    OLLAMA_BASE_URL: 'https://ollama.example.com',
     OPENROUTER_API_KEY: SECRET_VALUE,
     CF_ACCESS_CLIENT_ID: 'cf-id.access',
     CF_ACCESS_CLIENT_SECRET: SECRET_VALUE,
   };
 
-  it('defaults the Ollama host and model and the cheap OpenRouter model', () => {
+  it('defaults the Ollama model and the cheap OpenRouter model', () => {
     const { llm } = parseEnv(withFallback);
     expect(llm).toEqual({
       provider: 'ollama-with-fallback',
@@ -469,6 +470,13 @@ describe('Ollama with OpenRouter fallback', () => {
       cfAccess: { clientId: 'cf-id.access', clientSecret: SECRET_VALUE },
       fallback: { apiKey: SECRET_VALUE, model: 'openai/gpt-4o-mini' },
     });
+  });
+
+  it('requires OLLAMA_BASE_URL with ollama-with-fallback (there is no built-in host)', () => {
+    const { OLLAMA_BASE_URL: _omit, ...without } = withFallback;
+    expect(() => parseEnv(without)).toThrow(
+      /OLLAMA_BASE_URL: required when LLM_PROVIDER=ollama-with-fallback/,
+    );
   });
 
   it('takes OLLAMA_* and OPENROUTER_MODEL overrides', () => {
@@ -483,7 +491,11 @@ describe('Ollama with OpenRouter fallback', () => {
   });
 
   it('runs without the token or the key outside production', () => {
-    const { llm } = parseEnv({ ...base, LLM_PROVIDER: 'ollama-with-fallback' });
+    const { llm } = parseEnv({
+      ...base,
+      LLM_PROVIDER: 'ollama-with-fallback',
+      OLLAMA_BASE_URL: 'http://localhost:11434',
+    });
     expect(llm.cfAccess).toBeUndefined();
     expect(llm.fallback).toBeUndefined();
   });
@@ -495,7 +507,12 @@ describe('Ollama with OpenRouter fallback', () => {
   });
 
   it('refuses to start in production without OPENROUTER_API_KEY', () => {
-    const prod = { ...prodOk, LLM_PROVIDER: 'ollama-with-fallback', LLM_API_KEY: '' };
+    const prod = {
+      ...prodOk,
+      LLM_PROVIDER: 'ollama-with-fallback',
+      OLLAMA_BASE_URL: 'http://localhost:11434',
+      LLM_API_KEY: '',
+    };
     expect(problems(prod)).toEqual([
       'ENV OPENROUTER_API_KEY: required in production when LLM_PROVIDER=ollama-with-fallback',
     ]);
