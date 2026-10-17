@@ -4,9 +4,9 @@ import { useReducedMotion } from '~/lib/a11y/use-reduced-motion';
 /**
  * Landing hero illustration, drawn inline so it costs no request and follows the theme tokens.
  *
- * IMAGE SLOT: this component is a stand-in for the generated hero in
- * docs/brand/image-prompts/hero-illustrations.md ("a learner's path lighting up through a concept
- * graph"). To swap it, render an <img>/<picture> of the same footprint in its place: 3:2
+ * IMAGE SLOT: this component is a stand-in for the generated hero described in the brand image
+ * prompts (kept with the operations documents): "a learner's path lighting up through a concept
+ * graph". To swap it, render an <img>/<picture> of the same footprint in its place: 3:2
  * (1800x1200) from `lg` up, 16:9 (1920x1080) on small screens, with a light and a dark twin, and
  * keep the figure's accessible name. The page does not depend on anything else in this file.
  *

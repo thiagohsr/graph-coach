@@ -1,6 +1,6 @@
 # Graph Coach API image (the design documents section 3).
 # Build from the repository root:  docker build -f infra/Dockerfile.api -t graph-coach-api:<revision> .
-# The packages are ESM-only and the API is CommonJS; Node 24 loads them with require(esm) (docs/review-feedback.md, problem 6).
+# The packages are ESM-only and the API is CommonJS; Node 24 loads them with require(esm) (review feedback, problem 6).
 
 ARG NODE_IMAGE=node:24-bookworm-slim
 

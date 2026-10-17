@@ -3,7 +3,7 @@ import { existsSync } from 'node:fs';
 import { resolve } from 'node:path';
 import { describe, expect, it } from 'vitest';
 
-// Spec problem 6 (docs/review-feedback.md): the built API is CommonJS and loads @coach/graph-kit,
+// Spec problem 6 (review feedback): the built API is CommonJS and loads @coach/graph-kit,
 // @coach/agents, @coach/types, and @coach/admin-kit with require(). Those packages are ESM-only, so
 // every entry point shares one module instance. This test loads the BUILT packages from apps/api in a
 // plain node process (as `node dist/main.js` would) and checks identity across entry points.

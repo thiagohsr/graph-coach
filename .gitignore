@@ -41,5 +41,5 @@ spike/data/
 spike/node_modules/
 .playwright-mcp/
 
-# Local AWS identity notes, never committed
-docs/operation_identity.json
+# Project documents live in the private operations repository; nothing under docs/ is committed here
+docs/

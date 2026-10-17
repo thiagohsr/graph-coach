@@ -10,7 +10,7 @@
 /* Dark is chosen by <html data-theme> (lib/theme: the system setting unless the user picked one). */
 @custom-variant dark (&:where([data-theme='dark'], [data-theme='dark'] *));
 
-/* Fonts are self-hosted via @fontsource (imports at the top); see docs/design-system.md "Typography". */
+/* Fonts are self-hosted via @fontsource (imports at the top); see the design system document (kept with the operations documents), "Typography". */
 
 :root {
   color-scheme: light;

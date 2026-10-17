@@ -2,7 +2,7 @@
 // Security checklist probes (the design documents, task T073, local part).
 // Each probe is an automated API test against the isolated test application (AUTH_MODE=dev, stub providers, a Postgres
 // schema and a FalkorDB graph of their own). They are NOT manual probes of the running development server.
-// The describe titles start with the checklist id so docs/security-checklist.md can cite them.
+// The describe titles start with the checklist id so the security checklist (kept privately) can cite them.
 // Actors: A owner, S shared user, B other learner (never shared), R reviewer, X admin (see the checklist).
 import { readFileSync } from 'node:fs';
 import { join } from 'node:path';

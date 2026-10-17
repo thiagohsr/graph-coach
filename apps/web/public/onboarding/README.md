@@ -19,6 +19,6 @@ loads `/onboarding/slide-N.webp` and shows a drawn placeholder for any slide who
   `slide-N.webp`, then to the placeholder. A light picture on a dark page is fine if you make no dark twin.
 - **Text**: no text inside the pictures. Meaning is carried by the slide copy and the alt text in
   `apps/web/src/features/onboarding/slides.ts`.
-- **Prompts**: `docs/brand/image-prompts/onboarding-carousel.md`.
+- **Prompts**: the brand image prompts for the carousel, kept with the operations documents.
 - Images load from the app's own origin (no CDN) and only the first is loaded eagerly; the next one is warmed when a
   slide is shown.
