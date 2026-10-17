@@ -2,11 +2,16 @@
 
 A study coach whose memory is a FalkorDB knowledge graph: learners play fill-in-the-blank puzzles built from a prompt or from their own material, and agents decide what to practise next and show the path behind every decision.
 
-Track: **Agent Memory and Coordination**. Live site: not deployed yet. Demo video: not recorded yet. Read [Provenance](#16-provenance) before judging this entry.
+Track: **Agent Memory and Coordination**. Live site: **https://graphcoach.interfacesdigitais.com.br**. Demo video: link in the submission. Read [Provenance](#16-provenance) before judging this entry.
 
 ## 1a. Live site
 
-Not deployed yet.
+**https://graphcoach.interfacesdigitais.com.br** (AWS, us-east-1; deployed 2026-10-17, smoke check passed on every deploy, see `docs/deploy.md`).
+
+- **Sign in** with your own Google account (a fresh learner with the free monthly allowance) or with an e-mail and password.
+- **Demo logins** for the seeded Databases 101 scenario: `learner@example.test` (has the weak-prerequisite history, best for "What next?" and "Why this?"), `learner2@example.test`, and `reviewer@example.test`, via "Sign in with e-mail". The password is given in the submission form only, never here.
+- **Try:** play a puzzle, ask the Coach "What next?" and open "Why this?"; create a puzzle from a prompt or upload a PDF/Word/text file and review the drafts.
+- The site is a demonstration: synthetic seed content, may be reset, and may be stopped outside the judging period. If it is down, use the local setup in section 4.
 
 ## 2. Overview
 
@@ -563,4 +568,4 @@ spike/        Early FalkorDB spike scripts
 
 Top-level files: `Makefile` (all commands), `.env.example`, `package.json` and `pnpm-workspace.yaml` (pnpm workspace), `CLAUDE.md`.
 
-**Licence:** none has been chosen yet; the repository has no `LICENSE` file. Until the author adds one, no licence is granted.
+**Licence:** all rights reserved (see `LICENSE`), with permission for the hackathon's judges and organisers to view, build and run it for evaluation. An open-source licence is planned once the repository is published after a review.
