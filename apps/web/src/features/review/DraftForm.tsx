@@ -246,7 +246,7 @@ export function DraftForm({
           {savedNotice}
         </div>
 
-        <div className="flex flex-wrap gap-2">
+        <div className="sticky bottom-0 flex flex-wrap gap-2 bg-background py-2">
           <Button
             type="button"
             variant="outline"

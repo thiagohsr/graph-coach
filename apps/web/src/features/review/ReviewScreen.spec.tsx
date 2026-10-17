@@ -283,7 +283,6 @@ describe('ReviewScreen', () => {
     await screen.findByRole('region', { name: 'Draft' });
     expect(screen.queryByText(/visibility|public|private|share/i)).not.toBeInTheDocument();
     expect(screen.queryByRole('combobox')).not.toBeInTheDocument();
-    expect(screen.queryByRole('checkbox')).not.toBeInTheDocument();
   });
 
   it('shows the empty state with a link to the sources', async () => {
@@ -311,5 +310,125 @@ describe('ReviewScreen', () => {
     renderWithQuery(<ReviewScreen taskId="t-1" />);
     await screen.findByRole('region', { name: 'Draft' });
     expect(calls('GET', 'taskId=t-1')).toHaveLength(1);
+  });
+
+  describe('batch and stable layout', () => {
+    const many = [1, 2, 3, 4].map((n) =>
+      draft({
+        id: `d-${n}`,
+        sentence: `Sentence ${n} with a ___ blank.`,
+        answers: ['tree'],
+        critique: n <= 2 ? { verdict: 'pass', note: 'ok' } : null,
+      }),
+    );
+    const approveUrl = (n: number) => `POST /api/review/questions/d-${n}/approve`;
+    const rejectUrl = (n: number) => `POST /api/review/questions/d-${n}/reject`;
+    const ok = () => json(200, outcome({ remainingDrafts: 1 }));
+
+    it('selects all, approves in order, shows the summary and refetches once', async () => {
+      const order: string[] = [];
+      serve(many, {
+        ...Object.fromEntries(
+          [1, 2, 3, 4].map((n) => [
+            approveUrl(n),
+            () => {
+              order.push(`d-${n}`);
+              return json(200, outcome({ remainingDrafts: 4 - n }));
+            },
+          ]),
+        ),
+      });
+      renderWithQuery(<ReviewScreen />);
+      await screen.findByRole('region', { name: 'Draft' });
+      await userEvent.click(screen.getByRole('button', { name: 'Select all' }));
+      const before = calls('GET', '/review/questions').length;
+      await userEvent.click(screen.getByRole('button', { name: 'Approve 4 selected' }));
+      expect(await screen.findByText('4 approved, 0 failed')).toBeInTheDocument();
+      expect(order).toEqual(['d-1', 'd-2', 'd-3', 'd-4']);
+      await waitFor(() => expect(calls('GET', '/review/questions').length).toBe(before + 1));
+    });
+
+    it('selects the drafts that passed the critic', async () => {
+      serve(many);
+      renderWithQuery(<ReviewScreen />);
+      await screen.findByRole('region', { name: 'Draft' });
+      await userEvent.click(
+        screen.getByRole('button', { name: 'Select all that passed the critic (2)' }),
+      );
+      expect(screen.getByRole('button', { name: 'Approve 2 selected' })).toBeEnabled();
+    });
+
+    it('keeps a failed draft selected with its message while the rest succeed', async () => {
+      serve(many, {
+        [approveUrl(1)]: ok,
+        [approveUrl(2)]: () => json(409, apiError('ALREADY_DECIDED', 'decided')),
+        [approveUrl(3)]: ok,
+      });
+      renderWithQuery(<ReviewScreen />);
+      await screen.findByRole('region', { name: 'Draft' });
+      for (const n of [1, 2, 3])
+        await userEvent.click(
+          screen.getByRole('checkbox', { name: new RegExp(`^Select draft ${n}:`) }),
+        );
+      await userEvent.click(screen.getByRole('button', { name: 'Approve 3 selected' }));
+      expect(await screen.findByText('2 approved, 1 failed')).toBeInTheDocument();
+      expect(screen.getByText('Draft 2 failed: Already decided')).toBeInTheDocument();
+      expect(screen.getByRole('checkbox', { name: /^Select draft 2:/ })).toBeChecked();
+      expect(screen.getAllByText('Approved')).toHaveLength(2);
+    });
+
+    it('rejects the selection with one reason', async () => {
+      const bodies: unknown[] = [];
+      const reject = (init: RequestInit) => {
+        bodies.push(JSON.parse(String(init.body)));
+        return ok();
+      };
+      serve(many, { [rejectUrl(1)]: reject, [rejectUrl(2)]: reject });
+      renderWithQuery(<ReviewScreen />);
+      await screen.findByRole('region', { name: 'Draft' });
+      await userEvent.click(screen.getByRole('checkbox', { name: /^Select draft 1:/ }));
+      await userEvent.click(screen.getByRole('checkbox', { name: /^Select draft 2:/ }));
+      await userEvent.click(screen.getByRole('button', { name: 'Reject 2 selected' }));
+      const dialog = await screen.findByRole('dialog');
+      await userEvent.type(within(dialog).getByLabelText('Reason (optional)'), 'off topic');
+      await userEvent.click(within(dialog).getByRole('button', { name: 'Reject 2 drafts' }));
+      expect(await screen.findByText('2 rejected, 0 failed')).toBeInTheDocument();
+      expect(bodies).toEqual([{ reason: 'off topic' }, { reason: 'off topic' }]);
+    });
+
+    it('Stop halts further requests', async () => {
+      let release: () => void = () => {};
+      const gate = new Promise<void>((r) => (release = r));
+      serve(many, {
+        [approveUrl(1)]: async () => {
+          await gate;
+          return ok();
+        },
+        [approveUrl(2)]: ok,
+        [approveUrl(3)]: ok,
+        [approveUrl(4)]: ok,
+      });
+      renderWithQuery(<ReviewScreen />);
+      await screen.findByRole('region', { name: 'Draft' });
+      await userEvent.click(screen.getByRole('button', { name: 'Select all' }));
+      await userEvent.click(screen.getByRole('button', { name: 'Approve 4 selected' }));
+      expect(await screen.findByText('Approving 1 of 4…')).toBeInTheDocument();
+      await userEvent.click(screen.getByRole('button', { name: 'Stop' }));
+      release();
+      expect(await screen.findByText(/1 approved, 0 failed, 3 not run/)).toBeInTheDocument();
+      expect(calls('POST', '/approve')).toHaveLength(1);
+    });
+
+    it('keeps the decided row in place with an Approved badge', async () => {
+      serve(many, { [approveUrl(1)]: ok });
+      renderWithQuery(<ReviewScreen />);
+      await screen.findByRole('region', { name: 'Draft' });
+      await userEvent.click(screen.getByRole('button', { name: 'Approve' }));
+      expect(await screen.findByText('Approved')).toBeInTheDocument();
+      expect(screen.getByRole('button', { name: 'Draft 1' })).toBeDisabled();
+      expect(screen.getByRole('button', { name: 'Draft 4' })).toBeInTheDocument();
+      expect(screen.getByText('Draft 1 of 3')).toBeInTheDocument();
+      expect(screen.getByRole('textbox', { name: 'Sentence' })).toHaveValue(many[1]!.sentence);
+    });
   });
 });
