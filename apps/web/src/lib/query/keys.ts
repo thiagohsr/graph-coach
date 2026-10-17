@@ -9,6 +9,7 @@ export interface AdminListParams {
 export const keys = {
   session: ['session'] as const,
   authMode: ['auth', 'mode'] as const,
+  authFormsPreview: ['auth', 'forms-preview'] as const,
 
   puzzles: {
     all: ['puzzles'] as const,

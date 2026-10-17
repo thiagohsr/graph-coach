@@ -168,10 +168,13 @@ export async function refreshTokens(
   return rest;
 }
 
-type MeOutcome = 'ok' | 'blocked' | 'unverified' | 'account';
+export type MeOutcome = 'ok' | 'blocked' | 'unverified' | 'account';
 
 /** The one call that carries the ID token: it makes the API create or link the account. */
-async function callMe(exchange: ExchangeResult, deps: OidcDeps): Promise<MeOutcome> {
+export async function callMe(
+  exchange: ExchangeResult,
+  deps: Pick<OidcDeps, 'apiUrl' | 'fetch' | 'forwardedFor'>,
+): Promise<MeOutcome> {
   const headers: Record<string, string> = {
     Authorization: `Bearer ${exchange.accessToken}`,
     Accept: 'application/json',

@@ -34,6 +34,8 @@ const EnvSchema = z
       .min(32, 'SESSION_SECRET must be at least 32 characters'),
     COGNITO_DOMAIN: optionalString,
     COGNITO_CLIENT_ID: optionalString,
+    COGNITO_REGION: optionalString,
+    COGNITO_USER_POOL_ID: optionalString,
     WEB_ORIGIN: z.preprocess(blankToUndefined, z.string().url().optional()),
     TRUST_PROXY: optionalString,
   })
@@ -67,6 +69,9 @@ export interface WebEnv {
   sessionSecret: string;
   cognitoDomain: string | undefined;
   cognitoClientId: string | undefined;
+  /** Optional: derived from the pool id or the hosted-UI domain when unset. */
+  cognitoRegion: string | undefined;
+  cognitoUserPoolId: string | undefined;
   /** Public origin without a trailing slash, when set. */
   webOrigin: string | undefined;
   /** Raw TRUST_PROXY setting; empty when unset. */
@@ -98,6 +103,8 @@ export function parseEnv(source: Record<string, string | undefined>): WebEnv {
     sessionSecret: e.SESSION_SECRET,
     cognitoDomain: e.COGNITO_DOMAIN,
     cognitoClientId: e.COGNITO_CLIENT_ID,
+    cognitoRegion: e.COGNITO_REGION,
+    cognitoUserPoolId: e.COGNITO_USER_POOL_ID,
     webOrigin: e.WEB_ORIGIN ? new URL(e.WEB_ORIGIN).origin : undefined,
     trustProxy: e.TRUST_PROXY ?? '',
   };

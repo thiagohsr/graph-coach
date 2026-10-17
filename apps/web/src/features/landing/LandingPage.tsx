@@ -13,6 +13,8 @@ import {
 import type { ReactNode } from 'react';
 import { BrandMark } from '~/components/layout/AppShell';
 import { buttonVariants } from '~/components/ui/button';
+import { AuthCard } from '~/features/auth/AuthCard';
+import { authFormsApi, type AuthApi } from '~/lib/auth/auth-forms.functions';
 import { cn } from '~/lib/utils';
 import { HeroGraph } from './HeroGraph';
 import { WhyShowcase } from './WhyShowcase';
@@ -20,11 +22,6 @@ import { WhyShowcase } from './WhyShowcase';
 export type AuthMode = 'cognito' | 'dev';
 
 const AFTER_SIGN_IN = '/puzzles';
-
-/** The same plain links the /login page uses: the hosted page does sign-up and sign-in, we store no credentials. */
-export function authUrl(provider: 'google' | 'email'): string {
-  return `/auth/login?provider=${provider}&redirect=${encodeURIComponent(AFTER_SIGN_IN)}`;
-}
 
 const focusRing =
   'outline-none focus-visible:outline-solid focus-visible:outline-3 focus-visible:outline-offset-2 focus-visible:outline-ring';
@@ -52,7 +49,7 @@ const STEPS: { icon: typeof Puzzle; title: string; text: string }[] = [
   },
 ];
 
-export function LandingPage({ mode }: { mode: AuthMode }) {
+export function LandingPage({ mode, api = authFormsApi }: { mode: AuthMode; api?: AuthApi }) {
   return (
     <div className="min-h-dvh bg-background text-foreground">
       <a
@@ -183,8 +180,8 @@ export function LandingPage({ mode }: { mode: AuthMode }) {
                 Create your free account
               </h2>
               <p className="text-text-secondary">
-                Your first sign-in creates your account. Sign-up and sign-in happen on a secure
-                hosted page; Graph Coach never sees or stores your password.
+                Your first sign-in creates your account. Your password goes straight to our identity
+                provider and is never stored by Graph Coach.
               </p>
               <ul className="flex flex-col gap-3 text-sm">
                 <Perk icon={<Sparkles className="size-4" />}>
@@ -198,7 +195,7 @@ export function LandingPage({ mode }: { mode: AuthMode }) {
                 </Perk>
               </ul>
             </div>
-            <SignInPanel mode={mode} />
+            <SignInPanel mode={mode} api={api} />
           </div>
         </section>
 
@@ -208,7 +205,8 @@ export function LandingPage({ mode }: { mode: AuthMode }) {
           </h2>
           <ul className="grid gap-4 sm:grid-cols-3">
             <Perk icon={<ShieldCheck className="size-5" />} large>
-              No passwords stored. Google or e-mail sign-in, handled by a hosted identity service.
+              Your password goes straight to our identity provider and is never stored by Graph
+              Coach.
             </Perk>
             <Perk icon={<FileText className="size-5" />} large>
               Your notes become puzzles you review and approve before you play or share them.
@@ -276,47 +274,34 @@ function Perk({
   );
 }
 
-/** Sign-up / sign-in entry: plain links to the existing auth flow. In dev mode the dev account picker lives at /login. */
-export function SignInPanel({ mode }: { mode: AuthMode }) {
+/** Sign-up entry: the auth card in Cognito mode; in dev mode the demo account picker lives at /login. */
+export function SignInPanel({ mode, api }: { mode: AuthMode; api: AuthApi }) {
+  if (mode === 'cognito') {
+    return (
+      <div className="flex flex-col gap-3">
+        <AuthCard
+          initialMode="signUp"
+          redirect={AFTER_SIGN_IN}
+          headingLevel="h2"
+          api={api}
+          onSignedIn={(to) => window.location.assign(to)}
+        />
+        <p className="flex items-start gap-2 text-xs text-muted-foreground">
+          <Lock aria-hidden="true" className="mt-0.5 size-3.5 shrink-0" />
+          Your uploads are private. Only you can see your sources.
+        </p>
+      </div>
+    );
+  }
   return (
     <div className="flex flex-col gap-4 rounded-xl border bg-card p-6 shadow-sm">
       <h3 className="text-xl font-semibold">Get started</h3>
-      {mode === 'cognito' ? (
-        <>
-          <div className="flex flex-col gap-3">
-            <a href={authUrl('google')} className={cn(buttonVariants({ size: 'lg' }), 'w-full')}>
-              Continue with Google
-            </a>
-            <a
-              href={authUrl('email')}
-              className={cn(buttonVariants({ size: 'lg', variant: 'outline' }), 'w-full')}
-            >
-              Sign up with e-mail
-            </a>
-          </div>
-          <p className="text-sm text-text-secondary">
-            Already have an account?{' '}
-            <a
-              href={authUrl('email')}
-              className={cn(
-                'rounded-sm font-medium text-primary underline underline-offset-4',
-                focusRing,
-              )}
-            >
-              Sign in with e-mail
-            </a>
-          </p>
-        </>
-      ) : (
-        <>
-          <p className="rounded-md border border-dashed border-input bg-muted px-3 py-2 text-sm">
-            Development mode: pick a demo account instead of a real sign-in.
-          </p>
-          <Link to="/login" className={cn(buttonVariants({ size: 'lg' }), 'w-full')}>
-            Choose a demo account
-          </Link>
-        </>
-      )}
+      <p className="rounded-md border border-dashed border-input bg-muted px-3 py-2 text-sm">
+        Development mode: pick a demo account instead of a real sign-in.
+      </p>
+      <Link to="/login" className={cn(buttonVariants({ size: 'lg' }), 'w-full')}>
+        Choose a demo account
+      </Link>
       <p className="flex items-start gap-2 text-xs text-muted-foreground">
         <Lock aria-hidden="true" className="mt-0.5 size-3.5 shrink-0" />
         Your uploads are private. Only you can see your sources.
