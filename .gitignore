@@ -43,3 +43,6 @@ spike/node_modules/
 
 # Project documents live in the private operations repository; nothing under docs/ is committed here
 docs/
+
+# Agent guidance and design documents live in the private operations repository
+CLAUDE.md

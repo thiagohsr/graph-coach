@@ -71,7 +71,7 @@ flowchart LR
   Cognito["Cognito user pool<br/>Google as a provider"] -. "tokens" .-> Web
 ```
 
-The deployment diagram is the plan in `the design documents/`; the infrastructure files it needs do not exist in this repository yet.
+The deployment diagram shows the live site as built; the infrastructure files live in a private operations repository (section 14).
 
 **What lives where.** FalkorDB (graph `coach`) holds learners, concepts and their prerequisites, sources and passages with embeddings, puzzles and questions, sessions and answers, mastery, decisions and their evidence, and the tasks and steps of the Curator. Postgres holds only the `users`, `user_identities`, `access_codes`, `code_redemptions`, and `admin_settings` tables. E-mail addresses are in Postgres only. The web server holds no data of its own. The API checks the access token on every request.
 
@@ -132,7 +132,7 @@ Accounts are identified by e-mail; there are no usernames. The picker offers `le
 
 ### Environment variables
 
-One root `.env` (copied from `.env.example`) serves the API, the CLI, the web server, and docker compose. The API and CLI read `process.env` only. Full rules: `the design documents` section 2.
+One root `.env` (copied from `.env.example`) serves the API, the CLI, the web server, and docker compose. The API and CLI read `process.env` only. The comments in `.env.example` state the rules for each value.
 
 | Group                             | Variables                                                                                                                                                                                                                         | Notes                                                                                                                                                                                                              |
 | --------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
@@ -177,7 +177,7 @@ Install FalkorDB and Postgres natively, listening on 6379 and 5432. Create a Pos
 
 ## 5. Graph data model
 
-Canonical source: [the design documents](the design documents). Graph name `coach`. Ids are strings; times are epoch milliseconds; the blank index is zero-based.
+Graph name `coach`. Ids are strings; times are epoch milliseconds; the blank index is zero-based.
 
 ### Node labels
 
@@ -297,7 +297,7 @@ Not yet written.
 
 ## 6. Named queries
 
-Every graph read and write goes through a named query in [`packages/graph-kit/queries/`](packages/graph-kit/queries/) (one `.cypher` file per query; the header gives `name`, `owner`, `mode`, `params`, and `returns`, and the loader enforces `name` and `mode`). The list and order follow the canonical table in [the design documents](the design documents), grouped by owning subsystem. `infra/check-docs.sh` (run as `make docs-check` once that target is in the Makefile) fails with the name of any query file that appears neither in this README nor in a graph-query test.
+Every graph read and write goes through a named query in [`packages/graph-kit/queries/`](packages/graph-kit/queries/) (one `.cypher` file per query; the header gives `name`, `owner`, `mode`, `params`, and `returns`, and the loader enforces `name` and `mode`). The list is grouped by owning subsystem. `infra/check-docs.sh` (run as `make docs-check` once that target is in the Makefile) fails with the name of any query file that appears neither in this README nor in a graph-query test.
 
 Two notes: `record_answers` is the single submit write (answers, score, mastery, `CHANGED_MASTERY`, and `submittedAt` last); `upsert_mastery` is used by seed tooling and tests only, never on the submit path.
 
@@ -514,7 +514,7 @@ Live on AWS since 2026-10-17: one arm64 server running Docker Compose (Caddy, we
 
 ## 15. Challenge compliance
 
-The 18 rules of the challenge (from the organisers' challenge page and rules) and where this repository stands. The positions come from [the design documents](the design documents). "Pending" means the evidence needs the live site, the video, or a step that has not been done.
+The 18 rules of the challenge (from the organisers' challenge page and rules) and where this repository stands. "Pending" means the evidence needs the live site, the video, or a step that has not been done.
 
 | Rule                                                              | Position                                                                                                         | Evidence                                                                                                                                                                                                                                           |
 | ----------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
@@ -541,7 +541,7 @@ The 18 rules of the challenge (from the organisers' challenge page and rules) an
 
 Dated from the files and the repository, in UTC. The hackathon began on 14 October 2026 at 18:31 UTC.
 
-- **Before the start:** the specification and design documents (`specs/`, the constitution) were started on 11–12 October; a FalkorDB learning spike (`spike/`, not part of the application) on 13 October; the workspace scaffolding (package manifests, TypeScript and lint configuration) on the afternoon of 14 October.
+- **Before the start:** the specification and design documents (kept privately with the operations documents) were started on 11–12 October; a FalkorDB learning spike (`spike/`, not part of the application) on 13 October; the workspace scaffolding (package manifests, TypeScript and lint configuration) on the afternoon of 14 October.
 - **After the start:** the application code, tests, documentation and deployment were built from 14 October 23:35 UTC onward, in unattended runs of AI coding agents directed and reviewed by the author, then continued interactively. Every commit is dated from 15 October 21:45 UTC onward, when the first grouped commits were made from the local tree.
 - **Earlier projects:** two personal projects (an agent operations tool and a puzzle study game) inspired the design; no code was copied from them.
 - **History:** on 17 October the history was **filtered**, not re-dated: files describing the live infrastructure (Terraform, server bundle, deploy scripts, runbooks, the security checklist with its results, run logs and review notes) were removed from every commit and moved to a private operations repository, and three infrastructure names were replaced with placeholders in every version of every file. Commit dates, authors and messages are unchanged. A mirror of the unfiltered history is kept privately and can be shown to the organisers.
@@ -564,12 +564,9 @@ packages/
   types/      Shared Zod schemas and DTO types
 infra/        Docker Compose for the local stores, Dockerfiles, the API container entrypoint, doctor.sh, check-docs.sh, check-graph-removed.sh (deployment lives in a private operations repository)
 seed/         Synthetic seed content: concepts, puzzles, demo scenario and accounts, source texts
-specs/        Specifications, plans, contracts, and task lists (design documents)
-docs/         Challenge text and rules, demo script, explanation notes, graph walkthrough, design system, brand prompts, screenshots
 spike/        Early FalkorDB spike scripts
-.specify/     Spec Kit constitution and templates
 ```
 
-Top-level files: `Makefile` (all commands), `.env.example`, `package.json` and `pnpm-workspace.yaml` (pnpm workspace), `CLAUDE.md`.
+Top-level files: `Makefile` (all commands), `.env.example`, `package.json` and `pnpm-workspace.yaml` (pnpm workspace). The specifications, plans, design documents and deployment live in a private operations repository.
 
 **Licence:** all rights reserved (see `LICENSE`), with permission for the hackathon's judges and organisers to view, build and run it for evaluation. An open-source licence is planned once the repository is published after a review.
