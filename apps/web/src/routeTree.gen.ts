@@ -14,6 +14,7 @@ import { Route as AuthedRouteImport } from './routes/_authed'
 import { Route as BlockedRouteImport } from './routes/blocked'
 import { Route as HealthzRouteImport } from './routes/healthz'
 import { Route as LoginRouteImport } from './routes/login'
+import { Route as PrivacyRouteImport } from './routes/privacy'
 import { Route as AuthedAccountRouteImport } from './routes/_authed/account'
 import { Route as AuthedAdminRouteImport } from './routes/_authed/admin'
 import { Route as AuthedCoachRouteImport } from './routes/_authed/coach'
@@ -56,6 +57,11 @@ const HealthzRoute = HealthzRouteImport.update({
 const LoginRoute = LoginRouteImport.update({
   id: '/login',
   path: '/login',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const PrivacyRoute = PrivacyRouteImport.update({
+  id: '/privacy',
+  path: '/privacy',
   getParentRoute: () => rootRouteImport,
 } as any)
 const AuthedAccountRoute = AuthedAccountRouteImport.update({
@@ -162,6 +168,7 @@ export interface FileRoutesByFullPath {
   '/blocked': typeof BlockedRoute
   '/healthz': typeof HealthzRoute
   '/login': typeof LoginRoute
+  '/privacy': typeof PrivacyRoute
   '/account': typeof AuthedAccountRoute
   '/admin': typeof AuthedAdminRouteWithChildren
   '/coach': typeof AuthedCoachRoute
@@ -187,6 +194,7 @@ export interface FileRoutesByTo {
   '/blocked': typeof BlockedRoute
   '/healthz': typeof HealthzRoute
   '/login': typeof LoginRoute
+  '/privacy': typeof PrivacyRoute
   '/account': typeof AuthedAccountRoute
   '/coach': typeof AuthedCoachRoute
   '/mastery': typeof AuthedMasteryRoute
@@ -213,6 +221,7 @@ export interface FileRoutesById {
   '/blocked': typeof BlockedRoute
   '/healthz': typeof HealthzRoute
   '/login': typeof LoginRoute
+  '/privacy': typeof PrivacyRoute
   '/_authed/account': typeof AuthedAccountRoute
   '/_authed/admin': typeof AuthedAdminRouteWithChildren
   '/_authed/coach': typeof AuthedCoachRoute
@@ -240,6 +249,7 @@ export interface FileRouteTypes {
     | '/blocked'
     | '/healthz'
     | '/login'
+    | '/privacy'
     | '/account'
     | '/admin'
     | '/coach'
@@ -265,6 +275,7 @@ export interface FileRouteTypes {
     | '/blocked'
     | '/healthz'
     | '/login'
+    | '/privacy'
     | '/account'
     | '/coach'
     | '/mastery'
@@ -290,6 +301,7 @@ export interface FileRouteTypes {
     | '/blocked'
     | '/healthz'
     | '/login'
+    | '/privacy'
     | '/_authed/account'
     | '/_authed/admin'
     | '/_authed/coach'
@@ -317,6 +329,7 @@ export interface RootRouteChildren {
   BlockedRoute: typeof BlockedRoute
   HealthzRoute: typeof HealthzRoute
   LoginRoute: typeof LoginRoute
+  PrivacyRoute: typeof PrivacyRoute
   ApiSplatRoute: typeof ApiSplatRoute
   AuthCallbackRoute: typeof AuthCallbackRoute
   AuthLoginRoute: typeof AuthLoginRoute
@@ -357,6 +370,13 @@ declare module '@tanstack/react-router' {
       path: '/login'
       fullPath: '/login'
       preLoaderRoute: typeof LoginRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/privacy': {
+      id: '/privacy'
+      path: '/privacy'
+      fullPath: '/privacy'
+      preLoaderRoute: typeof PrivacyRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/_authed/account': {
@@ -552,6 +572,7 @@ const rootRouteChildren: RootRouteChildren = {
   BlockedRoute: BlockedRoute,
   HealthzRoute: HealthzRoute,
   LoginRoute: LoginRoute,
+  PrivacyRoute: PrivacyRoute,
   ApiSplatRoute: ApiSplatRoute,
   AuthCallbackRoute: AuthCallbackRoute,
   AuthLoginRoute: AuthLoginRoute,

@@ -236,6 +236,12 @@ export function LandingPage({ mode }: { mode: AuthMode }) {
             >
               Create an account
             </a>
+            <Link
+              to="/privacy"
+              className={cn('rounded-sm font-medium underline underline-offset-4', focusRing)}
+            >
+              Privacy
+            </Link>
           </nav>
         </div>
       </footer>

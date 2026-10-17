@@ -1,5 +1,5 @@
 import { useQuery, useQueryClient } from '@tanstack/react-query';
-import { createFileRoute, redirect, useNavigate } from '@tanstack/react-router';
+import { Link, createFileRoute, redirect, useNavigate } from '@tanstack/react-router';
 import { RouteFocus } from '~/components/a11y/RouteFocus';
 import { ErrorState } from '~/components/states/ErrorState';
 import { LoadingState } from '~/components/states/LoadingState';
@@ -51,7 +51,16 @@ function LoginPage() {
         </div>
       )}
       {mode.data === 'cognito' && (
-        <LoginOptions redirect={target} error={search.error} onSignOut={() => void signOut()} />
+        <>
+          <LoginOptions redirect={target} error={search.error} onSignOut={() => void signOut()} />
+          <p className="pb-8 text-center text-sm text-muted-foreground">
+            By signing in you accept how we handle your data:{' '}
+            <Link to="/privacy" className="font-medium underline underline-offset-4">
+              Privacy
+            </Link>
+            .
+          </p>
+        </>
       )}
       {mode.data === 'dev' && (
         <DevAccountPicker
