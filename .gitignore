@@ -23,6 +23,8 @@ test-results/
 backend.hcl
 *.tfvars
 !terraform.tfvars.example
+*.tfplan
+tfplan
 
 # OS
 .DS_Store
@@ -38,3 +40,6 @@ backend.hcl
 spike/data/
 spike/node_modules/
 .playwright-mcp/
+
+# Local AWS identity notes, never committed
+docs/operation_identity.json

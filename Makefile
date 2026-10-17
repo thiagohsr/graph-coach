@@ -9,7 +9,9 @@ DOTENV := pnpm exec dotenv -e .env --
 .PHONY: help doctor setup up down logs clean graph-shell graph-ui graph-stop graph-start \
 	lint format format-check typecheck build migrate seed reset reset-onboarding dev \
 	test-unit test-agent test test-graph test-api test-e2e test-all \
-	docs-check check-graph-removed
+	docs-check check-graph-removed server-start server-stop server-status \
+	tf-init tf-plan tf-apply tf-output tf-destroy secrets-put images deploy rollback smoke-live \
+	seed-live demo-users backup-live restore-live logs-live live-cli
 
 help: ## List the targets
 	@grep -hE '^[a-zA-Z0-9_-]+:.*## ' $(MAKEFILE_LIST) | awk 'BEGIN {FS = ":.*## "}; {printf "  %-14s %s\n", $$1, $$2}'
@@ -128,3 +130,70 @@ docs-check: ## Every named query appears in the README or a graph-query test
 
 check-graph-removed: .env ## Stop FalkorDB, probe the API, restart it (local only)
 	bash infra/check-graph-removed.sh
+
+# ─── Live site on AWS (spec 008; runbook: docs/deploy.md) ───────────────────
+# Every target passes AWS_PROFILE through (export it, or write AWS_PROFILE=<profile> make <target>).
+# Terraform needs infra/terraform/backend.hcl and terraform.tfvars (copy the .example files; both are git-ignored).
+
+TF := terraform -chdir=infra/terraform
+
+tf-init: ## Terraform: connect to the remote state (infra/terraform/backend.hcl)
+	$(TF) init -backend-config=backend.hcl
+
+tf-plan: ## Terraform: show the changes, create nothing (writes tfplan)
+	$(TF) plan -out=tfplan
+
+tf-apply: ## Terraform: apply the last plan made by tf-plan
+	$(TF) apply tfplan
+
+tf-output: ## Terraform: print site_ip, ECR address, Cognito ids
+	$(TF) output
+
+tf-destroy: ## Terraform: remove ALL live infrastructure incl. data volume (asks first)
+	@read -r -p "Destroy the live Graph Coach infrastructure, including the data volume? Type destroy: " answer; \
+	if [ "$$answer" = "destroy" ]; then $(TF) destroy; else echo "Cancelled."; fi
+
+secrets-put: ## Prompt for the live secrets and write /graph-coach/prod/* in Parameter Store (FORCE=1 to replace)
+	infra/scripts/put-secrets.sh $(if $(FORCE),--force)
+
+images: ## Build the arm64 images and push them to ECR
+	infra/scripts/build-images.sh
+	infra/scripts/push-images.sh
+
+deploy: ## Build+push (unless SKIP_BUILD=1), deploy through SSM, then run the smoke check
+	infra/scripts/deploy.sh $(if $(SKIP_BUILD),--skip-build)
+
+rollback: ## Redeploy the previous image tag (TAG=… for a specific one)
+	infra/scripts/rollback.sh $(TAG)
+
+smoke-live: ## Smoke check of the live site (outside with curl, inside through SSM)
+	infra/scripts/smoke.sh
+
+seed-live: ## Load the synthetic seed into the live site (asks first)
+	infra/scripts/seed-live.sh
+
+demo-users: ## Create or reset the four demo accounts in Cognito
+	infra/scripts/create-demo-users.sh
+
+backup-live: ## Back up FalkorDB and Postgres to the backup bucket
+	infra/scripts/backup.sh
+
+restore-live: ## Restore the live data from a backup (BACKUP=<id>; asks first)
+	@test -n "$(BACKUP)" || { echo 'Usage: make restore-live BACKUP=<id printed by backup-live>'; exit 1; }
+	infra/scripts/restore.sh $(BACKUP)
+
+server-start: ## Start the stopped live server and wait until the site answers (IP and data unchanged)
+	infra/scripts/server-power.sh start
+
+server-stop: ## Stop the live server to save money (site offline; disks and IP kept, about USD 5-6 a month)
+	infra/scripts/server-power.sh stop
+
+server-status: ## Show whether the live server is running and whether the site answers
+	infra/scripts/server-power.sh status
+
+logs-live: ## Last log lines of a live service: make logs-live SERVICE=api [LINES=100]
+	infra/scripts/ssm-logs.sh $(or $(SERVICE),api) $(or $(LINES),100)
+
+live-cli: ## Run one API cli command on the live site: make live-cli CMD="grant-role a@b.c reviewer"
+	@test -n "$(CMD)" || { echo 'Usage: make live-cli CMD="grant-role someone@example.com reviewer"'; exit 1; }
+	infra/scripts/live-cli.sh $(CMD)
