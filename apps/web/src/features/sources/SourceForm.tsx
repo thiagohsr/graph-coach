@@ -1,18 +1,34 @@
-import { UPLOAD_NOTICE, countWords, guard, type GuardReason, type UploadKind } from '@coach/types';
+import {
+  UPLOAD_NOTICE,
+  countWords,
+  guard,
+  GUARD_DEFAULTS,
+  type GuardReason,
+  type UploadKind,
+} from '@coach/types';
 import { useForm } from '@tanstack/react-form';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { Link, useNavigate } from '@tanstack/react-router';
-import { useState, type ReactNode } from 'react';
+import { useRef, useState, type DragEvent, type ReactNode } from 'react';
 import { describeError } from '~/components/states/error-messages';
 import { RateLimitNotice } from '~/components/states/RateLimitNotice';
 import { Alert, AlertDescription } from '~/components/ui/alert';
 import { Button } from '~/components/ui/button';
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from '~/components/ui/dialog';
 import { Input } from '~/components/ui/input';
 import { Label } from '~/components/ui/label';
 import { Textarea } from '~/components/ui/textarea';
 import { createSource, isDuplicate, type SourceDuplicate } from '~/lib/api/curator';
 import { isApiClientError, type ApiClientError } from '~/lib/api/errors';
 import { keys } from '~/lib/query/keys';
+import { ExtractError, FILE_ACCEPT, extractFile, keepFirstWords } from './extract-text';
 
 type FormKind = Extract<UploadKind, 'text' | 'markdown'>;
 
@@ -48,6 +64,18 @@ export function SourceForm({
   const [titleError, setTitleError] = useState<string | null>(null);
   const [error, setError] = useState<ApiClientError | null>(null);
   const [duplicate, setDuplicate] = useState<SourceDuplicate | null>(null);
+
+  const [fileStatus, setFileStatus] = useState<
+    | { state: 'idle' }
+    | { state: 'reading'; name: string }
+    | { state: 'done'; name: string; words: number }
+    | { state: 'error'; message: string }
+  >({ state: 'idle' });
+  const [pendingFile, setPendingFile] = useState<File | null>(null);
+  const [dragging, setDragging] = useState(false);
+  const fileInput = useRef<HTMLInputElement>(null);
+  const extractedText = useRef<string | null>(null);
+  const readToken = useRef(0);
 
   const mutation = useMutation({ mutationFn: createSource });
 
@@ -92,6 +120,49 @@ export function SourceForm({
       }
     },
   });
+
+  const readFile = async (file: File) => {
+    const token = ++readToken.current;
+    setFileStatus({ state: 'reading', name: file.name });
+    try {
+      const result = await extractFile(file);
+      if (token !== readToken.current) return;
+      extractedText.current = result.text;
+      form.setFieldValue('content', result.text);
+      form.setFieldValue('kind', result.kind);
+      if (form.getFieldValue('title').trim() === '' && result.title !== '') {
+        form.setFieldValue('title', result.title);
+        setTitleError(null);
+      }
+      setGuardReasons(guard({ kind: result.kind, content: result.text }).reasons);
+      setFileStatus({ state: 'done', name: file.name, words: result.words });
+    } catch (caught) {
+      if (token !== readToken.current) return;
+      setFileStatus({
+        state: 'error',
+        message:
+          caught instanceof ExtractError
+            ? caught.message
+            : 'This file could not be read. Try another file or paste the text.',
+      });
+    }
+  };
+
+  const chooseFile = (file: File | undefined) => {
+    if (!file) return;
+    const current = form.getFieldValue('content');
+    if (current.trim() !== '' && current !== extractedText.current) {
+      setPendingFile(file);
+      return;
+    }
+    void readFile(file);
+  };
+
+  const onDrop = (e: DragEvent) => {
+    e.preventDefault();
+    setDragging(false);
+    chooseFile(e.dataTransfer.files[0]);
+  };
 
   const fieldIssue = (path: string) => error?.issues.find((i) => i.path === path)?.message;
   const unmappedIssues =
@@ -173,7 +244,56 @@ export function SourceForm({
         {(field) => (
           <div className="flex flex-col gap-1">
             <Label htmlFor="source-content">Content</Label>
+            <div className="flex flex-wrap items-center gap-3">
+              <input
+                ref={fileInput}
+                id="source-file"
+                type="file"
+                accept={FILE_ACCEPT}
+                className="sr-only"
+                aria-label="Upload a file"
+                tabIndex={-1}
+                onChange={(e) => {
+                  chooseFile(e.target.files?.[0]);
+                  e.target.value = '';
+                }}
+              />
+              <Button
+                type="button"
+                variant="outline"
+                disabled={fileStatus.state === 'reading'}
+                onClick={() => fileInput.current?.click()}
+              >
+                Choose a file
+              </Button>
+              <span className="text-sm text-muted-foreground" id="source-file-hint">
+                PDF, Word (.docx), text or Markdown, up to 15 MB. Or drop it on the box below.
+              </span>
+            </div>
+            <div role="status" aria-live="polite" className="text-sm">
+              {fileStatus.state === 'reading' && (
+                <p className="text-muted-foreground">Reading {fileStatus.name}…</p>
+              )}
+              {fileStatus.state === 'done' && (
+                <p className="text-muted-foreground">
+                  Extracted {fileStatus.words.toLocaleString('en-US')} words from {fileStatus.name}.
+                  You can edit the text before sending.
+                </p>
+              )}
+            </div>
+            {fileStatus.state === 'error' && (
+              <p role="alert" className="text-sm text-destructive">
+                {fileStatus.message}
+              </p>
+            )}
             <Textarea
+              onDragOver={(e: DragEvent) => {
+                e.preventDefault();
+                setDragging(true);
+              }}
+              onDragLeave={() => setDragging(false)}
+              onDrop={onDrop}
+              className={dragging ? 'outline-solid outline-3 outline-ring' : undefined}
               id="source-content"
               rows={12}
               value={field.state.value}
@@ -192,6 +312,24 @@ export function SourceForm({
             <p id="source-content-count" className="text-sm text-muted-foreground">
               {countWords(field.state.value)} words
             </p>
+            {countWords(field.state.value) > GUARD_DEFAULTS.maxWords && (
+              <div>
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  onClick={() => {
+                    const trimmed = keepFirstWords(field.state.value, GUARD_DEFAULTS.maxWords);
+                    field.handleChange(trimmed);
+                    setGuardReasons(
+                      guard({ kind: form.getFieldValue('kind'), content: trimmed }).reasons,
+                    );
+                  }}
+                >
+                  Keep the first {GUARD_DEFAULTS.maxWords.toLocaleString('en-US')} words
+                </Button>
+              </div>
+            )}
             <div id="source-content-reasons">
               {guardReasons.length > 0 && (
                 <ul
@@ -262,6 +400,32 @@ export function SourceForm({
             <AlertDescription>{describeError(error).message}</AlertDescription>
           </Alert>
         )}
+
+      <Dialog open={pendingFile !== null} onOpenChange={(open) => !open && setPendingFile(null)}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Replace current text?</DialogTitle>
+            <DialogDescription>
+              The text you typed will be replaced by the text from {pendingFile?.name}.
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter>
+            <Button type="button" variant="outline" onClick={() => setPendingFile(null)}>
+              Keep my text
+            </Button>
+            <Button
+              type="button"
+              onClick={() => {
+                const file = pendingFile;
+                setPendingFile(null);
+                if (file) void readFile(file);
+              }}
+            >
+              Replace
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
 
       <p className="text-sm text-muted-foreground" id="upload-notice">
         {UPLOAD_NOTICE}

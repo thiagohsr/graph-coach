@@ -233,4 +233,50 @@ describe('SourceForm', () => {
     renderWithQuery(<SourceForm redeemSlot={<p>redeem here</p>} />);
     expect(screen.getByText('redeem here')).toBeInTheDocument();
   });
+
+  describe('file upload', () => {
+    const pick = (f: File) =>
+      userEvent.upload(document.querySelector<HTMLInputElement>('input[type="file"]')!, f);
+
+    it('fills the content, kind and title from a .md file and says so', async () => {
+      renderWithQuery(<SourceForm />);
+      await pick(new File([LONG_TEXT], 'database-notes.md', { type: 'text/markdown' }));
+      expect(
+        await screen.findByText(/Extracted \d+ words from database-notes\.md/),
+      ).toBeInTheDocument();
+      expect(screen.getByRole('textbox', { name: 'Content' })).toHaveValue(LONG_TEXT);
+      expect(screen.getByRole('combobox', { name: 'Kind' })).toHaveValue('markdown');
+      expect(screen.getByRole('textbox', { name: 'Title' })).toHaveValue('database notes');
+    });
+
+    it('keeps a title that was typed', async () => {
+      renderWithQuery(<SourceForm />);
+      await userEvent.type(screen.getByRole('textbox', { name: 'Title' }), 'Mine');
+      await pick(new File([LONG_TEXT], 'other.txt', { type: 'text/plain' }));
+      await screen.findByText(/Extracted/);
+      expect(screen.getByRole('textbox', { name: 'Title' })).toHaveValue('Mine');
+    });
+
+    it('asks before replacing typed text', async () => {
+      renderWithQuery(<SourceForm />);
+      await userEvent.type(screen.getByRole('textbox', { name: 'Content' }), 'typed by hand');
+      await pick(new File([LONG_TEXT], 'a.txt', { type: 'text/plain' }));
+      const dialog = await screen.findByRole('dialog', { name: 'Replace current text?' });
+      await userEvent.click(within(dialog).getByRole('button', { name: 'Keep my text' }));
+      expect(screen.getByRole('textbox', { name: 'Content' })).toHaveValue('typed by hand');
+      await pick(new File([LONG_TEXT], 'a.txt', { type: 'text/plain' }));
+      await userEvent.click(
+        within(await screen.findByRole('dialog')).getByRole('button', { name: 'Replace' }),
+      );
+      await waitFor(() =>
+        expect(screen.getByRole('textbox', { name: 'Content' })).toHaveValue(LONG_TEXT),
+      );
+    });
+
+    it('shows the reason when a file cannot be read', async () => {
+      renderWithQuery(<SourceForm />);
+      await pick(new File(['a\u0000b'], 'bin.txt', { type: 'text/plain' }));
+      expect(await screen.findByRole('alert')).toHaveTextContent(/binary/);
+    });
+  });
 });

@@ -161,7 +161,7 @@ export function CreatePage({ initialChoice = null }: { initialChoice?: CreationK
         <Choice
           kind="upload"
           title="Use your own material"
-          description="Paste a text or Markdown document and get questions from it."
+          description="Upload a PDF, Word, text or Markdown file, or paste text, and get questions from it."
           difference={UPLOAD_DIFFERENCE}
           expanded={choice === 'upload'}
           onToggle={() => toggle('upload')}
