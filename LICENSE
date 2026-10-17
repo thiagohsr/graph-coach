@@ -1,0 +1,16 @@
+Copyright (c) 2026 Thiago Ramos. All rights reserved.
+
+This repository and its contents (source code, documentation, specifications, and assets) are proprietary.
+No licence is granted to use, copy, modify, merge, publish, distribute, sublicense, or sell any part of it,
+except as follows:
+
+1. Judges and organisers of the "Graph Hacks: Context for AI Agents" hackathon may view, clone, build, and run
+   this project for the purpose of evaluating the hackathon submission.
+
+2. Third-party components keep their own licences. Dependencies are listed in the package manifests and are
+   used under their respective licences; seed content is described in seed/README.md.
+
+The owner intends to publish the project under an open-source licence after a review. Until a different
+licence file replaces this one, the terms above apply.
+
+For permission requests, contact the owner through the address on the site's Privacy page.
