@@ -1,4 +1,5 @@
 import { validateDraft, type DraftViolationCode } from '@coach/types';
+import { repairBlanks } from '../repair';
 import { MAX_TOPUP_ROUNDS, WRITE_BATCH_QUESTIONS } from '../../constants';
 import { generatedQuestionId, puzzleIdForSource } from '../../ids';
 import { batches } from '../../pool';
@@ -93,7 +94,9 @@ export const validateNode: PromptNodeFactory = (deps) => async (state) => {
       const ordered = [...state.drafts]
         .filter((d) => d.verdict === 'pass')
         .sort((a, b) => a.index - b.index);
-      for (const draft of ordered) {
+      for (const original of ordered) {
+        // Small models misformat the blank marker; fix that deterministically before checking.
+        const draft = { ...original, sentence: repairBlanks(original.sentence, original.answers) };
         const id = generatedQuestionId(state.sourceId, draft.sentence, draft.answers);
         const check = validateDraft(
           {

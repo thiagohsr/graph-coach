@@ -51,6 +51,8 @@ function setup(
     topUp?: StubResponse;
     /** Indexes whose first-pass draft loses its blank, so `validate` discards it (no_blank). */
     breakFirst?: number[];
+    /** A first-pass writer of its own (overrides breakFirst). */
+    write?: StubResponse;
   } = {},
 ) {
   const tracer = new RecordingUsageTracer();
@@ -68,6 +70,7 @@ function setup(
     ...(options.secondVerdicts ? { secondVerdicts: options.secondVerdicts } : {}),
     ...(options.topUp ? { topUp: options.topUp } : {}),
     ...(options.breakFirst ? { write: breakingWriter(options.breakFirst) } : {}),
+    ...(options.write ? { write: options.write } : {}),
   });
   const deps = makeDeps({
     graph,
@@ -373,6 +376,45 @@ describe('top-up loop (reconciliation N)', () => {
       .filter((x) => x.node === 'validate')
       .at(-1)!;
     expect(last.log).toContain('Short of requested: kept 3 of 4 after 1 top-up round');
+    expect(s.graph.count('Question')).toBe(3);
+  });
+
+  it('(e) repairs a writer that uses longer underscore runs, so nothing is discarded and no top-up is needed', async () => {
+    const s = setup({
+      write: (call: StubCall) => ({
+        drafts: promptDraftsFor(call).drafts.map((d) => ({
+          ...d,
+          sentence: d.sentence.replace('___', '_____'),
+        })),
+      }),
+    });
+    const result = await s.run();
+    expect(result.outcome).toBe('awaiting_review');
+    expect(result.counts.kept).toBe(4);
+    expect(s.chat.callCount(PROMPT_LABELS.topup)).toBe(0);
+    expect(s.graph.count('Question')).toBe(4);
+  });
+
+  it('(f) repairs a writer that forgets the marker but leaves the answer in the sentence', async () => {
+    const s = setup({
+      write: (call: StubCall) => ({
+        drafts: promptDraftsFor(call).drafts.map((d) => ({
+          ...d,
+          sentence: d.sentence.replace('___', d.answers[0]!),
+        })),
+      }),
+    });
+    const result = await s.run();
+    expect(result.outcome).toBe('awaiting_review');
+    expect(result.counts.kept).toBe(4);
+    expect(s.chat.callCount(PROMPT_LABELS.topup)).toBe(0);
+  });
+
+  it('(g) a malformed top-up answer ends the loop with what is kept instead of failing the run', async () => {
+    const s = setup({ breakFirst: [0, 1, 2], topUp: () => ({ drafts: 'not a list' }) });
+    const result = await s.run();
+    expect(result.outcome).toBe('awaiting_review');
+    expect(result.counts.kept).toBe(3);
     expect(s.graph.count('Question')).toBe(3);
   });
 

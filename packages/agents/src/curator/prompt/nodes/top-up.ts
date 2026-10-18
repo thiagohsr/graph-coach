@@ -46,12 +46,21 @@ export const topUpNode: PromptNodeFactory = (deps) => async (state) => {
         newSlots,
         kept: state.kept.map((k) => k.sentence),
       });
-      const answer = await callStructured(deps, ctx, {
-        node: 'topUp',
-        label: 'curator.prompt.topup',
-        schema: PromptDrafts,
-        ...prompt,
-      });
+      // A top-up is a best effort to reach the requested count: when the model's answer is still malformed after the
+      // retries, the round adds nothing and the loop stops with what is already kept; it never fails the run.
+      let answer: PromptDrafts;
+      try {
+        answer = await callStructured(deps, ctx, {
+          node: 'topUp',
+          label: 'curator.prompt.topup',
+          schema: PromptDrafts,
+          ...prompt,
+        });
+      } catch (error) {
+        if (!(error instanceof CuratorStepError) || error.code !== 'INVALID_MODEL_OUTPUT')
+          throw error;
+        answer = { drafts: [] };
+      }
 
       const slots = new Map<number, string>([
         ...unused.map((s) => [s.index, s.conceptSlug] as const),
