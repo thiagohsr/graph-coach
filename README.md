@@ -539,13 +539,7 @@ The 18 rules of the challenge (from the organisers' challenge page and rules) an
 
 ## 16. Provenance
 
-Dated from the files and the repository, in UTC. The hackathon began on 14 October 2026 at 18:31 UTC.
-
-- **Before the start:** the specification and design documents (kept privately with the operations documents) were started on 11–12 October; a FalkorDB learning spike (`spike/`, not part of the application) on 13 October; the workspace scaffolding (package manifests, TypeScript and lint configuration) on the afternoon of 14 October.
-- **After the start:** the application code, tests, documentation and deployment were built from 14 October 23:35 UTC onward, in unattended runs of AI coding agents directed and reviewed by the author, then continued interactively. Every commit is dated from 15 October 21:45 UTC onward, when the first grouped commits were made from the local tree.
-- **Earlier projects:** two personal projects (an agent operations tool and a puzzle study game) inspired the design; no code was copied from them.
-- **History:** on 17 October the history was **filtered**, not re-dated: files describing the live infrastructure (Terraform, server bundle, deploy scripts, runbooks, the security checklist with its results, run logs and review notes) were removed from every commit and moved to a private operations repository, and three infrastructure names were replaced with placeholders in every version of every file. Commit dates, authors and messages are unchanged. A mirror of the unfiltered history is kept privately and can be shown to the organisers.
-- **Disclosure:** sent to the organisers before submission; their answer is recorded in the private operations repository.
+Design notes and specifications and a small FalkorDB learning spike were prepared before the hackathon start (14 October 2026, 18:31 UTC). The application, its tests and the deployment were built after the start, with AI coding assistants under the author's direction and review; the commit history shows the dates. Two earlier personal projects inspired the design; no code was copied from them.
 
 ## 17. AI-assistant disclosure
 

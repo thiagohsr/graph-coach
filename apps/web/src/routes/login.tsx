@@ -18,7 +18,7 @@ interface LoginSearch {
   error?: LoginError | undefined;
   /** Landing page deep link: which form to open. Never an e-mail address. */
   mode?: 'signIn' | 'signUp' | undefined;
-  /** Development only: `?forms=1` shows the e-mail forms against an in-memory fake. */
+  /** Kept for old links: in development the e-mail forms now always show beside the demo accounts. */
   forms?: '1' | undefined;
 }
 
@@ -55,10 +55,11 @@ function LoginPage() {
     queryKey: keys.authFormsPreview,
     queryFn: () => getAuthFormsPreviewFn(),
     staleTime: Infinity,
-    enabled: mode.data === 'dev' && search.forms === '1',
+    enabled: mode.data === 'dev',
   });
-  // `?forms=1` is honoured only when the server says preview is allowed (dev mode, not production).
-  const wantsPreview = search.forms === '1' && preview.data === true;
+  // In development the e-mail forms show beside the demo accounts, but only when the server says the preview is
+  // allowed (dev mode, never production).
+  const wantsPreview = preview.data === true;
   const initialMode = search.mode ?? 'signIn';
   const signedIn = (to: string) => {
     // The session changed: drop everything cached (including the old signed-out session).
@@ -98,42 +99,49 @@ function LoginPage() {
           </p>
         </>
       )}
-      {mode.data === 'dev' && wantsPreview && (
-        <div className="my-10 flex flex-col gap-4 px-4 max-sm:my-6">
-          <p
-            role="note"
-            className="mx-auto w-full max-w-md rounded-md border border-dashed border-input bg-muted px-3 py-2 text-sm"
-          >
-            Development preview of the e-mail forms, wired to an in-memory fake (no Cognito). Try{' '}
-            <code>ana@example.com</code> / <code>Password123</code>, an unverified account{' '}
-            <code>new@example.com</code>, or any new address; every code is <code>123456</code>.{' '}
-            <Link to="/login" className="font-medium underline underline-offset-4">
-              Back to the demo accounts
-            </Link>
-            .
-          </p>
-          <AuthCard
-            initialMode={initialMode}
-            redirect={target}
-            error={search.error}
-            headingLevel="h1"
-            ownsTitle
-            api={authFormsApi}
-            onSignedIn={(to) =>
-              setPreviewNote(
-                `Signed in (preview only: no session was created). You would go to ${to}.`,
-              )
-            }
-          />
-          {previewNote && (
-            <p role="status" className="mx-auto w-full max-w-md text-sm text-success">
-              {previewNote}
-            </p>
+      {mode.data === 'dev' && (
+        <div
+          className={
+            wantsPreview
+              ? 'mx-auto my-10 grid max-w-5xl items-start gap-6 px-4 max-sm:my-6 lg:grid-cols-2'
+              : undefined
+          }
+        >
+          <div className={wantsPreview ? '[&>section]:my-0 [&>section]:max-w-none' : undefined}>
+            <DevAccountPicker redirect={target} onSignedIn={signedIn} />
+          </div>
+          {wantsPreview && (
+            <div className="flex flex-col gap-4">
+              <p
+                role="note"
+                className="w-full rounded-md border border-dashed border-input bg-muted px-3 py-2 text-sm"
+              >
+                Preview of the e-mail forms used in production, wired to an in-memory fake (no
+                Cognito, no session). Try <code>ana@example.com</code> / <code>Password123</code>,
+                an unverified account <code>new@example.com</code>, or any new address; every code
+                is <code>123456</code>. Use the demo accounts on the left to actually sign in.
+              </p>
+              <AuthCard
+                initialMode={initialMode}
+                redirect={target}
+                error={search.error}
+                headingLevel="h1"
+                ownsTitle
+                api={authFormsApi}
+                onSignedIn={(to) =>
+                  setPreviewNote(
+                    `Signed in (preview only: no session was created). You would go to ${to}.`,
+                  )
+                }
+              />
+              {previewNote && (
+                <p role="status" className="text-sm text-success">
+                  {previewNote}
+                </p>
+              )}
+            </div>
           )}
         </div>
-      )}
-      {mode.data === 'dev' && !wantsPreview && (
-        <DevAccountPicker redirect={target} onSignedIn={signedIn} />
       )}
     </main>
   );
