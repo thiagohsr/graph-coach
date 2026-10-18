@@ -46,3 +46,6 @@ docs/
 
 # Agent guidance and design documents live in the private operations repository
 CLAUDE.md
+
+# Local FalkorDB learning spike (not part of the application)
+spike/
